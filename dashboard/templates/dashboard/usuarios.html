@@ -1,0 +1,624 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Usuarios - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-users-cog me-2 text-primary"></i>
+            Gestión de Usuarios
+        </h1>
+        <p class="text-muted mb-0">Administra usuarios, roles y permisos del sistema</p>
+    </div>
+    {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+    <a href="{% url 'dashboard:crear_usuario' %}" class="btn btn-primary">
+        <i class="fas fa-user-plus me-2"></i>Nuevo Usuario
+    </a>
+    {% endif %}
+</div>
+
+<!-- Estadísticas de usuarios -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ usuarios.count }}</h3>
+                        <p class="text-muted mb-0 small">Total Usuarios</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ usuarios_activos }}</h3>
+                        <p class="text-muted mb-0 small">Usuarios Activos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ usuarios_admin }}</h3>
+                        <p class="text-muted mb-0 small">Administradores</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">5</h3>
+                        <p class="text-muted mb-0 small">Conexiones Hoy</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros de búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label text-muted small mb-1">Buscar usuario</label>
+                <div class="position-relative">
+                    <input type="text" class="form-control" placeholder="Nombre, usuario o email...">
+                    <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-muted small mb-1">Rol</label>
+                <select class="form-select">
+                    <option selected>Todos los roles</option>
+                    <option value="admin">Administrador</option>
+                    <option value="gerente">Gerente</option>
+                    <option value="supervisor">Supervisor</option>
+                    <option value="cajero">Cajero</option>
+                    <option value="cocinero">Cocinero</option>
+                    <option value="mesero">Mesero</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-muted small mb-1">Estado</label>
+                <select class="form-select">
+                    <option selected>Todos</option>
+                    <option value="activo">Activos</option>
+                    <option value="inactivo">Inactivos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-muted small mb-1">Sucursal</label>
+                <select class="form-select">
+                    <option selected>Todas</option>
+                    <option value="1">Principal</option>
+                    <option value="2">Sucursal Norte</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-primary w-100">
+                    <i class="fas fa-filter me-2"></i>Filtrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de usuarios -->
+{% if usuarios %}
+<div class="row">
+    {% for usuario in usuarios %}
+    <div class="col-xl-4 col-lg-6 mb-4">
+        <div class="card user-card h-100">
+            <div class="card-body">
+                <!-- Header del usuario -->
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="user-avatar me-3">
+                            {% if usuario.foto %}
+                            <img src="{{ usuario.foto.url }}" class="avatar-img" alt="{{ usuario.get_full_name }}">
+                            {% else %}
+                            <div class="avatar-placeholder">
+                                {{ usuario.first_name|first|default:usuario.username|first|upper }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h6 class="mb-0 text-dark">{{ usuario.get_full_name|default:usuario.username }}</h6>
+                            <small class="text-muted">@{{ usuario.username }}</small>
+                        </div>
+                    </div>
+                    {% if usuario.is_active %}
+                        <span class="badge badge-success-soft">
+                            <i class="fas fa-circle me-1"></i>Activo
+                        </span>
+                    {% else %}
+                        <span class="badge badge-danger-soft">
+                            <i class="fas fa-circle me-1"></i>Inactivo
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- Información del usuario -->
+                <div class="user-info mb-3">
+                    <div class="info-item">
+                        <i class="fas fa-envelope text-primary me-2"></i>
+                        <span class="small text-muted">{{ usuario.email|default:"Sin email" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-building text-success me-2"></i>
+                        <span class="small text-muted">{{ usuario.sucursal.nombre|default:"Sin sucursal" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-clock text-info me-2"></i>
+                        <span class="small text-muted">
+                            {% if usuario.last_login %}
+                                Último acceso: {{ usuario.last_login|timesince }} atrás
+                            {% else %}
+                                Nunca ha iniciado sesión
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Rol y permisos -->
+                <div class="user-role mb-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <label class="form-label small text-muted mb-1">Rol del sistema</label>
+                            <div>
+                                {% if usuario.is_superuser %}
+                                    <span class="role-badge role-super">
+                                        <i class="fas fa-crown me-1"></i>Super Admin
+                                    </span>
+                                {% elif usuario.rol %}
+                                    <span class="role-badge role-{{ usuario.rol.nombre }}">
+                                        <i class="fas fa-user-tag me-1"></i>{{ usuario.rol.get_nombre_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="role-badge role-none">
+                                        <i class="fas fa-user me-1"></i>Sin rol
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="permissions-icons">
+                            {% if usuario.is_staff %}
+                                <span class="permission-icon" title="Acceso al panel de administración">
+                                    <i class="fas fa-cog text-warning"></i>
+                                </span>
+                            {% endif %}
+                            {% if usuario.is_superuser %}
+                                <span class="permission-icon" title="Super usuario">
+                                    <i class="fas fa-shield-alt text-danger"></i>
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estadísticas del usuario -->
+                <div class="user-stats">
+                    <div class="stats-row">
+                        <div class="stat-item">
+                            <div class="stat-value text-primary">{{ usuario.date_joined|timesince }}</div>
+                            <div class="stat-label">En el sistema</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value text-success">0</div>
+                            <div class="stat-label">Tareas completadas</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="card-footer border-0 pt-0">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm flex-fill">
+                        <i class="fas fa-eye me-1"></i>Ver perfil
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm flex-fill">
+                        <i class="fas fa-edit me-1"></i>Editar
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-key me-2"></i>Cambiar contraseña</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-shield me-2"></i>Permisos</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-history me-2"></i>Historial</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% if usuario.is_active %}
+                            <li><a class="dropdown-item text-warning" href="#"><i class="fas fa-user-slash me-2"></i>Desactivar</a></li>
+                            {% else %}
+                            <li><a class="dropdown-item text-success" href="#"><i class="fas fa-user-check me-2"></i>Activar</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i>Eliminar</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Estado vacío -->
+<div class="card">
+    <div class="card-body">
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-users text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay usuarios registrados</h5>
+            <p class="text-muted mb-4">Comienza agregando el primer usuario del sistema.</p>
+            <a href="{% url 'dashboard:crear_usuario' %}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Crear Primer Usuario
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Tarjetas de estadísticas - reutilizando estilos de sucursales */
+.stats-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.stats-primary::before { background: linear-gradient(90deg, #4285f4, #3367d6); }
+.stats-success::before { background: linear-gradient(90deg, #34d399, #10b981); }
+.stats-info::before { background: linear-gradient(90deg, #06b6d4, #0891b2); }
+.stats-warning::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+
+.stats-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+}
+
+.stats-primary .stats-icon { background: linear-gradient(135deg, #4285f4, #3367d6); }
+.stats-success .stats-icon { background: linear-gradient(135deg, #34d399, #10b981); }
+.stats-info .stats-icon { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+.stats-warning .stats-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.stats-card h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+/* Tarjetas de usuarios */
+.user-card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    background: white;
+    overflow: hidden;
+}
+
+.user-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Avatar del usuario */
+.user-avatar {
+    position: relative;
+}
+
+.avatar-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #f8fafc;
+}
+
+.avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4285f4, #3367d6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border: 3px solid #f8fafc;
+}
+
+/* Badges personalizados */
+.badge-success-soft {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-danger-soft {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* Información del usuario */
+.user-info {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Roles y badges */
+.user-role {
+    background: rgba(66, 133, 244, 0.03);
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid;
+}
+
+.role-super {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    border-color: #dc2626;
+}
+
+.role-admin {
+    background: linear-gradient(135deg, #4285f4, #3367d6);
+    color: white;
+    border-color: #4285f4;
+}
+
+.role-gerente {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: white;
+    border-color: #7c3aed;
+}
+
+.role-supervisor {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: white;
+    border-color: #059669;
+}
+
+.role-cajero {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: white;
+    border-color: #d97706;
+}
+
+.role-cocinero {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    border-color: #dc2626;
+}
+
+.role-mesero {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: white;
+    border-color: #0891b2;
+}
+
+.role-none {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+    border-color: #d1d5db;
+}
+
+/* Iconos de permisos */
+.permissions-icons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.permission-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+}
+
+/* Estadísticas del usuario */
+.user-stats {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-top: 0.25rem;
+}
+
+/* Botones personalizados */
+.btn-sm {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.btn-outline-secondary {
+    border-color: #e5e7eb;
+    color: #6b7280;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+/* Filtros */
+.position-relative .fas.fa-search {
+    pointer-events: none;
+}
+
+.form-label.small {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Cards generales */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-footer {
+    background: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .d-flex.gap-2 {
+        flex-direction: column;
+    }
+    
+    .d-flex.gap-2 .dropdown {
+        align-self: stretch;
+    }
+    
+    .user-avatar .avatar-img,
+    .user-avatar .avatar-placeholder {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .avatar-placeholder {
+        font-size: 1.25rem;
+    }
+}
+
+/* Animaciones adicionales */
+.user-card .role-badge {
+    transition: all 0.2s ease;
+}
+
+.user-card:hover .role-badge {
+    transform: scale(1.05);
+}
+
+.permission-icon {
+    transition: all 0.2s ease;
+}
+
+.permission-icon:hover {
+    transform: scale(1.1);
+    background: #e5e7eb;
+}
+</style>
+{% endblock %}

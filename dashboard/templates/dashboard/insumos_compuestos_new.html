@@ -1,0 +1,645 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Insumos Compuestos - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-layer-group me-2 text-primary"></i>
+            Gestión de Insumos Compuestos
+        </h1>
+        <p class="text-muted mb-0">Administra tus insumos compuestos de producción propia y sus componentes</p>
+    </div>
+    <div>
+        {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+        <button class="btn btn-primary" onclick="abrirModalCrearCompuesto()">
+            <i class="fas fa-plus me-2"></i>Nuevo Insumo Compuesto
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ insumos_compuestos.count }}</h3>
+                        <p class="text-muted mb-0 small">Total Compuestos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ insumos_compuestos|length }}</h3>
+                        <p class="text-muted mb-0 small">Activos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">0</h3>
+                        <p class="text-muted mb-0 small">En Producción</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">$0</h3>
+                        <p class="text-muted mb-0 small">Costo Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros y búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label text-muted small mb-1">Buscar insumo compuesto</label>
+                <input type="text" class="form-control" name="buscar" placeholder="Buscar por código o nombre..." 
+                       value="{{ request.GET.buscar }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">Estado</label>
+                <select class="form-select" name="estado">
+                    <option value="">Todos</option>
+                    <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activos</option>
+                    <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de insumos compuestos -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-layer-group me-2"></i>Insumos Compuestos
+            <span class="badge bg-primary ms-2">{{ insumos_compuestos.count }}</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if insumos_compuestos %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Componentes</th>
+                        <th>Costo Total</th>
+                        <th>Precio/Unidad</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for insumo in insumos_compuestos %}
+                    <tr>
+                        <td>
+                            <code>{{ insumo.codigo }}</code>
+                        </td>
+                        <td>
+                            <strong>{{ insumo.nombre }}</strong>
+                            <br>
+                            <small class="text-muted">{{ insumo.unidad_medida.nombre }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ insumo.categoria.nombre }}</span>
+                        </td>
+                        <td>
+                            <small>
+                                {{ insumo.componentes.count }} componente{{ insumo.componentes.count|pluralize }}
+                            </small>
+                        </td>
+                        <td>
+                            <strong>${{ insumo.calcular_costo_compuesto|floatformat:2 }}</strong>
+                        </td>
+                        <td>
+                            <span class="text-success">${{ insumo.precio_unitario|floatformat:2 }}</span>
+                        </td>
+                        <td>
+                            {% if insumo.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-info" 
+                                        onclick="verDetalleCompuesto({{ insumo.id }})" 
+                                        title="Ver detalle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+                                <button type="button" class="btn btn-outline-warning" 
+                                        onclick="editarCompuesto({{ insumo.id }})" 
+                                        title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="eliminarCompuesto({{ insumo.id }}, '{{ insumo.nombre }}')" 
+                                        title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-layer-group fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay insumos compuestos</h5>
+            <p class="text-muted">Crea tu primer insumo compuesto para comenzar</p>
+            {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+            <button class="btn btn-primary" onclick="abrirModalCrearCompuesto()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Insumo Compuesto
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Crear Insumo Compuesto -->
+<div class="modal fade" id="crearCompuestoModal" tabindex="-1" aria-labelledby="crearCompuestoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="crearCompuestoModalLabel">
+                    <i class="fas fa-layer-group me-2"></i>Crear Nuevo Insumo Compuesto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formCrearCompuesto" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Información básica -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Información Básica
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <label for="codigo" class="form-label">Código del insumo *</label>
+                                <input type="text" class="form-control" id="codigo" name="codigo" 
+                                       placeholder="Ej: COMP-001" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">Nombre del insumo compuesto *</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" 
+                                       placeholder="Ej: Salsa Teriyaki Casera" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="categoria_id" class="form-label">Categoría *</label>
+                                    <select class="form-select" id="categoria_id" name="categoria_id" required>
+                                        <option value="">Seleccionar categoría</option>
+                                        <!-- Se llenarán dinámicamente -->
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="unidad_medida_id" class="form-label">Unidad de medida *</label>
+                                    <select class="form-select" id="unidad_medida_id" name="unidad_medida_id" required>
+                                        <option value="">Seleccionar unidad</option>
+                                        <!-- Se llenarán dinámicamente -->
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="cantidad_producida" class="form-label">Cantidad producida *</label>
+                                <input type="number" class="form-control" id="cantidad_producida" name="cantidad_producida" 
+                                       step="0.001" min="0.001" placeholder="1.000" required>
+                                <small class="text-muted">Cantidad que se produce con esta receta</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción/Observaciones</label>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="3" 
+                                          placeholder="Descripción opcional del proceso o ingredientes..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Componentes -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">
+                                <i class="fas fa-boxes me-2"></i>Componentes
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label mb-0">Lista de componentes</label>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="agregarComponente()">
+                                        <i class="fas fa-plus me-1"></i>Agregar componente
+                                    </button>
+                                </div>
+                                
+                                <div id="componentesContainer" class="border rounded p-3" style="min-height: 200px; max-height: 400px; overflow-y: auto;">
+                                    <div class="text-center text-muted py-3" id="sinComponentes">
+                                        <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                                        <p class="mb-0">Haz clic en "Agregar componente" para comenzar</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-calculator me-2"></i>Resumen de costos</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small>Costo total:</small>
+                                        <div class="fw-bold" id="costoTotal">$0.00</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small>Costo por unidad:</small>
+                                        <div class="fw-bold text-success" id="costoPorUnidad">$0.00</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Crear Insumo Compuesto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Template para componente -->
+<div id="componenteTemplate" style="display: none;">
+    <div class="componente-item card mb-2">
+        <div class="card-body py-2">
+            <div class="row align-items-center">
+                <div class="col-md-5">
+                    <select class="form-select form-select-sm" name="componente_insumo[]" onchange="actualizarComponente(this)">
+                        <option value="">-- Seleccione un insumo --</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control form-control-sm" readonly placeholder="Unidad">
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control form-control-sm" name="componente_cantidad[]" 
+                           step="0.001" min="0.001" placeholder="0.000" onchange="actualizarCostos()">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control form-control-sm" readonly placeholder="$0.00">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarComponente(this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let insumosBasicos = [];
+let categorias = [];
+let unidadesMedida = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Iniciando sistema de insumos compuestos...');
+    cargarDatosFormulario();
+});
+
+// Función para abrir modal de crear compuesto
+window.abrirModalCrearCompuesto = function() {
+    const modal = new bootstrap.Modal(document.getElementById('crearCompuestoModal'));
+    
+    // Limpiar formulario
+    document.getElementById('formCrearCompuesto').reset();
+    document.getElementById('componentesContainer').innerHTML = `
+        <div class="text-center text-muted py-3" id="sinComponentes">
+            <i class="fas fa-plus-circle fa-2x mb-2"></i>
+            <p class="mb-0">Haz clic en "Agregar componente" para comenzar</p>
+        </div>
+    `;
+    
+    // Configurar action del formulario
+    document.getElementById('formCrearCompuesto').action = '{% url "dashboard:crear_insumo_compuesto" %}';
+    
+    actualizarCostos();
+    modal.show();
+};
+
+// Cargar datos para el formulario
+function cargarDatosFormulario() {
+    Promise.all([
+        fetch('{% url "dashboard:get_form_data" %}').then(r => r.json()),
+        fetch('{% url "dashboard:obtener_insumos_basicos" %}').then(r => r.json())
+    ])
+    .then(([formData, insumosData]) => {
+        if (formData.success) {
+            categorias = formData.categorias;
+            unidadesMedida = formData.unidades_medida;
+            
+            // Llenar selects de categorías y unidades
+            const categoriaSelect = document.getElementById('categoria_id');
+            categoriaSelect.innerHTML = '<option value="">Seleccionar categoría</option>';
+            categorias.forEach(cat => {
+                categoriaSelect.innerHTML += `<option value="${cat.id}">${cat.nombre}</option>`;
+            });
+            
+            const unidadSelect = document.getElementById('unidad_medida_id');
+            unidadSelect.innerHTML = '<option value="">Seleccionar unidad</option>';
+            unidadesMedida.forEach(unidad => {
+                unidadSelect.innerHTML += `<option value="${unidad.id}">${unidad.nombre}</option>`;
+            });
+        }
+        
+        if (insumosData.success) {
+            insumosBasicos = insumosData.insumos;
+            console.log(`✅ Cargados ${insumosBasicos.length} insumos básicos`);
+        }
+    })
+    .catch(error => {
+        console.error('Error cargando datos:', error);
+        showToast('❌ Error al cargar datos del formulario', 'error');
+    });
+}
+
+// Agregar componente
+window.agregarComponente = function() {
+    const container = document.getElementById('componentesContainer');
+    const sinComponentes = document.getElementById('sinComponentes');
+    
+    if (sinComponentes) {
+        sinComponentes.remove();
+    }
+    
+    // Clonar template
+    const template = document.getElementById('componenteTemplate');
+    const nuevoComponente = template.cloneNode(true);
+    nuevoComponente.id = '';
+    nuevoComponente.style.display = 'block';
+    
+    // Llenar select de insumos
+    const select = nuevoComponente.querySelector('select[name="componente_insumo[]"]');
+    select.innerHTML = '<option value="">-- Seleccione un insumo --</option>';
+    insumosBasicos.forEach(insumo => {
+        select.innerHTML += `<option value="${insumo.id}" data-precio="${insumo.precio_unitario}" data-unidad="${insumo.unidad_abrev}">${insumo.nombre} (${insumo.categoria})</option>`;
+    });
+    
+    container.appendChild(nuevoComponente);
+};
+
+// Actualizar información del componente cuando se selecciona un insumo
+window.actualizarComponente = function(selectElement) {
+    const componenteItem = selectElement.closest('.componente-item');
+    const opcionSeleccionada = selectElement.selectedOptions[0];
+    
+    if (opcionSeleccionada && opcionSeleccionada.value) {
+        const unidad = opcionSeleccionada.dataset.unidad || '';
+        const precio = parseFloat(opcionSeleccionada.dataset.precio) || 0;
+        
+        // Actualizar campo de unidad
+        const inputUnidad = componenteItem.querySelector('input[readonly]:first-of-type');
+        inputUnidad.value = unidad;
+        
+        // Actualizar precio cuando cambie la cantidad
+        const inputCantidad = componenteItem.querySelector('input[name="componente_cantidad[]"]');
+        inputCantidad.oninput = function() {
+            actualizarCostos();
+        };
+        
+        actualizarCostos();
+    }
+};
+
+// Eliminar componente
+window.eliminarComponente = function(btnElement) {
+    const componenteItem = btnElement.closest('.componente-item');
+    componenteItem.remove();
+    
+    // Si no quedan componentes, mostrar mensaje
+    const container = document.getElementById('componentesContainer');
+    if (container.children.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3" id="sinComponentes">
+                <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                <p class="mb-0">Haz clic en "Agregar componente" para comenzar</p>
+            </div>
+        `;
+    }
+    
+    actualizarCostos();
+};
+
+// Actualizar costos totales
+window.actualizarCostos = function() {
+    let costoTotal = 0;
+    
+    document.querySelectorAll('.componente-item').forEach(item => {
+        const select = item.querySelector('select[name="componente_insumo[]"]');
+        const inputCantidad = item.querySelector('input[name="componente_cantidad[]"]');
+        const inputCosto = item.querySelector('input[readonly]:last-of-type');
+        
+        if (select.value && inputCantidad.value) {
+            const opcionSeleccionada = select.selectedOptions[0];
+            const precio = parseFloat(opcionSeleccionada.dataset.precio) || 0;
+            const cantidad = parseFloat(inputCantidad.value) || 0;
+            const costo = precio * cantidad;
+            
+            inputCosto.value = `$${costo.toFixed(2)}`;
+            costoTotal += costo;
+        } else {
+            inputCosto.value = '$0.00';
+        }
+    });
+    
+    // Actualizar resumen
+    document.getElementById('costoTotal').textContent = `$${costoTotal.toFixed(2)}`;
+    
+    const cantidadProducida = parseFloat(document.getElementById('cantidad_producida').value) || 1;
+    const costoPorUnidad = costoTotal / cantidadProducida;
+    document.getElementById('costoPorUnidad').textContent = `$${costoPorUnidad.toFixed(2)}`;
+};
+
+// Actualizar costos cuando cambie la cantidad producida
+document.getElementById('cantidad_producida').addEventListener('input', actualizarCostos);
+
+// Manejar envío del formulario
+document.getElementById('formCrearCompuesto').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    // Validar que haya al menos un componente
+    const componentes = document.querySelectorAll('.componente-item');
+    if (componentes.length === 0) {
+        showToast('❌ Debe agregar al menos un componente', 'error');
+        return;
+    }
+    
+    // Validar que todos los componentes estén completos
+    let componentesValidos = true;
+    componentes.forEach(item => {
+        const select = item.querySelector('select[name="componente_insumo[]"]');
+        const input = item.querySelector('input[name="componente_cantidad[]"]');
+        
+        if (!select.value || !input.value || parseFloat(input.value) <= 0) {
+            componentesValidos = false;
+        }
+    });
+    
+    if (!componentesValidos) {
+        showToast('❌ Todos los componentes deben tener insumo y cantidad válida', 'error');
+        return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';
+    
+    const formData = new FormData(form);
+    
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('crearCompuestoModal'));
+            modal.hide();
+            showToast(`✅ ${data.message}`, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast(`❌ Error: ${data.message}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión. Intenta nuevamente.', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
+
+// Funciones de placeholder para botones de acción
+window.verDetalleCompuesto = function(id) {
+    showToast('🔍 Función de ver detalle en desarrollo', 'info');
+};
+
+window.editarCompuesto = function(id) {
+    showToast('✏️ Función de editar en desarrollo', 'info');
+};
+
+window.eliminarCompuesto = function(id, nombre) {
+    if (confirm(`¿Estás seguro de que deseas eliminar el insumo compuesto "${nombre}"?`)) {
+        showToast('🗑️ Función de eliminar en desarrollo', 'info');
+    }
+};
+
+// Función auxiliar para mostrar mensajes
+function showToast(message, type = 'info') {
+    // Crear toast dinámicamente
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    
+    const toastId = 'toast-' + Date.now();
+    const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : type === 'warning' ? 'bg-warning' : 'bg-info';
+    
+    const toastHTML = `
+        <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
+    toast.show();
+    
+    // Remover después de ocultar
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
+    return container;
+}
+
+console.log('✅ Sistema de insumos compuestos inicializado');
+</script>
+{% endblock %}

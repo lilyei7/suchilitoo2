@@ -1,0 +1,160 @@
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_nombre_comercial" class="form-label">
+                <i class="fas fa-store me-1"></i>Nombre Comercial *
+            </label>
+            <input type="text" class="form-control" name="nombre_comercial" id="edit_nombre_comercial" 
+                   value="{{ proveedor.nombre_comercial }}" required>
+            <div class="form-text">Nombre con el que opera el proveedor</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_razon_social" class="form-label">
+                <i class="fas fa-building me-1"></i>Razón Social *
+            </label>
+            <input type="text" class="form-control" name="razon_social" id="edit_razon_social" 
+                   value="{{ proveedor.razon_social }}" required>
+            <div class="form-text">Denominación legal de la empresa</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_rfc" class="form-label">
+                <i class="fas fa-id-card me-1"></i>RFC *
+            </label>
+            <input type="text" class="form-control" name="rfc" id="edit_rfc" 
+                   value="{{ proveedor.rfc }}" maxlength="13" required>
+            <div class="form-text">Registro Federal de Contribuyentes</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_persona_contacto" class="form-label">
+                <i class="fas fa-user me-1"></i>Persona de Contacto
+            </label>
+            <input type="text" class="form-control" name="persona_contacto" id="edit_persona_contacto" 
+                   value="{{ proveedor.persona_contacto }}">
+            <div class="form-text">Nombre del contacto principal</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_telefono" class="form-label">
+                <i class="fas fa-phone me-1"></i>Teléfono
+            </label>
+            <input type="tel" class="form-control" name="telefono" id="edit_telefono" 
+                   value="{{ proveedor.telefono }}">
+            <div class="form-text">Número de teléfono de contacto</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_email" class="form-label">
+                <i class="fas fa-envelope me-1"></i>Email
+            </label>
+            <input type="email" class="form-control" name="email" id="edit_email" 
+                   value="{{ proveedor.email }}">
+            <div class="form-text">Correo electrónico de contacto</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_direccion" class="form-label">
+                <i class="fas fa-map-marker-alt me-1"></i>Dirección
+            </label>
+            <input type="text" class="form-control" name="direccion" id="edit_direccion" 
+                   value="{{ proveedor.direccion }}">
+            <div class="form-text">Dirección física del proveedor</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_ciudad_estado" class="form-label">
+                <i class="fas fa-globe me-1"></i>Ciudad/Estado
+            </label>
+            <input type="text" class="form-control" name="ciudad_estado" id="edit_ciudad_estado" 
+                   value="{{ proveedor.ciudad_estado }}">
+            <div class="form-text">Ciudad y estado del proveedor</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_categoria_productos" class="form-label">
+                <i class="fas fa-tags me-1"></i>Categoría de Productos *
+            </label>
+            <select class="form-control" name="categoria_productos" id="edit_categoria_productos" required>
+                <option value="ingredientes" {% if proveedor.categoria_productos == 'ingredientes' %}selected{% endif %}>🥬 Ingredientes</option>
+                <option value="bebidas" {% if proveedor.categoria_productos == 'bebidas' %}selected{% endif %}>🥤 Bebidas</option>
+                <option value="equipos" {% if proveedor.categoria_productos == 'equipos' %}selected{% endif %}>🔧 Equipos</option>
+                <option value="servicios" {% if proveedor.categoria_productos == 'servicios' %}selected{% endif %}>🛠️ Servicios</option>
+                <option value="otros" {% if proveedor.categoria_productos == 'otros' %}selected{% endif %}>📦 Otros</option>
+            </select>
+            <div class="form-text">Tipo de productos que suministra</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_forma_pago_preferida" class="form-label">
+                <i class="fas fa-credit-card me-1"></i>Forma de Pago Preferida *
+            </label>
+            <select class="form-control" name="forma_pago_preferida" id="edit_forma_pago_preferida" required>
+                <option value="efectivo" {% if proveedor.forma_pago_preferida == 'efectivo' %}selected{% endif %}>💵 Efectivo</option>
+                <option value="transferencia" {% if proveedor.forma_pago_preferida == 'transferencia' %}selected{% endif %}>🏦 Transferencia</option>
+                <option value="cheque" {% if proveedor.forma_pago_preferida == 'cheque' %}selected{% endif %}>📋 Cheque</option>
+                <option value="credito" {% if proveedor.forma_pago_preferida == 'credito' %}selected{% endif %}>💳 Crédito</option>
+            </select>
+            <div class="form-text">Método de pago preferido por el proveedor</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_dias_credito" class="form-label">
+                <i class="fas fa-calendar me-1"></i>Días de Crédito
+            </label>
+            <input type="number" class="form-control" name="dias_credito" id="edit_dias_credito" 
+                   min="0" max="365" value="{{ proveedor.dias_credito }}">
+            <div class="form-text">Número de días de crédito otorgado</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="edit_estado" class="form-label">
+                <i class="fas fa-toggle-on me-1"></i>Estado *
+            </label>
+            <select class="form-control" name="estado" id="edit_estado" required>
+                <option value="activo" {% if proveedor.estado == 'activo' %}selected{% endif %}>✅ Activo</option>
+                <option value="inactivo" {% if proveedor.estado == 'inactivo' %}selected{% endif %}>🔒 Inactivo</option>
+            </select>
+            <div class="form-text">Estado actual del proveedor</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="mb-3">
+            <label for="edit_notas_adicionales" class="form-label">
+                <i class="fas fa-sticky-note me-1"></i>Notas Adicionales
+            </label>
+            <textarea class="form-control" name="notas_adicionales" id="edit_notas_adicionales" rows="3">{{ proveedor.notas_adicionales }}</textarea>
+            <div class="form-text">Información adicional o comentarios sobre el proveedor</div>
+        </div>
+    </div>
+</div>

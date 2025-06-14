@@ -1,0 +1,1467 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Insumos Compuestos - Sushi Restaurant{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-layer-group me-2 text-primary"></i>
+            Gestión de Insumos Compuestos
+        </h1>
+        <p class="text-muted mb-0">Administra tus insumos compuestos de producción propia y sus componentes</p>
+    </div>    <div>
+        {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+        <button class="btn btn-primary me-2" onclick="abrirModalCrearCompuesto()">
+            <i class="fas fa-plus me-2"></i>Nuevo Insumo Compuesto
+        </button>
+        <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
+            <i class="fas fa-tags me-2"></i>Gestionar Categorías
+        </button>
+        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#nuevaUnidadModal">
+            <i class="fas fa-balance-scale me-2"></i>Gestionar Unidades
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ insumos_compuestos.count }}</h3>
+                        <p class="text-muted mb-0 small">Total Compuestos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ insumos_compuestos|length }}</h3>
+                        <p class="text-muted mb-0 small">Activos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">0</h3>
+                        <p class="text-muted mb-0 small">En Producción</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">$0</h3>
+                        <p class="text-muted mb-0 small">Costo Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros y búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label text-muted small mb-1">Buscar insumo compuesto</label>
+                <input type="text" class="form-control" name="buscar" placeholder="Buscar por código o nombre..." 
+                       value="{{ request.GET.buscar }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">Estado</label>
+                <select class="form-select" name="estado">
+                    <option value="">Todos</option>
+                    <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activos</option>
+                    <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de insumos compuestos -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-layer-group me-2"></i>Insumos Compuestos
+            <span class="badge bg-primary ms-2">{{ insumos_compuestos.count }}</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if insumos_compuestos %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Componentes</th>
+                        <th>Costo Total</th>
+                        <th>Precio/Unidad</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for insumo in insumos_compuestos %}
+                    <tr>
+                        <td>
+                            <code>{{ insumo.codigo }}</code>
+                        </td>
+                        <td>
+                            <strong>{{ insumo.nombre }}</strong>
+                            <br>
+                            <small class="text-muted">{{ insumo.unidad_medida.nombre }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ insumo.categoria.nombre }}</span>
+                        </td>
+                        <td>
+                            <small>
+                                {{ insumo.componentes.count }} componente{{ insumo.componentes.count|pluralize }}
+                            </small>
+                        </td>
+                        <td>
+                            <strong>${{ insumo.calcular_costo_compuesto|floatformat:2 }}</strong>
+                        </td>
+                        <td>
+                            <span class="text-success">${{ insumo.precio_unitario|floatformat:2 }}</span>
+                        </td>
+                        <td>
+                            {% if insumo.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-info" 
+                                        onclick="verDetalleCompuesto({{ insumo.id }})" 
+                                        title="Ver detalle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+                                <button type="button" class="btn btn-outline-warning" 
+                                        onclick="editarCompuesto({{ insumo.id }})" 
+                                        title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="eliminarCompuesto({{ insumo.id }}, '{{ insumo.nombre }}')" 
+                                        title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-layer-group fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay insumos compuestos</h5>
+            <p class="text-muted">Crea tu primer insumo compuesto para comenzar</p>
+            {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+            <button class="btn btn-primary" onclick="abrirModalCrearCompuesto()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Insumo Compuesto
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Crear Insumo Compuesto -->
+<div class="modal fade" id="crearCompuestoModal" tabindex="-1" aria-labelledby="crearCompuestoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="crearCompuestoModalLabel">
+                    <i class="fas fa-layer-group me-2"></i>Crear Nuevo Insumo Compuesto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formCrearCompuesto" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Información básica -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Información Básica
+                            </h6>
+                              <div class="mb-3">
+                                <label for="codigo" class="form-label">Código del insumo</label>
+                                <input type="text" class="form-control" id="codigo" name="codigo" 
+                                       placeholder="Ej: COMP-001 (opcional - se genera automáticamente)">
+                                <small class="text-muted">Si no se especifica, se generará automáticamente</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">Nombre del insumo compuesto *</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" 
+                                       placeholder="Ej: Salsa Teriyaki Casera" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="categoria_id" class="form-label">Categoría *</label>
+                                    <select class="form-select" id="categoria_id" name="categoria_id" required>
+                                        <option value="">Seleccionar categoría</option>
+                                        <!-- Se llenarán dinámicamente -->
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="unidad_medida_id" class="form-label">Unidad de medida *</label>
+                                    <select class="form-select" id="unidad_medida_id" name="unidad_medida_id" required>
+                                        <option value="">Seleccionar unidad</option>
+                                        <!-- Se llenarán dinámicamente -->
+                                    </select>
+                                </div>
+                            </div>
+                              <div class="mb-3">
+                                <label for="cantidad_producida" class="form-label">Cantidad estándar *</label>
+                                <input type="number" class="form-control" id="cantidad_producida" name="cantidad_producida" 
+                                       step="0.001" min="0.001" placeholder="1.000" required>
+                                <small class="text-muted">Cantidad que se produce con esta receta estándar</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción/Observaciones</label>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="3" 
+                                          placeholder="Descripción opcional del proceso o ingredientes..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Componentes -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">
+                                <i class="fas fa-boxes me-2"></i>Componentes
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label mb-0">Lista de componentes</label>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="agregarComponente()">
+                                        <i class="fas fa-plus me-1"></i>Agregar componente
+                                    </button>
+                                </div>                                  <div id="componentesContainer" class="border rounded p-3" style="min-height: 250px; max-height: 400px; overflow-y: auto;">
+                                    <!-- Header de la tabla de componentes -->
+                                    <div class="row fw-bold text-primary bg-light border-bottom pb-2 mb-3 mx-1 rounded" id="componentesHeader" style="display: none;">
+                                        <div class="col-5">
+                                            <i class="fas fa-box me-1"></i>Insumo Básico
+                                        </div>
+                                        <div class="col-2">
+                                            <i class="fas fa-ruler me-1"></i>Unidad
+                                        </div>
+                                        <div class="col-2">
+                                            <i class="fas fa-hashtag me-1"></i>Cantidad
+                                        </div>
+                                        <div class="col-2">
+                                            <i class="fas fa-dollar-sign me-1"></i>Costo
+                                        </div>
+                                        <div class="col-1">
+                                            <i class="fas fa-cog"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center text-muted py-4" id="sinComponentes">
+                                        <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                                        <p class="mb-0">Haz clic en "Agregar componente" para comenzar</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-calculator me-2"></i>Resumen de costos</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small>Costo total:</small>
+                                        <div class="fw-bold" id="costoTotal">$0.00</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small>Costo por unidad:</small>
+                                        <div class="fw-bold text-success" id="costoPorUnidad">$0.00</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Crear Insumo Compuesto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Template para componente -->
+<div id="componenteTemplate" style="display: none;">
+    <div class="componente-item mb-3 border rounded p-3 bg-light">
+        <div class="row align-items-center">
+            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">Insumo básico</label>
+                <select class="form-select form-select-sm" name="componente_insumo[]" onchange="actualizarComponente(this)" required>
+                    <option value="">-- Seleccione un insumo básico --</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Unidad</label>
+                <input type="text" class="form-control form-control-sm bg-white" readonly placeholder="---" 
+                       style="font-weight: 500; color: #495057;">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Cantidad *</label>
+                <input type="number" class="form-control form-control-sm" name="componente_cantidad[]" 
+                       step="0.001" min="0.001" placeholder="0.000" onchange="actualizarCostos()" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Costo</label>
+                <input type="text" class="form-control form-control-sm bg-white text-success" readonly placeholder="$0.00"
+                       style="font-weight: 600;">
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small text-muted mb-1">&nbsp;</label>
+                <button type="button" class="btn btn-sm btn-outline-danger d-block" onclick="eliminarComponente(this)" title="Eliminar componente">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Categoría -->
+<div class="modal fade" id="nuevaCategoriaModal" tabindex="-1" aria-labelledby="nuevaCategoriaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevaCategoriaModalLabel">
+                    <i class="fas fa-tags me-2 text-primary"></i>
+                    Gestión de Categorías
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Lista de categorías existentes -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-list me-2"></i>
+                        Categorías Existentes
+                    </h6>
+                    <div id="listaCategorias" class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            Cargando categorías...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Formulario para nueva categoría -->
+                <div class="border-top pt-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-plus me-2"></i>
+                        Crear Nueva Categoría
+                    </h6>
+                    <form id="nuevaCategoriaForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="nombreCategoria" class="form-label">Nombre de la categoría: <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nombreCategoria" name="nombre" required placeholder="Ej: Salsas, Preparaciones, Bases...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcionCategoria" class="form-label">Descripción (opcional):</label>
+                            <textarea class="form-control" id="descripcionCategoria" name="descripcion" rows="2" placeholder="Describe brevemente esta categoría..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Crear Categoría
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small>Las categorías te ayudan a organizar mejor tus insumos compuestos y facilitar la búsqueda.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Unidad de Medida -->
+<div class="modal fade" id="nuevaUnidadModal" tabindex="-1" aria-labelledby="nuevaUnidadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevaUnidadModalLabel">
+                    <i class="fas fa-balance-scale me-2 text-primary"></i>
+                    Gestión de Unidades de Medida
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Lista de unidades existentes -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-list me-2"></i>
+                        Unidades Existentes
+                    </h6>
+                    <div id="listaUnidades" class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            Cargando unidades...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Formulario para nueva unidad -->
+                <div class="border-top pt-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-plus me-2"></i>
+                        Crear Nueva Unidad de Medida
+                    </h6>
+                    <form id="nuevaUnidadForm">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="nombreUnidad" class="form-label">Nombre de la unidad: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nombreUnidad" name="nombre" required placeholder="Ej: Porción, Bandeja, Tazón...">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="abreviacionUnidad" class="form-label">Abreviación: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="abreviacionUnidad" name="abreviacion" required placeholder="Ej: prc, bdj, tz..." maxlength="10">
+                                <div class="form-text">Máximo 10 caracteres</div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Crear Unidad
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small>Unidades comunes para compuestos: prc (porción), bdj (bandeja), tz (tazón), pl (plato), etc.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+let insumosBasicos = [];
+let categorias = [];
+let unidadesMedida = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Iniciando sistema de insumos compuestos...');
+    cargarDatosFormulario();
+});
+
+// Función para abrir modal de crear compuesto
+window.abrirModalCrearCompuesto = function() {
+    const modal = new bootstrap.Modal(document.getElementById('crearCompuestoModal'));
+    
+    // Reset completo del modal
+    resetModalCrearCompuesto();
+    
+    modal.show();
+};
+
+// Función para resetear el modal
+function resetModalCrearCompuesto() {
+    // Cambiar título a crear
+    document.getElementById('crearCompuestoModalLabel').textContent = '🆕 Crear Nuevo Insumo Compuesto';
+    
+    // Limpiar formulario
+    document.getElementById('formCrearCompuesto').reset();
+    
+    // Configurar action del formulario para crear
+    document.getElementById('formCrearCompuesto').action = '{% url "dashboard:crear_insumo_compuesto" %}';
+    
+    // Eliminar campo de método si existe
+    const methodField = document.getElementById('edit-method-field');
+    if (methodField) {
+        methodField.remove();
+    }
+    
+    // Limpiar componentes
+    document.getElementById('componentesContainer').innerHTML = `
+        <div class="text-center text-muted py-3" id="sinComponentes">
+            <i class="fas fa-plus-circle fa-2x mb-2"></i>
+            <p class="mb-0">Haz clic en "Agregar componente" para comenzar</p>
+        </div>
+    `;
+    
+    actualizarCostos();
+}
+
+// Cargar datos para el formulario
+async function cargarDatosFormulario() {
+    try {
+        // Cargar categorías
+        const respCategorias = await fetch('/dashboard/api/categorias/');
+        const dataCategorias = await respCategorias.json();
+        if (dataCategorias.success) {
+            categorias = dataCategorias.categorias;
+            llenarSelectCategorias();
+        }
+        
+        // Cargar unidades de medida
+        const respUnidades = await fetch('/dashboard/api/unidades-medida/');
+        const dataUnidades = await respUnidades.json();
+        if (dataUnidades.success) {
+            unidadesMedida = dataUnidades.unidades;
+            llenarSelectUnidades();
+        }
+        
+        // Cargar insumos básicos
+        const respInsumos = await fetch('{% url "dashboard:api_obtener_insumos_basicos" %}');
+        const dataInsumos = await respInsumos.json();
+        if (dataInsumos.success) {
+            insumosBasicos = dataInsumos.insumos;
+        }
+        
+        console.log(`✅ Datos cargados: ${categorias.length} categorías, ${unidadesMedida.length} unidades, ${insumosBasicos.length} insumos básicos`);
+        
+    } catch (error) {
+        console.error('Error cargando datos:', error);
+        showToast('❌ Error cargando datos del formulario', 'error');
+    }
+}
+
+// Función para llenar el select de categorías
+function llenarSelectCategorias() {
+    const select = document.getElementById('categoria_id');
+    select.innerHTML = '<option value="">Seleccionar categoría</option>';
+    
+    categorias.forEach(categoria => {
+        const option = document.createElement('option');
+        option.value = categoria.id;
+        option.textContent = categoria.nombre;
+        if (categoria.descripcion) {
+            option.title = categoria.descripcion;
+        }
+        select.appendChild(option);
+    });
+}
+
+// Función para llenar el select de unidades de medida
+function llenarSelectUnidades() {
+    const select = document.getElementById('unidad_medida_id');
+    select.innerHTML = '<option value="">Seleccionar unidad</option>';
+    
+    // Agrupar por tipo si existe
+    const porTipo = {};
+    unidadesMedida.forEach(unidad => {
+        const tipo = unidad.tipo || 'general';
+        if (!porTipo[tipo]) porTipo[tipo] = [];
+        porTipo[tipo].push(unidad);
+    });
+    
+    // Crear optgroups si hay tipos
+    if (Object.keys(porTipo).length > 1) {
+        Object.keys(porTipo).sort().forEach(tipo => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+            
+            porTipo[tipo].forEach(unidad => {
+                const option = document.createElement('option');
+                option.value = unidad.id;
+                option.textContent = `${unidad.nombre} (${unidad.abreviacion})`;
+                optgroup.appendChild(option);
+            });
+            
+            select.appendChild(optgroup);
+        });
+    } else {
+        // Sin agrupación
+        unidadesMedida.forEach(unidad => {
+            const option = document.createElement('option');
+            option.value = unidad.id;
+            option.textContent = `${unidad.nombre} (${unidad.abreviacion})`;
+            select.appendChild(option);
+        });
+    }
+}
+
+// Agregar componente
+window.agregarComponente = function() {
+    const container = document.getElementById('componentesContainer');
+    const sinComponentes = document.getElementById('sinComponentes');
+    const header = document.getElementById('componentesHeader');
+    
+    if (sinComponentes) {
+        sinComponentes.remove();
+    }
+    
+    // Mostrar header si no está visible
+    if (header) {
+        header.style.display = 'block';
+    }
+    
+    // Clonar template
+    const template = document.getElementById('componenteTemplate');
+    const nuevoComponente = template.cloneNode(true);
+    nuevoComponente.id = '';
+    nuevoComponente.style.display = 'block';
+    
+    // Llenar select de insumos
+    const select = nuevoComponente.querySelector('select[name="componente_insumo[]"]');
+    select.innerHTML = '<option value="">-- Seleccione un insumo básico --</option>';
+    insumosBasicos.forEach(insumo => {
+        const option = document.createElement('option');
+        option.value = insumo.id;
+        option.dataset.precio = insumo.precio_unitario;
+        option.dataset.unidad = insumo.unidad_abrev;
+        option.textContent = `${insumo.nombre} - ${insumo.categoria} ($${insumo.precio_unitario}/${insumo.unidad_abrev})`;
+        select.appendChild(option);
+    });
+    
+    container.appendChild(nuevoComponente);
+    actualizarCostos();
+};
+
+// Actualizar información del componente cuando se selecciona un insumo
+window.actualizarComponente = function(selectElement) {
+    if (!selectElement) return;
+    
+    const componenteItem = selectElement.closest('.componente-item');
+    if (!componenteItem) return;
+    
+    const opcionSeleccionada = selectElement.selectedOptions[0];
+      if (opcionSeleccionada && opcionSeleccionada.value) {
+        const unidad = opcionSeleccionada.dataset.unidad || '';
+        const precio = parseFloat(opcionSeleccionada.dataset.precio) || 0;
+        
+        // Actualizar campo de unidad con estilo mejorado
+        const inputUnidad = componenteItem.querySelector('input[readonly]');
+        if (inputUnidad) {
+            inputUnidad.value = unidad;
+            inputUnidad.style.fontWeight = '600';
+            inputUnidad.style.color = '#0d6efd';
+        }
+        
+        // Limpiar cantidad anterior
+        const inputCantidad = componenteItem.querySelector('input[name="componente_cantidad[]"]');
+        if (inputCantidad) {
+            inputCantidad.value = '';
+            
+            // Actualizar costo cuando cambie la cantidad
+            inputCantidad.oninput = function() {
+                actualizarCostoComponente(componenteItem);
+                actualizarCostos();
+            };
+        }
+        
+        // Actualizar costo inicial
+        actualizarCostoComponente(componenteItem);
+        actualizarCostos();
+    } else {
+        // Limpiar campos si no hay selección
+        const inputUnidad = componenteItem.querySelector('input[readonly]');
+        const inputsCosto = componenteItem.querySelectorAll('input[readonly]');
+        const inputCosto = inputsCosto.length > 1 ? inputsCosto[1] : null;
+        const inputCantidad = componenteItem.querySelector('input[name="componente_cantidad[]"]');
+        
+        if (inputUnidad) {
+            inputUnidad.value = '---';
+            inputUnidad.style.fontWeight = 'normal';
+            inputUnidad.style.color = '#6c757d';
+        }
+        
+        if (inputCosto) {
+            inputCosto.value = '$0.00';
+        }
+        
+        if (inputCantidad) {
+            inputCantidad.value = '';
+        }
+    }
+};
+
+// Función auxiliar para actualizar el costo de un componente específico
+function actualizarCostoComponente(componenteItem) {
+    if (!componenteItem) return;
+    
+    const select = componenteItem.querySelector('select[name="componente_insumo[]"]');
+    const inputCantidad = componenteItem.querySelector('input[name="componente_cantidad[]"]');
+    const inputsCosto = componenteItem.querySelectorAll('input[readonly]');
+    const inputCosto = inputsCosto.length > 1 ? inputsCosto[1] : null; // El segundo input readonly es el costo
+    
+    if (!inputCosto) return; // Si no hay campo de costo, salir
+    
+    if (select && select.value && inputCantidad && inputCantidad.value) {
+        const opcionSeleccionada = select.selectedOptions[0];
+        if (opcionSeleccionada && opcionSeleccionada.dataset.precio) {
+            const precio = parseFloat(opcionSeleccionada.dataset.precio) || 0;
+            const cantidad = parseFloat(inputCantidad.value) || 0;
+            const costo = precio * cantidad;
+            
+            inputCosto.value = `$${costo.toFixed(2)}`;
+            inputCosto.style.fontWeight = '600';
+            inputCosto.style.color = '#198754';
+        } else {
+            inputCosto.value = '$0.00';
+            inputCosto.style.fontWeight = 'normal';
+            inputCosto.style.color = '#6c757d';
+        }
+    } else {
+        inputCosto.value = '$0.00';
+        inputCosto.style.fontWeight = 'normal';
+        inputCosto.style.color = '#6c757d';
+    }
+}
+
+// Eliminar componente
+window.eliminarComponente = function(btnElement) {
+    const componenteItem = btnElement.closest('.componente-item');
+    componenteItem.remove();
+      // Si no quedan componentes, ocultar header y mostrar mensaje
+    const container = document.getElementById('componentesContainer');
+    const header = document.getElementById('componentesHeader');
+    const componentesRestantes = container.querySelectorAll('.componente-item');
+    
+    if (componentesRestantes.length === 0) {
+        if (header) {
+            header.style.display = 'none';
+        }
+        container.innerHTML = `
+            <div class="text-center text-muted py-4" id="sinComponentes">
+                <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                <p class="mb-0">Haz clic en "Agregar componente" para comenzar</p>
+            </div>
+        `;
+    }
+    
+    actualizarCostos();
+};
+
+// Actualizar costos totales
+window.actualizarCostos = function() {
+    let costoTotal = 0;
+    
+    document.querySelectorAll('#componentesContainer .componente-item').forEach(item => {
+        // Primero actualizar el costo del componente individual
+        actualizarCostoComponente(item);
+        
+        // Luego sumar al total
+        const select = item.querySelector('select[name="componente_insumo[]"]');
+        const inputCantidad = item.querySelector('input[name="componente_cantidad[]"]');
+        
+        if (select && select.value && inputCantidad && inputCantidad.value) {
+            const opcionSeleccionada = select.selectedOptions[0];
+            if (opcionSeleccionada && opcionSeleccionada.dataset.precio) {
+                const precio = parseFloat(opcionSeleccionada.dataset.precio) || 0;
+                const cantidad = parseFloat(inputCantidad.value) || 0;
+                const costo = precio * cantidad;
+                costoTotal += costo;
+            }
+        }
+    });
+    
+    // Actualizar resumen con verificación de elementos
+    const costoTotalElement = document.getElementById('costoTotal');
+    if (costoTotalElement) {
+        costoTotalElement.textContent = `$${costoTotal.toFixed(2)}`;
+    }
+    
+    const cantidadProducidaElement = document.getElementById('cantidad_producida');
+    const costoPorUnidadElement = document.getElementById('costoPorUnidad');
+    
+    if (cantidadProducidaElement && costoPorUnidadElement) {
+        const cantidadProducida = parseFloat(cantidadProducidaElement.value) || 1;
+        const costoPorUnidad = costoTotal / cantidadProducida;
+        costoPorUnidadElement.textContent = `$${costoPorUnidad.toFixed(2)}`;
+    }
+};
+
+// Actualizar costos cuando cambie la cantidad producida
+const cantidadProducidaElement = document.getElementById('cantidad_producida');
+if (cantidadProducidaElement) {
+    cantidadProducidaElement.addEventListener('input', actualizarCostos);
+}
+
+// Manejar envío del formulario
+document.getElementById('formCrearCompuesto').addEventListener('submit', function(e) {
+    e.preventDefault();
+      const form = this;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;    // Validar que haya al menos un componente
+    const componentes = document.querySelectorAll('#componentesContainer .componente-item');
+    console.log(`📋 Componentes encontrados: ${componentes.length}`);
+    
+    if (componentes.length === 0) {
+        showToast('❌ Debe agregar al menos un componente', 'error');
+        return;
+    }
+      // Validar que todos los componentes estén completos
+    let componentesValidos = true;
+    let componentesInfo = [];
+      componentes.forEach((item, index) => {
+        const select = item.querySelector('select[name="componente_insumo[]"]');
+        const input = item.querySelector('input[name="componente_cantidad[]"]');
+        
+        const selectValue = select ? select.value : '';
+        const inputValue = input ? input.value : '';
+        const inputNumber = parseFloat(inputValue) || 0;
+        
+        componentesInfo.push({
+            index: index + 1,
+            insumo: selectValue,
+            cantidad: inputValue,
+            cantidadNum: inputNumber
+        });
+        
+        if (!selectValue || !inputValue || inputNumber <= 0) {
+            componentesValidos = false;
+        }
+    });
+      if (!componentesValidos) {
+        console.log('❌ Validación de componentes falló:', componentesInfo);
+        
+        // Mostrar información específica del error
+        let mensajeError = 'Componentes inválidos encontrados:\n';
+        componentesInfo.forEach(comp => {
+            if (!comp.insumo || !comp.cantidad || comp.cantidadNum <= 0) {
+                mensajeError += `- Componente ${comp.index}: `;
+                if (!comp.insumo) mensajeError += 'Falta seleccionar insumo. ';
+                if (!comp.cantidad) mensajeError += 'Falta cantidad. ';
+                if (comp.cantidadNum <= 0) mensajeError += 'Cantidad debe ser mayor a 0. ';
+                mensajeError += '\n';
+            }
+        });
+        
+        showToast('❌ Todos los componentes deben tener insumo y cantidad válida', 'error');
+        console.error(mensajeError);
+        return;
+    }
+    
+    console.log('✅ Validación de componentes exitosa:', componentesInfo);
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';
+    
+    const formData = new FormData(form);
+    
+    // Debug: Mostrar todos los datos que se van a enviar
+    console.log('DEBUG - Datos del formulario a enviar:');
+    for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}: ${value}`);
+    }
+    
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('crearCompuestoModal'));
+            modal.hide();
+            showToast(`✅ ${data.message}`, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast(`❌ Error: ${data.message}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión. Intenta nuevamente.', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
+
+// Funciones de gestión de insumos compuestos
+window.verDetalleCompuesto = function(id) {
+    console.log('🔍 Obteniendo detalles del insumo ID:', id);
+    
+    fetch(`{% url 'dashboard:detalle_insumo_compuesto' 0 %}`.replace('0', id))
+        .then(response => {
+            console.log('📡 Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })        .then(data => {
+            console.log('📊 Data received:', data);
+            if (data.success) {
+                const insumo = data.insumo;
+                const componentes = data.componentes || [];
+                let componentesHtml = '';
+                
+                componentes.forEach(comp => {
+                    componentesHtml += `
+                        <tr>
+                            <td>${comp.insumo_nombre || comp.nombre}</td>
+                            <td>${comp.cantidad} ${comp.unidad_abrev || comp.unidad || ''}</td>
+                            <td>$${comp.precio_unitario.toFixed(2)}</td>
+                            <td>$${comp.costo.toFixed(2)}</td>
+                        </tr>
+                    `;                });
+                
+                // Verificar si SweetAlert está disponible
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: `📋 ${insumo.nombre}`,                        html: `
+                            <div class="text-start">
+                                <p><strong>Código:</strong> ${insumo.codigo}</p>
+                                <p><strong>Categoría:</strong> ${insumo.categoria_nombre || 'Sin categoría'}</p>
+                                <p><strong>Unidad:</strong> ${insumo.unidad_medida_nombre || 'Sin unidad'}</p>
+                                <p><strong>Precio por unidad:</strong> $${insumo.precio_unitario.toFixed(2)}</p>
+                                <p><strong>Estado:</strong> ${insumo.activo ? 'Activo' : 'Inactivo'}</p>
+                            
+                            <h6 class="mt-3">Componentes:</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Insumo</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Unit.</th>
+                                        <th>Costo Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${componentesHtml}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="fw-bold">
+                                        <td colspan="3">Total:</td>
+                                        <td>$${insumo.costo_total.toFixed(2)}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>                    `,
+                    width: '600px',
+                    confirmButtonText: 'Cerrar'
+                });
+                } else {
+                    // Fallback si SweetAlert no está disponible
+                    alert(`📋 ${insumo.nombre}\n\nCódigo: ${insumo.codigo}\nCategoría: ${insumo.categoria_nombre || 'Sin categoría'}\nUnidad: ${insumo.unidad_medida_nombre || 'Sin unidad'}\nPrecio: $${insumo.precio_unitario.toFixed(2)}\nComponentes: ${componentes.length}\nCosto total: $${insumo.costo_total.toFixed(2)}`);
+                }
+            } else {
+                console.error('❌ Server error:', data.message);
+                showToast(`❌ ${data.message}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Fetch error:', error);
+            showToast('❌ Error al obtener detalles del insumo', 'error');
+        });
+};
+
+window.editarCompuesto = function(id) {
+    console.log('✏️ Iniciando edición del insumo ID:', id);
+    
+    // Obtener datos del insumo para precargar el modal
+    fetch(`{% url 'dashboard:detalle_insumo_compuesto' 0 %}`.replace('0', id))
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const insumo = data.insumo;
+                console.log('📊 Datos del insumo:', insumo);
+                
+                // Reset completo del modal primero
+                resetModalCrearCompuesto();
+                
+                // Precargar datos básicos
+                document.getElementById('codigo').value = insumo.codigo;
+                document.getElementById('nombre').value = insumo.nombre;
+                
+                // Precargar categoría
+                const categoriaSelect = document.getElementById('categoria_id');
+                if (categoriaSelect) {
+                    categoriaSelect.value = insumo.categoria_id;
+                    console.log('✅ Categoría seleccionada:', insumo.categoria_id);
+                }
+                  // Precargar unidad de medida
+                const unidadSelect = document.getElementById('unidad_medida_id');
+                if (unidadSelect) {
+                    unidadSelect.value = insumo.unidad_medida_id;
+                    console.log('✅ Unidad seleccionada:', insumo.unidad_medida_id);
+                }
+                
+                // Precargar cantidad producida
+                const cantidadProducidaInput = document.getElementById('cantidad_producida');
+                if (cantidadProducidaInput) {
+                    cantidadProducidaInput.value = insumo.cantidad_producida;
+                    console.log('✅ Cantidad producida establecida:', insumo.cantidad_producida);
+                }
+                
+                // Cambiar el título del modal
+                document.getElementById('crearCompuestoModalLabel').textContent = '✏️ Editar Insumo Compuesto';
+                
+                // Cambiar el action del formulario para editar
+                const form = document.getElementById('formCrearCompuesto');
+                form.action = `{% url 'dashboard:editar_insumo_compuesto' 0 %}`.replace('0', id);
+                
+                // Agregar campo hidden para el método
+                let methodField = document.getElementById('edit-method-field');
+                if (!methodField) {
+                    methodField = document.createElement('input');
+                    methodField.type = 'hidden';
+                    methodField.name = '_method';
+                    methodField.value = 'PUT';
+                    methodField.id = 'edit-method-field';
+                    form.appendChild(methodField);
+                }
+                
+                // Limpiar y agregar componentes del insumo
+                const componentesContainer = document.getElementById('componentesContainer');
+                componentesContainer.innerHTML = '';
+                  // Esperar un poco para que los selects se carguen completamente
+                setTimeout(() => {
+                    const componentes = data.componentes || [];
+                    componentes.forEach((comp, index) => {
+                        console.log(`🧩 Agregando componente ${index + 1}:`, comp);
+                        agregarComponente();
+                        
+                        const componenteDiv = componentesContainer.lastElementChild;
+                        
+                        // Precargar el select de insumo
+                        const insumoSelect = componenteDiv.querySelector('.insumo-select');
+                        if (insumoSelect) {
+                            insumoSelect.value = comp.insumo_id;
+                            console.log(`✅ Insumo ${index + 1} seleccionado:`, comp.insumo_id);
+                            
+                            // Disparar evento change para actualizar la unidad
+                            const changeEvent = new Event('change', { bubbles: true });
+                            insumoSelect.dispatchEvent(changeEvent);
+                        }
+                        
+                        // Precargar cantidad
+                        const cantidadInput = componenteDiv.querySelector('.cantidad-input');
+                        if (cantidadInput) {
+                            cantidadInput.value = comp.cantidad;
+                            console.log(`✅ Cantidad ${index + 1} establecida:`, comp.cantidad);
+                        }
+                    });
+                    
+                    // Actualizar costos después de cargar componentes
+                    setTimeout(() => {
+                        actualizarCostos();
+                        console.log('✅ Costos actualizados');
+                    }, 100);
+                }, 500);
+                
+                // Mostrar el modal
+                new bootstrap.Modal(document.getElementById('crearCompuestoModal')).show();
+                
+                showToast('✏️ Datos cargados para edición', 'info');
+                console.log('✅ Modal de edición abierto exitosamente');
+                
+            } else {
+                console.error('❌ Error del servidor:', data.message);
+                showToast('❌ Error cargando datos para editar', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error de fetch:', error);
+            showToast('❌ Error obteniendo datos del insumo', 'error');
+        });
+};
+
+window.eliminarCompuesto = function(id, nombre) {
+    // Verificar si SweetAlert está disponible
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: '⚠️ ¿Eliminar completamente?',
+            html: `
+                <div class="text-start">
+                    <p><strong>¿Estás seguro de que deseas eliminar el insumo compuesto "${nombre}"?</strong></p>
+                    <div class="alert alert-danger mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>¡ATENCIÓN!</strong> Esta acción:
+                        <ul class="mt-2 mb-0">
+                            <li>Eliminará <strong>completamente</strong> el insumo de la base de datos</li>
+                            <li>Eliminará todos sus componentes asociados</li>
+                            <li><strong>NO se puede deshacer</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '🗑️ Sí, eliminar permanentemente',
+            cancelButtonText: '❌ Cancelar',
+            width: '500px'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                eliminarCompuestoConfirmado(id, nombre);
+            }
+        });
+    } else {
+        // Fallback si SweetAlert no está disponible
+        if (confirm(`¿Estás seguro de que deseas eliminar el insumo compuesto "${nombre}"?`)) {
+            eliminarCompuestoConfirmado(id, nombre);
+        }
+    }
+};
+
+// Función auxiliar para realizar la eliminación
+function eliminarCompuestoConfirmado(id, nombre) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            fetch(`{% url 'dashboard:eliminar_insumo_compuesto' 0 %}`.replace('0', id), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'confirm=true'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`✅ ${data.message}`, 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showToast(`❌ ${data.message}`, 'error');
+                }
+            })            .catch(error => {
+                console.error('Error:', error);
+                showToast('❌ Error al eliminar el insumo', 'error');
+            });
+}
+
+// Función para cargar y mostrar categorías en el modal
+function cargarListaCategorias() {
+    const listaContainer = document.getElementById('listaCategorias');
+    if (!listaContainer) return;
+    
+    listaContainer.innerHTML = '<div class="text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando categorías...</div>';
+    
+    fetch('{% url "dashboard:obtener_categorias" %}')
+        .then(response => response.json())        .then(data => {
+            if (data.success) {
+                if (!data.categorias || data.categorias.length === 0) {
+                    listaContainer.innerHTML = '<div class="text-center text-muted"><i class="fas fa-info-circle me-2"></i>No hay categorías registradas</div>';
+                } else {
+                    let html = '';
+                    data.categorias.forEach(categoria => {
+                        html += `
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <div>
+                                    <strong>${categoria.nombre}</strong>
+                                    ${categoria.descripcion ? `<br><small class="text-muted">${categoria.descripcion}</small>` : ''}
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarCategoria(${categoria.id})" title="Eliminar categoría">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listaContainer.innerHTML = html;
+                }
+            } else {
+                listaContainer.innerHTML = '<div class="text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar categorías</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            listaContainer.innerHTML = '<div class="text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar categorías</div>';
+        });
+}
+
+// Función para cargar y mostrar unidades en el modal
+function cargarListaUnidades() {
+    const listaContainer = document.getElementById('listaUnidades');
+    if (!listaContainer) return;
+    
+    listaContainer.innerHTML = '<div class="text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando unidades...</div>';
+    
+    fetch('{% url "dashboard:obtener_unidades_medida" %}')
+        .then(response => response.json())        .then(data => {
+            if (data.success) {
+                if (!data.unidades || data.unidades.length === 0) {
+                    listaContainer.innerHTML = '<div class="text-center text-muted"><i class="fas fa-info-circle me-2"></i>No hay unidades registradas</div>';
+                } else {
+                    let html = '';
+                    data.unidades.forEach(unidad => {
+                        html += `
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <div>
+                                    <strong>${unidad.nombre}</strong> <span class="badge bg-secondary">${unidad.abreviacion}</span>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarUnidad(${unidad.id})" title="Eliminar unidad">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listaContainer.innerHTML = html;
+                }
+            } else {
+                listaContainer.innerHTML = '<div class="text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar unidades</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            listaContainer.innerHTML = '<div class="text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar unidades</div>';
+        });
+}
+
+// Función para crear nueva categoría
+function crearCategoria(formData) {
+    return fetch('{% url "dashboard:crear_categoria" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Categoría creada exitosamente', 'success');
+            cargarListaCategorias();
+            cargarDatosFormulario(); // Recargar los selects
+            return true;
+        } else {
+            showToast(`❌ Error: ${data.error}`, 'error');
+            return false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error al crear la categoría', 'error');
+        return false;
+    });
+}
+
+// Función para crear nueva unidad
+function crearUnidad(formData) {
+    return fetch('{% url "dashboard:crear_unidad_medida" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Unidad creada exitosamente', 'success');
+            cargarListaUnidades();
+            cargarDatosFormulario(); // Recargar los selects
+            return true;
+        } else {
+            showToast(`❌ Error: ${data.error}`, 'error');
+            return false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error al crear la unidad', 'error');
+        return false;
+    });
+}
+
+// Event listeners para los modales
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal de categorías
+    const modalCategorias = document.getElementById('nuevaCategoriaModal');
+    if (modalCategorias) {
+        modalCategorias.addEventListener('shown.bs.modal', function() {
+            cargarListaCategorias();
+        });
+    }
+    
+    // Modal de unidades
+    const modalUnidades = document.getElementById('nuevaUnidadModal');
+    if (modalUnidades) {
+        modalUnidades.addEventListener('shown.bs.modal', function() {
+            cargarListaUnidades();
+        });
+    }
+    
+    // Formulario de nueva categoría
+    const formCategoria = document.getElementById('nuevaCategoriaForm');
+    if (formCategoria) {
+        formCategoria.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';
+            
+            crearCategoria(formData).then(success => {
+                if (success) {
+                    this.reset();
+                }
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // Formulario de nueva unidad
+    const formUnidad = document.getElementById('nuevaUnidadForm');
+    if (formUnidad) {
+        formUnidad.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';
+            
+            crearUnidad(formData).then(success => {
+                if (success) {
+                    this.reset();
+                }
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+});
+
+// Función para eliminar categoría
+window.eliminarCategoria = function(categoriaId) {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: 'Esta acción eliminará la categoría permanentemente',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Aquí podrías implementar la eliminación si tienes el endpoint
+            showToast('⚠️ Eliminación de categorías no implementada aún', 'warning');
+        }
+    });
+};
+
+// Función para eliminar unidad
+window.eliminarUnidad = function(unidadId) {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: 'Esta acción eliminará la unidad permanentemente',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Aquí podrías implementar la eliminación si tienes el endpoint
+            showToast('⚠️ Eliminación de unidades no implementada aún', 'warning');
+        }
+    });
+};
+
+// Función para mostrar notificaciones toast
+function showToast(message, type = 'success') {
+    const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    const toastBootstrap = new bootstrap.Toast(toast);
+    toastBootstrap.show();
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
+    return container;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Crear Insumo Elaborado - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="fas fa-plus me-2 text-primary"></i>
+            Crear Nuevo Insumo Elaborado
+        </h1>
+        <p class="text-muted mb-0">Agrega un nuevo insumo elaborado al sistema</p>
+    </div>
+    <a href="{% url 'dashboard:insumos_elaborados' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Volver
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="codigo" class="form-label">
+                                <i class="fas fa-barcode me-1"></i>Código *
+                            </label>
+                            <input type="text" class="form-control" id="codigo" name="codigo" required
+                                   placeholder="Ej: ELAB001">
+                            <div class="form-text">Código único para identificar el insumo</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="nombre" class="form-label">
+                                <i class="fas fa-tag me-1"></i>Nombre *
+                            </label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required
+                                   placeholder="Ej: Salsa Teriyaki Especial">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="categoria" class="form-label">
+                                <i class="fas fa-folder me-1"></i>Categoría *
+                            </label>
+                            <select class="form-select" id="categoria" name="categoria" required>
+                                <option value="">Seleccionar categoría</option>
+                                {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="unidad_medida" class="form-label">
+                                <i class="fas fa-balance-scale me-1"></i>Unidad de Medida *
+                            </label>
+                            <select class="form-select" id="unidad_medida" name="unidad_medida" required>
+                                <option value="">Seleccionar unidad</option>
+                                {% for unidad in unidades %}
+                                <option value="{{ unidad.id }}">{{ unidad.nombre }} ({{ unidad.abreviacion }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="precio_unitario" class="form-label">
+                                <i class="fas fa-dollar-sign me-1"></i>Precio Unitario
+                            </label>
+                            <input type="number" class="form-control" id="precio_unitario" name="precio_unitario" 
+                                   step="0.01" min="0" placeholder="0.00">
+                            <div class="form-text">Precio por unidad de medida</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="stock_minimo" class="form-label">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Stock Mínimo
+                            </label>
+                            <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" 
+                                   step="0.01" min="0" placeholder="0.00">
+                            <div class="form-text">Cantidad mínima para alertas</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'dashboard:insumos_elaborados' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Guardar Insumo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Generar código automático basado en el nombre
+    const nombreInput = document.getElementById('nombre');
+    const codigoInput = document.getElementById('codigo');
+    
+    nombreInput.addEventListener('input', function() {
+        if (!codigoInput.value) {
+            const nombre = this.value.toUpperCase().replace(/\s+/g, '').substring(0, 6);
+            const numero = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            codigoInput.value = `ELAB${numero}`;
+        }
+    });
+});
+</script>
+{% endblock %}

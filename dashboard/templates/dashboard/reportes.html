@@ -1,0 +1,111 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Reportes - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-chart-line text-success me-2"></i>
+            Reportes del Sistema
+        </h1>
+        <p class="text-muted mb-0">Análisis y reportes de ventas, inventario y operaciones</p>
+    </div>
+    <div>
+        <button class="btn btn-success" onclick="generarReporte()">
+            <i class="fas fa-download me-1"></i>
+            Generar Reporte
+        </button>
+    </div>
+</div>
+
+<!-- Grid de tipos de reportes -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-chart-bar text-primary fa-2x mb-3"></i>
+                <h5>Ventas</h5>
+                <p class="text-muted small">Reportes de ventas y ingresos</p>
+                <span class="badge bg-warning text-dark">En Desarrollo</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-boxes text-info fa-2x mb-3"></i>
+                <h5>Inventario</h5>
+                <p class="text-muted small">Análisis de stock y movimientos</p>
+                <span class="badge bg-warning text-dark">En Desarrollo</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-truck text-warning fa-2x mb-3"></i>
+                <h5>Proveedores</h5>
+                <p class="text-muted small">Evaluación de proveedores</p>
+                <span class="badge bg-warning text-dark">En Desarrollo</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-users text-success fa-2x mb-3"></i>
+                <h5>Personal</h5>
+                <p class="text-muted small">Reportes de recursos humanos</p>
+                <span class="badge bg-warning text-dark">En Desarrollo</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estado temporal -->
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-chart-pie text-muted fa-3x mb-3"></i>
+        <h4 class="text-muted">Sistema de Reportes</h4>
+        <p class="text-muted">Este módulo está en desarrollo. Próximamente podrás generar reportes detallados de todas las operaciones del restaurante.</p>
+        <div class="mt-4">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-chart-line me-2"></i>Reportes de Ventas Diarias</span>
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-warehouse me-2"></i>Análisis de Inventario</span>
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-money-bill-wave me-2"></i>Estado Financiero</span>
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-star me-2"></i>Productos Más Vendidos</span>
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function generarReporte() {
+    alert('Función de generación de reportes en desarrollo');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Módulo de reportes inicializado');
+});
+</script>
+{% endblock %}

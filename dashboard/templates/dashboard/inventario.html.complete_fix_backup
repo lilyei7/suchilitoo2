@@ -1,0 +1,1686 @@
+{% extends 'dashboard/base.html' %}
+    {% load static %}
+    {% block title %}Inventario - Sushi Restaurant{% endblock %}
+    {% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-boxes me-2 text-primary"></i>
+            Gestión de Inventario
+        </h1>
+        <p class="text-muted mb-0">Control de stock de insumos por sucursal en tiempo real</p>
+    </div>
+    <div>
+        <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#nuevoInsumoModal">
+            <i class="fas fa-plus me-2"></i>Nuevo Insumo
+        </button>
+        <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
+            <i class="fas fa-tags me-2"></i>Gestionar Categorías
+        </button>
+        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#nuevaUnidadModal">
+            <i class="fas fa-balance-scale me-2"></i>Gestionar Unidades
+        </button>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-cubes"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ insumos.count }}</h3>
+                        <p class="text-muted mb-0 small">Total Insumos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">8</h3>
+                        <p class="text-muted mb-0 small">Stock Bajo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">42</h3>
+                        <p class="text-muted mb-0 small">Stock Normal</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">12</h3>
+                        <p class="text-muted mb-0 small">Actualizados Hoy</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros de búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{% url 'dashboard:inventario' %}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-muted small mb-1">Buscar insumo</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control" placeholder="Nombre o código..." name="buscar" value="{{ request.GET.buscar }}">
+                        <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Estado</label>
+                    <select class="form-select" name="estado">
+                        <option value="">Todos</option>
+                        <option value="bajo" {% if request.GET.estado == 'bajo' %}selected{% endif %}>Stock Bajo</option>
+                        <option value="normal" {% if request.GET.estado == 'normal' %}selected{% endif %}>Stock Normal</option>
+                        <option value="alto" {% if request.GET.estado == 'alto' %}selected{% endif %}>Stock Alto</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Categoría</label>                    <select class="form-select" name="categoria">
+                        <option value="">Todas las categorías</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if request.GET.categoria == categoria.id|stringformat:"s" %}selected{% endif %}>{{ categoria.nombre  }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Sucursal</label>
+                    <select class="form-select" name="sucursal">
+                        <option value="">Todas</option>
+                        <option value="principal">Principal</option>
+                        <option value="secundaria">Secundaria</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== INICIO TABLA ÚNICA DE INVENTARIOS ===== -->
+{% if insumos %}
+<div class="card">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                Lista de Insumos ({{ insumos|length }} elemento{{ insumos|length|pluralize:"s"  }})
+            </h6>
+            <small class="text-muted">Actualizado recientemente</small>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;" class="text-center">
+                            <i class="fas fa-circle text-muted"></i>
+                        </th>
+                        <th>Insumo</th>
+                        <th class="text-center">Código</th>
+                        <th class="text-center">Stock Actual</th>
+                        <th class="text-center">Stock Mínimo</th>
+                        <th class="text-center">Estado</th>
+                        <th>Categoría</th>
+                        <th class="text-center">Precio</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>                <tbody>
+                    {% for insumo in insumos %}
+                    <tr class="insumo-row" data-id="{{ insumo.id }}">
+                        <!-- Indicador de estado -->
+                        <td class="text-center">
+                            {% comment %}
+                            Para el estado general, verificamos si tiene stock bajo en cualquier sucursal
+                            Se puede mejorar con una consulta más específica si es necesario
+                            {% endcomment %}
+                            <i class="fas fa-circle text-secondary" title="Insumo registrado"></i>
+                        </td>
+                        
+                        <!-- Información del insumo -->
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="insumo-icon me-3">
+                                    <i class="fas fa-box text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ insumo.nombre }}</h6>
+                                    <small class="text-muted">{{ insumo.unidad_medida.nombre }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Código -->
+                        <td class="text-center">
+                            <span class="badge bg-light text-dark">{{ insumo.codigo }}</span>
+                        </td>
+                        
+                        <!-- Stock actual -->
+                        <td class="text-center">
+                            <span class="text-muted">
+                                <small>Ver por sucursal</small>
+                            </span>
+                        </td>
+                        
+                        <!-- Stock mínimo -->
+                        <td class="text-center">
+                            <span class="text-muted">{{ insumo.stock_minimo }}</span>
+                            <small class="text-muted d-block">{{ insumo.unidad_medida.abreviacion }}</small>
+                        </td>
+                        
+                        <!-- Estado visual -->
+                        <td class="text-center">
+                            <span class="badge bg-info">Registrado</span>
+                        </td>
+                        
+                        <!-- Categoría -->
+                        <td>
+                            <span class="text-muted">
+                                <i class="fas fa-tag me-1"></i>
+                                {{ insumo.categoria.nombre|default:"Sin categoría" }}
+                            </span>
+                        </td>
+                        
+                        <!-- Precio -->
+                        <td class="text-center">
+                            <span class="fw-bold text-success">${{ insumo.precio_unitario|floatformat:2 }}</span>
+                        </td>
+                        
+                        <!-- Acciones -->
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-primary btn-sm" title="Ver detalles" onclick="verDetalles({{ insumo.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" title="Gestionar stock" onclick="gestionarStock({{ insumo.id }})">
+                                    <i class="fas fa-warehouse"></i>
+                                </button>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" title="Más opciones">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#" onclick="editarInsumo({{ insumo.id }})">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="verInventarioDetallado({{ insumo.id }})">
+                                            <i class="fas fa-warehouse me-2"></i>Ver Stock por Sucursal
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="verHistorial({{ insumo.id }})">
+                                            <i class="fas fa-history me-2"></i>Historial
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="eliminarInsumo({{ insumo.id }}, '{{ insumo.nombre|escapejs }}')">>
+                                            <i class="fas fa-trash me-2"></i>Eliminar
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>        </div>
+    </div>
+</div>
+<!-- ===== FIN TABLA ÚNICA DE INVENTARIOS ===== -->
+{% else %}
+<!-- Estado vacío -->
+<div class="card">
+    <div class="card-body">
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-boxes text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay insumos en inventario</h5>
+            <p class="text-muted mb-4">Comienza agregando tus primeros insumos para gestionar tu inventario.</p>
+            <button class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Agregar Primer Insumo
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal Nuevo Insumo -->
+<div class="modal fade" id="nuevoInsumoModal" tabindex="-1" aria-labelledby="nuevoInsumoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevoInsumoModalLabel">Nuevo Insumo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="nuevoInsumoForm">
+                {% csrf_token %}
+                <div class="modal-body">                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nombre" class="form-label">Nombre del insumo: <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        </div>                        <div class="col-md-6 mb-3">
+                            <label for="tipo" class="form-label">Tipo: <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Seleccionar tipo</option>
+                                <option value="basico">Insumo Básico</option>
+                            </select>
+                            <div class="form-text">Los insumos básicos son ingredientes base que se usan para crear elaborados y compuestos</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="categoria" class="form-label">Categoría: <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <select class="form-select" id="categoria" name="categoria" required>
+                                    <option value="">Seleccionar categoría</option>
+                                </select>
+                                <button class="btn btn-outline-primary" type="button" onclick="abrirModalCategoria()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="unidad_medida" class="form-label">Unidad de medida: <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <select class="form-select" id="unidad_medida" name="unidad_medida" required>
+                                    <option value="">Seleccionar unidad</option>
+                                </select>
+                                <button class="btn btn-outline-primary" type="button" onclick="abrirModalUnidad()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="precio_unitario" class="form-label">Precio unitario:</label>
+                            <input type="number" class="form-control" id="precio_unitario" name="precio_unitario" value="0" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="stock_actual" class="form-label">Stock actual: <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="stock_actual" name="stock_actual" value="0" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="stock_minimo" class="form-label">Stock mínimo: <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" value="0" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <!-- Campo oculto para el código (se generará automáticamente) -->
+                    <input type="hidden" id="codigo" name="codigo">
+                </div>                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarInsumo">
+                        <i class="fas fa-save me-1"></i>Guardar
+                    </button>
+                </div>
+            </form>        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Categoría -->
+<div class="modal fade" id="nuevaCategoriaModal" tabindex="-1" aria-labelledby="nuevaCategoriaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevaCategoriaModalLabel">
+                    <i class="fas fa-tags me-2 text-primary"></i>
+                    Gestión de Categorías
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Lista de categorías existentes -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-list me-2"></i>
+                        Categorías Existentes
+                    </h6>
+                    <div id="listaCategorias" class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            Cargando categorías...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Formulario para nueva categoría -->
+                <div class="border-top pt-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-plus me-2"></i>
+                        Crear Nueva Categoría
+                    </h6>
+                    <form id="nuevaCategoriaForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="nombreCategoria" class="form-label">Nombre de la categoría: <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nombreCategoria" name="nombre" required placeholder="Ej: Carnes, Vegetales, Salsas...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcionCategoria" class="form-label">Descripción (opcional):</label>
+                            <textarea class="form-control" id="descripcionCategoria" name="descripcion" rows="2" placeholder="Describe brevemente esta categoría..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Crear Categoría
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small>Las categorías te ayudan a organizar mejor tus insumos y facilitar la búsqueda.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Unidad de Medida -->
+<div class="modal fade" id="nuevaUnidadModal" tabindex="-1" aria-labelledby="nuevaUnidadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevaUnidadModalLabel">
+                    <i class="fas fa-balance-scale me-2 text-primary"></i>
+                    Gestión de Unidades de Medida
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Lista de unidades existentes -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-list me-2"></i>
+                        Unidades Existentes
+                    </h6>
+                    <div id="listaUnidades" class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            Cargando unidades...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Formulario para nueva unidad -->
+                <div class="border-top pt-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-plus me-2"></i>
+                        Crear Nueva Unidad de Medida
+                    </h6>
+                    <form id="nuevaUnidadForm">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="nombreUnidad" class="form-label">Nombre de la unidad: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nombreUnidad" name="nombre" required placeholder="Ej: Kilogramo, Litro, Pieza...">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="abreviacionUnidad" class="form-label">Abreviación: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="abreviacionUnidad" name="abreviacion" required placeholder="Ej: kg, l, pz..." maxlength="10">
+                                <div class="form-text">Máximo 10 caracteres</div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Crear Unidad
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small>Las unidades comunes son: kg (kilogramo), g (gramo), l (litro), ml (mililitro), un (unidad), pz (pieza), etc.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+    {% block extra_css %}
+<style>
+/* Estadísticas mejoradas */
+.stats-card {
+    border: none;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    position: relative;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.stats-primary::before { background: linear-gradient(90deg, #4285f4, #1a73e8); }
+.stats-success::before { background: linear-gradient(90deg, #10b981, #059669); }
+.stats-info::before { background: linear-gradient(90deg, #0891b2, #0e7490); }
+.stats-warning::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+
+.stats-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stats-primary .stats-icon { background: linear-gradient(135deg, #4285f4, #1a73e8); }
+.stats-success .stats-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.stats-info .stats-icon { background: linear-gradient(135deg, #0891b2, #0e7490); }
+.stats-warning .stats-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.stats-card h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0;
+}
+
+.stats-card p {
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Tarjetas de insumos */
+.insumo-card {
+    border: none;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    height: 320px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.insumo-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #10b981, #059669);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.insumo-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.insumo-card:hover::before {
+    opacity: 1;
+}
+
+/* Header de la tarjeta */
+.insumo-header {
+    padding: 16px 16px 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #fafbff 0%, #f8fafc 100%);
+}
+
+.insumo-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.insumo-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
+
+.insumo-code {
+    font-size: 0.75rem;
+    color: #6b7280;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-family: monospace;
+}
+
+/* Status dots */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-success { 
+    background: #10b981; 
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+.status-warning { 
+    background: #f59e0b; 
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+    animation: pulse 2s infinite;
+}
+.status-normal { 
+    background: #0891b2; 
+    box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.2);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+
+/* Cuerpo de la tarjeta */
+.insumo-body {
+    padding: 12px 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Información de stock */
+.stock-info {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.stock-item {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.stock-label {
+    display: block;
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.stock-value {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* Barra de progreso */
+.stock-progress {
+    margin-top: auto;
+}
+
+.progress {
+    height: 6px;
+    border-radius: 3px;
+    background: #f1f5f9;
+    margin-bottom: 4px;
+}
+
+.progress-bar {
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Detalles del insumo */
+.insumo-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.detail-icon {
+    width: 12px;
+    height: 12px;
+    color: #9ca3af;
+    flex-shrink: 0;
+}
+
+/* Acciones */
+.insumo-actions {
+    padding: 12px 16px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+    background: #fafbff;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #4285f4, #1a73e8);
+    color: white;
+    box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+}
+
+.action-btn.primary:hover {
+    background: linear-gradient(135deg, #1a73e8, #1557b0);
+    transform: scale(1.05);
+}
+
+.action-btn.success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.action-btn.success:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: scale(1.05);
+}
+
+.action-btn.warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+.action-btn.warning:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    transform: scale(1.05);
+}
+
+.action-btn.secondary {
+    background: #f1f5f9;
+    color: #6b7280;
+    border: 1px solid #e2e8f0;
+}
+
+.action-btn.secondary:hover {
+    background: #e2e8f0;
+    color: #374151;
+    transform: scale(1.05);
+}
+
+.dropdown-menu-compact {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 0.8rem;
+    overflow: hidden;
+}
+
+.dropdown-menu-compact .dropdown-item {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-menu-compact .dropdown-item:hover {
+    background: #f8fafc;
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Estilos para los botones integrados en los selects */
+.input-group .btn-outline-primary {
+    border-color: #dee2e6;
+    color: #6c757d;
+    background: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+.input-group .btn-outline-primary:hover {
+    background: #4285f4;
+    border-color: #4285f4;
+    color: white;
+    transform: scale(1.05);
+}
+
+.input-group .btn-outline-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(66, 133, 244, 0.25);
+}
+
+/* Mejorar la apariencia de los modales */
+.modal-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-title {
+    color: #374151;
+    font-weight: 600;
+}
+
+.modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal-footer {
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    border-radius: 0 0 12px 12px;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border: 1px solid #93c5fd;
+    color: #1e40af;
+}
+</style>
+{% endblock %}
+    {% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar elementos críticos
+    const elementos = {
+        'nuevoInsumoModal': document.getElementById('nuevoInsumoModal'),
+        'nuevoInsumoForm': document.getElementById('nuevoInsumoForm'),
+        'nombre': document.getElementById('nombre'),
+        'codigo': document.getElementById('codigo'),
+        'categoria': document.getElementById('categoria'),
+        'unidad_medida': document.getElementById('unidad_medida'),
+        'tipo': document.getElementById('tipo'),
+        'precio_unitario': document.getElementById('precio_unitario'),
+        'stock_actual': document.getElementById('stock_actual'),
+        'stock_minimo': document.getElementById('stock_minimo'),
+        'btnGuardarInsumo': document.getElementById('btnGuardarInsumo')    };
+    
+    for (const [nombre, elemento] of Object.entries(elementos)) {
+        if (elemento) {
+            // Elemento encontrado
+        }
+    }
+    
+    // Generar código automático basado en el nombre
+    const nombreInput = document.getElementById('nombre');
+    const codigoInput = document.getElementById('codigo');
+    
+    nombreInput.addEventListener('input', function() {
+        const nombre = this.value.toUpperCase().replace(/\s+/g, '').substring(0, 6);
+        const timestamp = Date.now().toString().slice(-3);
+        codigoInput.value = nombre + timestamp;
+    });
+
+    // Cargar datos para el formulario cuando se abre el modal
+    const modal = document.getElementById('nuevoInsumoModal');
+    if (modal) {
+        modal.addEventListener('show.bs.modal', function() {
+            cargarDatosFormulario();
+            
+            // Mostrar notificación informativa al abrir el modal
+            setTimeout(() => {
+                mostrarNotificacionElegante(
+                    'Nuevo Insumo',
+                    'Completa la información para crear un nuevo insumo básico en el sistema.',
+                    'info'
+                );
+            }, 500);
+        });
+
+        // Event listener para detectar cuando el modal se cierra
+        modal.addEventListener('hide.bs.modal', function(e) {
+            // Modal cerrándose
+        });
+    }
+
+    // Configurar formularios de gestión
+    configurarFormularioCategoria();
+    configurarFormularioUnidad();
+    
+    // Configurar event listeners para modales de gestión
+    const modalCategoria = document.getElementById('nuevaCategoriaModal');
+    const modalUnidad = document.getElementById('nuevaUnidadModal');
+    
+    if (modalCategoria) {
+        modalCategoria.addEventListener('show.bs.modal', function() {
+            cargarCategorias();
+        });
+    }
+      if (modalUnidad) {
+        modalUnidad.addEventListener('show.bs.modal', function() {
+            cargarUnidades();
+        });
+    }
+
+function cargarDatosFormulario() {
+    const url = '{% url "dashboard:get_form_data" %}';
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Cargar categorías
+            const categoriaSelect = document.getElementById('categoria');
+            if (categoriaSelect) {
+                categoriaSelect.innerHTML = '<option value="">Seleccionar categoría</option>';
+                data.categorias.forEach(categoria => {
+                    const option = document.createElement('option');
+                    option.value = categoria.id;
+                    option.textContent = categoria.nombre;
+                    categoriaSelect.appendChild(option);
+                });
+            }
+            
+            // Cargar unidades de medida
+            const unidadSelect = document.getElementById('unidad_medida');
+            if (unidadSelect) {
+                unidadSelect.innerHTML = '<option value="">Seleccionar unidad</option>';
+                data.unidades.forEach(unidad => {
+                    const option = document.createElement('option');
+                    option.value = unidad.id;
+                    option.textContent = `${unidad.nombre} (${unidad.abreviacion})`;
+                    unidadSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando datos del formulario:', error);
+            mostrarNotificacionElegante(
+                'Error de Carga',
+                'No se pudieron cargar las categorías y unidades. Recarga la página e intenta nuevamente.',
+                'error'
+            );
+        });
+}
+
+// Variable global para prevenir envíos duplicados
+let creandoInsumo = false;
+
+function crearInsumo() {
+    // Verificar si ya se está procesando una petición
+    if (creandoInsumo) {
+        return;
+    }
+    
+    // Marcar como procesando
+    creandoInsumo = true;
+    
+    const form = document.getElementById('nuevoInsumoForm');
+    if (!form) {
+        alert('Error: No se encontró el formulario');
+        
+        // Rehabilitar botón (aunque no debería estar habilitado aún en este punto)
+        const btnGuardar = document.getElementById('btnGuardarInsumo');
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Guardar Insumo';
+        }
+        
+        creandoInsumo = false; // Liberar variable de control
+        return;
+    }
+    
+    const formData = new FormData(form);
+    
+    // Validar campos obligatorios
+    const nombre = formData.get('nombre');
+    const categoria = formData.get('categoria');
+    const unidad_medida = formData.get('unidad_medida');    // Validación de datos del formulario
+      if (!nombre || !categoria || !unidad_medida) {
+        // Campos obligatorios faltantes          mostrarNotificacionElegante(
+            'Campos Incompletos',
+            'Por favor completa todos los campos obligatorios: Nombre, Categoría y Unidad de Medida.',
+            'warning'
+        );
+        
+        // Rehabilitar botón
+        const btnGuardar = document.getElementById('btnGuardarInsumo');
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Guardar Insumo';
+        }
+        
+        creandoInsumo = false; // Liberar variable de control
+        return;
+    }    // Forzar tipo a "basico" ya que este formulario es solo para insumos básicos
+    formData.set('tipo', 'basico');
+    
+    // Generar código si no existe
+    if (!formData.get('codigo')) {
+        const timestamp = Date.now().toString().slice(-3);
+        const codigo = nombre.toUpperCase().replace(/\s+/g, '').substring(0, 6) + timestamp;
+        formData.set('codigo', codigo);
+    }
+    
+    // Verificar CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    
+    if (!csrfToken) {
+        alert('Error: Token de seguridad no encontrado');
+        
+        // Rehabilitar botón
+        const btnGuardar = document.getElementById('btnGuardarInsumo');
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Guardar Insumo';
+        }
+        
+        creandoInsumo = false; // Liberar variable de control
+        return;
+    }    for (let [key, value] of formData.entries()) {
+    }    const url = '{% url "dashboard:crear_insumo" %}';    // Deshabilitar botón durante el proceso
+    const btnGuardar = document.getElementById('btnGuardarInsumo');
+    if (btnGuardar) {
+        btnGuardar.disabled = true;
+        btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+    }
+    
+    // Mostrar notificación de carga
+    const loadingNotification = mostrarCargando('Guardando insumo en el sistema...');
+    
+    fetch(url, {        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': csrfToken.value
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })        .then(data => {
+            // Ocultar notificación de carga
+            ocultarCargando();
+            
+            if (data.success) {
+                // Mostrar notificación elegante principal
+                mostrarNotificacionElegante(
+                    '¡Insumo Creado!', 
+                    `El insumo "${formData.get('nombre')}" se ha guardado exitosamente en el sistema.`,
+                    'success'
+                );
+            
+            // Limpiar formulario
+            form.reset();
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoInsumoModal'));
+            if (modal) {
+                modal.hide();            }
+              // Liberar variable de control
+            creandoInsumo = false;
+            
+            // Recargar página inmediatamente para mostrar el nuevo insumo
+            window.location.reload();
+        } else {
+            // Ocultar notificación de carga
+            ocultarCargando();
+            
+            // Rehabilitar botón
+            const btnGuardar = document.getElementById('btnGuardarInsumo');
+            if (btnGuardar) {
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Guardar Insumo';
+            }
+            
+            // Liberar variable de control
+            creandoInsumo = false;
+              mostrarNotificacionElegante(
+                'Error al Guardar',
+                data.error || 'No se pudo guardar el insumo. Intenta nuevamente.',
+                'error'
+            );
+        }).catch(error => {
+        // Ocultar notificación de carga
+        ocultarCargando();
+        
+        // Rehabilitar botón
+        const btnGuardar = document.getElementById('btnGuardarInsumo');
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Guardar Insumo';
+        }
+        
+        // Liberar variable de control
+        creandoInsumo = false;
+        
+        mostrarNotificacionElegante(
+            'Error de Conexión',
+            'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.',
+            'error'
+        );
+    });
+}
+
+function mostrarNotificacionElegante(titulo, mensaje, tipo = 'success') {
+    const container = document.getElementById('notification-container');
+    if (!container) {
+        return;
+    }
+    
+    // Crear elemento de notificación
+    const notification = document.createElement('div');
+    notification.className = `notification ${tipo}`;
+    
+    // Iconos por tipo
+    const icons = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-circle',
+        warning: 'fas fa-exclamation-triangle',
+        info: 'fas fa-info-circle'
+    };
+    
+    // HTML de la notificación
+    notification.innerHTML = `
+        <div class="notification-content">
+            <div class="notification-icon">
+                <i class="${icons[tipo] || icons.info}"></i>
+            </div>
+            <div class="notification-text">
+                <div class="notification-title">${titulo}</div>
+                <div class="notification-message">${mensaje}</div>
+            </div>
+        </div>
+        <button class="notification-close" onclick="cerrarNotificacion(this.parentElement)">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="notification-progress"></div>
+    `;
+    
+    // Agregar al contenedor
+    container.appendChild(notification);
+    
+    // Mostrar con animación
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+      // Auto-cerrar después de 5 segundos
+    setTimeout(() => {
+        cerrarNotificacion(notification);
+    }, 5000);
+}}
+
+function cerrarNotificacion(notification) {
+    if (notification && notification.parentNode) {
+        notification.classList.remove('show');
+        notification.classList.add('hide');
+          setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }, 400);
+    }
+
+// ===== FUNCIONES PARA ACCIONES DE LA LISTA =====
+
+// Función para ver detalles del insumo
+function verDetalles(insumoId) {
+    mostrarNotificacionElegante(
+        'Ver Detalles',
+        'Función de detalles en desarrollo. Se mostrará información completa del insumo.',
+        'info'
+    );
+}
+
+// Función para agregar stock
+function agregarStock(insumoId) {
+    const cantidad = prompt('¿Cuántas unidades deseas agregar al stock?');
+    if (cantidad && !isNaN(cantidad) && parseFloat(cantidad) > 0) {
+        mostrarNotificacionElegante(
+            'Stock Agregado',
+            `Se agregaron ${cantidad} unidades al inventario. Función en desarrollo.`,
+            'success'
+        );
+    } else if (cantidad !== null) {
+        mostrarNotificacionElegante(
+            'Cantidad Inválida',
+            'Por favor ingresa una cantidad válida mayor a 0.',
+            'error'
+        );
+    }
+
+// Función para reducir stock
+function reducirStock(insumoId) {
+    const cantidad = prompt('¿Cuántas unidades deseas reducir del stock?');
+    if (cantidad && !isNaN(cantidad) && parseFloat(cantidad) > 0) {
+        mostrarNotificacionElegante(
+            'Stock Reducido',
+            `Se redujeron ${cantidad} unidades del inventario. Función en desarrollo.`,
+            'warning'
+        );
+    } else if (cantidad !== null) {
+        mostrarNotificacionElegante(
+            'Cantidad Inválida',
+            'Por favor ingresa una cantidad válida mayor a 0.',
+            'error'
+        );
+    }
+
+// Función para ver historial
+function verHistorial(insumoId) {
+    mostrarNotificacionElegante(
+        'Historial de Movimientos',
+        'Se mostrará el historial completo de movimientos del insumo. Función en desarrollo.',
+        'info'
+    );
+}
+
+// ===== FUNCIONES EXISTENTES =====
+
+// Función legacy para compatibilidad (mantener por si hay otros usos)
+function mostrarAlerta(mensaje, tipo) {    let titulo = 'Notificación';
+    switch(tipo) {
+        case 'success':
+            titulo = '¡Éxito!';
+            break;
+        case 'danger':
+        case 'error':
+            titulo = 'Error';
+            tipo = 'error';
+            break;
+        case 'warning':
+            titulo = 'Advertencia';
+            break;
+        case 'info':
+            titulo = 'Información';
+            break;
+    }
+    
+    mostrarNotificacionElegante(titulo, mensaje, tipo);
+}
+
+// Función para editar insumo
+function editarInsumo(insumoId) {
+    // Implementar lógica para editar el insumo
+}
+
+// Función para eliminar insumo
+function eliminarInsumo(insumoId, nombre) {
+    if (confirm(`¿Estás seguro de que quieres eliminar el insumo "${nombre}"?`)) {
+        fetch(`{% url 'dashboard:eliminar_insumo' 0 %}`.replace('0', insumoId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarAlerta(data.message, 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                mostrarAlerta(data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            mostrarAlerta('Error al eliminar el insumo', 'danger');
+        });
+    }
+
+// ===== FUNCIONES PARA MODALES DE CATEGORÍA Y UNIDAD =====
+
+// Función para abrir modal de nueva categoría
+function abrirModalCategoria() {
+    const modal = new bootstrap.Modal(document.getElementById('nuevaCategoriaModal'));
+    modal.show();
+}
+
+// Función para abrir modal de nueva unidad
+function abrirModalUnidad() {
+    const modal = new bootstrap.Modal(document.getElementById('nuevaUnidadModal'));
+    modal.show();
+}
+
+// Función para crear nueva categoría
+function crearCategoria() {
+    const formData = new FormData(document.getElementById('nuevaCategoriaForm'));
+    
+    fetch('{% url "dashboard:crear_categoria" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarNotificacionElegante(
+                '¡Categoría Creada!',
+                `La categoría "${data.categoria.nombre}" se ha creado exitosamente.`,
+                'success'
+            );
+            
+            // Agregar la nueva categoría al select principal
+            const categoriaSelect = document.getElementById('categoria');
+            const option = document.createElement('option');
+            option.value = data.categoria.id;
+            option.textContent = data.categoria.nombre;
+            option.selected = true;
+            categoriaSelect.appendChild(option);
+            
+            // Cerrar modal y limpiar formulario
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevaCategoriaModal'));
+            modal.hide();
+            document.getElementById('nuevaCategoriaForm').reset();
+        } else {
+            mostrarNotificacionElegante(
+                'Error al Crear Categoría',
+                data.error || 'No se pudo crear la categoría. Intenta nuevamente.',
+                'error'
+            );
+        }).catch(error => {        mostrarNotificacionElegante(
+            'Error de Conexión',
+            'No se pudo conectar con el servidor al crear la categoría.',
+            'error'
+        );
+    });
+}
+
+// Función para crear nueva unidad de medida
+function crearUnidadMedida() {
+    const formData = new FormData(document.getElementById('nuevaUnidadForm'));
+    
+    fetch('{% url "dashboard:crear_unidad_medida" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarNotificacionElegante(
+                '¡Unidad Creada!',
+                `La unidad "${data.unidad.nombre}" se ha creado exitosamente.`,
+                'success'
+            );
+            
+            // Agregar la nueva unidad al select principal
+            const unidadSelect = document.getElementById('unidad_medida');
+            const option = document.createElement('option');
+            option.value = data.unidad.id;
+            option.textContent = `${data.unidad.nombre} (${data.unidad.abreviacion})`;
+            option.selected = true;
+            unidadSelect.appendChild(option);
+            
+            // Cerrar modal y limpiar formulario
+            const modal = bootstrap.Modal.getInstance(document.getElementById('nuevaUnidadModal'));
+            modal.hide();
+            document.getElementById('nuevaUnidadForm').reset();
+        } else {
+            mostrarNotificacionElegante(
+                'Error al Crear Unidad',
+                data.error || 'No se pudo crear la unidad de medida. Intenta nuevamente.',
+                'error'
+            );
+        }).catch(error => {        mostrarNotificacionElegante(
+            'Error de Conexión',
+            'No se pudo conectar con el servidor al crear la unidad de medida.',
+            'error'
+        );
+    });
+}
+
+// Función especial para mostrar tips y ayuda
+function mostrarTip(mensaje, duracion = 7000) {
+    mostrarNotificacionElegante(
+        '💡 Tip',
+        mensaje,
+        'info'
+    );
+    
+    // Auto-cerrar después de la duración especificada
+    setTimeout(() => {
+        const notifications = document.querySelectorAll('.notification.info');
+        const lastNotification = notifications[notifications.length - 1];
+        if (lastNotification) {
+            cerrarNotificacion(lastNotification);
+        }, duracion);
+}
+
+// Función para mostrar notificación de carga
+function mostrarCargando(mensaje = 'Procesando...') {
+    const notification = document.createElement('div');
+    notification.className = 'notification info loading';
+    notification.id = 'loading-notification';
+    
+    notification.innerHTML = `
+        <div class="notification-content">
+            <div class="notification-icon">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <div class="notification-text">
+                <div class="notification-title">Cargando</div>
+                <div class="notification-message">${mensaje}</div>
+            </div>
+        </div>
+    `;
+    
+    const container = document.getElementById('notification-container');
+    if (container) {
+        container.appendChild(notification);
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 100);
+    }
+    
+    return notification;
+}
+
+// Función para ocultar notificación de carga
+function ocultarCargando() {
+    const loadingNotification = document.getElementById('loading-notification');
+    if (loadingNotification) {
+        cerrarNotificacion(loadingNotification);
+    }
+
+// ===== GESTIÓN DE CATEGORÍAS =====
+
+// Función para cargar y mostrar categorías existentes
+function cargarCategorias() {
+    fetch('{% url "dashboard:get_form_data" %}')
+        .then(response => response.json())
+        .then(data => {
+            const listaCategorias = document.getElementById('listaCategorias');
+            if (data.categorias && data.categorias.length > 0) {
+                let html = '<div class="row g-2">';
+                data.categorias.forEach(categoria => {
+                    html += `
+                        <div class="col-md-6">
+                            <div class="badge bg-primary bg-opacity-10 text-primary p-2 w-100 text-start">
+                                <i class="fas fa-tag me-2"></i>${categoria.nombre}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                listaCategorias.innerHTML = html;
+            } else {
+                listaCategorias.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay categorías registradas aún
+                    </div>
+                `;
+            }).catch(error => {
+        document.getElementById('listaCategorias').innerHTML = `
+                <div class="text-center text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error al cargar categorías
+                </div>
+            `;
+        });
+}
+
+// Función para cargar y mostrar unidades existentes
+function cargarUnidades() {
+    fetch('{% url "dashboard:get_form_data" %}')
+        .then(response => response.json())
+        .then(data => {
+            const listaUnidades = document.getElementById('listaUnidades');
+            if (data.unidades && data.unidades.length > 0) {
+                let html = '<div class="row g-2">';
+                data.unidades.forEach(unidad => {
+                    html += `
+                        <div class="col-md-6">
+                            <div class="badge bg-success bg-opacity-10 text-success p-2 w-100 text-start">
+                                <i class="fas fa-balance-scale me-2"></i>${unidad.nombre} (${unidad.abreviacion})
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                listaUnidades.innerHTML = html;
+            } else {
+                listaUnidades.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay unidades registradas aún
+                    </div>
+                `;
+            }).catch(error => {
+        document.getElementById('listaUnidades').innerHTML = `
+                <div class="text-center text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error al cargar unidades
+                </div>
+            `;
+        });
+}
+
+// Función para abrir modal de categoría desde el formulario de insumo
+
+// Función para abrir modal de unidad desde el formulario de insumo
+
+// Función para manejar el formulario de nueva categoría
+function configurarFormularioCategoria() {
+    const form = document.getElementById('nuevaCategoriaForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Mostrar estado de carga
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';
+        
+        try {
+            const formData = new FormData(form);
+            const response = await fetch('{% url "dashboard:crear_categoria" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Limpiar formulario
+                form.reset();
+                
+                // Mostrar notificación de éxito
+                mostrarNotificacionElegante(
+                    '¡Categoría Creada!',
+                    `La categoría "${data.categoria.nombre}" ha sido creada exitosamente.`,
+                    'success'
+                );
+                
+                // Actualizar el select de categorías en el formulario de insumos
+                actualizarSelectCategorias(data.categoria);
+                
+                // Recargar la lista de categorías en el modal
+                cargarCategorias();
+                
+            } else {
+                mostrarNotificacionElegante(
+                    'Error al Crear Categoría',
+                    data.error || 'Ocurrió un error inesperado.',
+                    'error'
+                );
+            } catch (error) {            mostrarNotificacionElegante(
+                'Error de Conexión',
+                'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+                'error'
+            );
+        } finally {
+            // Restaurar botón
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+}
+
+// Función para manejar el formulario de nueva unidad de medida
+function configurarFormularioUnidad() {
+    const form = document.getElementById('nuevaUnidadForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Mostrar estado de carga
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';
+        
+        try {
+            const formData = new FormData(form);
+            const response = await fetch('{% url "dashboard:crear_unidad_medida" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Limpiar formulario
+                form.reset();
+                
+                // Mostrar notificación de éxito
+                mostrarNotificacionElegante(
+                    '¡Unidad Creada!',
+                    `La unidad "${data.unidad.nombre}" (${data.unidad.abreviacion}) ha sido creada exitosamente.`,
+                    'success'
+                );
+                
+                // Actualizar el select de unidades en el formulario de insumos
+                actualizarSelectUnidades(data.unidad);
+                
+                // Recargar la lista de unidades en el modal
+                cargarUnidades();
+                
+            } else {
+                mostrarNotificacionElegante(
+                    'Error al Crear Unidad',
+                    data.error || 'Ocurrió un error inesperado.',
+                    'error'
+                );
+            } catch (error) {            mostrarNotificacionElegante(
+                'Error de Conexión',
+                'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+                'error'
+            );
+        } finally {
+            // Restaurar botón
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+}
+
+// Función para actualizar el select de categorías
+function actualizarSelectCategorias(categoria) {
+    const select = document.getElementById('categoria');
+    if (select) {
+        const option = document.createElement('option');
+        option.value = categoria.id;
+        option.textContent = categoria.nombre;
+        option.selected = true;
+        select.appendChild(option);
+    }
+
+// Función para actualizar el select de unidades
+function actualizarSelectUnidades(unidad) {
+    const select = document.getElementById('unidad_medida');
+    if (select) {
+        const option = document.createElement('option');
+        option.value = unidad.id;
+        option.textContent = `${unidad.nombre} (${unidad.abreviacion})`;
+        option.selected = true;
+        select.appendChild(option);
+    }
+}
+
+}); // Closing for DOMContentLoaded
+</script>
+{% endblock %}

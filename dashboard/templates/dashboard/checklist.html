@@ -1,0 +1,272 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Check List - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="fas fa-clipboard-check me-2 text-primary"></i>
+            Check List
+        </h1>
+        <p class="text-muted mb-0">Tareas y verificaciones diarias - {{ fecha|date:"d/m/Y" }}</p>
+    </div>
+    <div>
+        <button class="btn btn-success me-2">
+            <i class="fas fa-check-double me-2"></i>Marcar Todo Completo
+        </button>
+        <button class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nueva Tarea
+        </button>
+    </div>
+</div>
+
+<!-- Filtros por tipo -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="nav nav-pills" id="checklist-tabs" role="tablist">
+            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#apertura" type="button" role="tab">
+                <i class="fas fa-sun me-2"></i>Apertura
+            </button>
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#cierre" type="button" role="tab">
+                <i class="fas fa-moon me-2"></i>Cierre
+            </button>
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#limpieza" type="button" role="tab">
+                <i class="fas fa-spray-can me-2"></i>Limpieza
+            </button>
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#seguridad" type="button" role="tab">
+                <i class="fas fa-shield-alt me-2"></i>Seguridad
+            </button>
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#inventario" type="button" role="tab">
+                <i class="fas fa-boxes me-2"></i>Inventario
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Contenido de las pestañas -->
+<div class="tab-content" id="checklist-content">
+    <!-- Apertura -->
+    <div class="tab-pane fade show active" id="apertura" role="tabpanel">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-sun me-2 text-warning"></i>
+                            Tareas de Apertura
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Simulación de tareas de apertura -->
+                        <div class="checklist-item mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="temp-refrigeradores" checked>
+                                <label class="form-check-label" for="temp-refrigeradores">
+                                    <strong>Verificar temperatura de refrigeradores</strong>
+                                    <small class="d-block text-muted">Revisar que todos los refrigeradores estén entre 2-4°C</small>
+                                </label>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-success">Completado</span>
+                                <small class="text-muted ms-2">por jhayco a las 08:30</small>
+                            </div>
+                        </div>
+
+                        <div class="checklist-item mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="encender-equipos">
+                                <label class="form-check-label" for="encender-equipos">
+                                    <strong>Encender equipos de cocina</strong>
+                                    <small class="d-block text-muted">Encender plancha, freidora y otros equipos</small>
+                                </label>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-warning">Pendiente</span>
+                                <button class="btn btn-sm btn-outline-success ms-2">
+                                    <i class="fas fa-check me-1"></i>Marcar Completo
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="checklist-item mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="stock-ingredientes">
+                                <label class="form-check-label" for="stock-ingredientes">
+                                    <strong>Revisar stock de ingredientes principales</strong>
+                                    <small class="d-block text-muted">Verificar disponibilidad de pescado fresco</small>
+                                </label>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-warning">Pendiente</span>
+                                <button class="btn btn-sm btn-outline-success ms-2">
+                                    <i class="fas fa-check me-1"></i>Marcar Completo
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="checklist-item mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="limpiar-superficies">
+                                <label class="form-check-label" for="limpiar-superficies">
+                                    <strong>Limpiar y desinfectar superficies</strong>
+                                    <small class="d-block text-muted">Limpiar todas las superficies de trabajo</small>
+                                </label>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-warning">Pendiente</span>
+                                <button class="btn btn-sm btn-outline-success ms-2">
+                                    <i class="fas fa-check me-1"></i>Marcar Completo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Progreso de Apertura</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="progress-circle mb-3">
+                            <canvas id="progress-apertura" width="120" height="120"></canvas>
+                        </div>
+                        <h4 class="text-primary">25%</h4>
+                        <p class="text-muted">1 de 4 tareas completadas</p>
+                        <hr>
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            Última actualización: 08:30
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cierre -->
+    <div class="tab-pane fade" id="cierre" role="tabpanel">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-moon me-2 text-primary"></i>
+                    Tareas de Cierre
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="fas fa-moon fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Las tareas de cierre se activarán más tarde</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Limpieza -->
+    <div class="tab-pane fade" id="limpieza" role="tabpanel">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-spray-can me-2 text-info"></i>
+                    Tareas de Limpieza
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="fas fa-spray-can fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Tareas de limpieza programadas para horarios específicos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seguridad -->
+    <div class="tab-pane fade" id="seguridad" role="tabpanel">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-shield-alt me-2 text-danger"></i>
+                    Verificaciones de Seguridad
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="fas fa-shield-alt fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Verificaciones de seguridad semanales</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventario -->
+    <div class="tab-pane fade" id="inventario" role="tabpanel">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-boxes me-2 text-success"></i>
+                    Verificaciones de Inventario
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Conteos y verificaciones de inventario</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Crear gráfico de progreso circular
+    const ctx = document.getElementById('progress-apertura');
+    if (ctx) {
+        const progress = 25; // 25% de progreso
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [progress, 100 - progress],
+                    backgroundColor: ['#007bff', '#e9ecef'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // Manejar cambios en checkboxes
+    const checkboxes = document.querySelectorAll('.form-check-input');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const item = this.closest('.checklist-item');
+            const badge = item.querySelector('.badge');
+            
+            if (this.checked) {
+                badge.className = 'badge bg-success';
+                badge.textContent = 'Completado';
+            } else {
+                badge.className = 'badge bg-warning';
+                badge.textContent = 'Pendiente';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

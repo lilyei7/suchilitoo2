@@ -1,0 +1,116 @@
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar elementos críticos
+    const elementos = {
+        'nuevoInsumoModal': document.getElementById('nuevoInsumoModal'),
+        'nuevoInsumoForm': document.getElementById('nuevoInsumoForm'),
+        'nombre': document.getElementById('nombre'),
+        'codigo': document.getElementById('codigo'),
+        'categoria': document.getElementById('categoria'),
+        'unidad_medida': document.getElementById('unidad_medida'),
+        'tipo': document.getElementById('tipo'),
+    };
+    
+    // Cargar datos iniciales para los selects
+    cargarDatosFormulario();
+    
+    // Configurar modal de nuevo insumo
+    if (elementos.nuevoInsumoModal) {
+        const modal = new bootstrap.Modal(elementos.nuevoInsumoModal);
+        
+        // Event listener para detectar cuando el modal se abre
+        elementos.nuevoInsumoModal.addEventListener('show.bs.modal', function() {
+            // Cuando se abre el modal, cargar las categorías y unidades
+            cargarDatosFormulario();
+            
+            // Mostrar notificación elegante después de un breve retraso
+            setTimeout(() => {
+                mostrarNotificacionElegante(
+                    'Nuevo Insumo',
+                    'Completa la información para crear un nuevo insumo básico en el sistema.',
+                    'info'
+                );
+            }, 500);
+        });
+    }
+    
+    // Configurar formularios de gestión
+    configurarFormularioCategoria();
+    configurarFormularioUnidad();
+    
+    // Configurar event listeners para modales de gestión
+    const modalCategoria = document.getElementById('nuevaCategoriaModal');
+    const modalUnidad = document.getElementById('nuevaUnidadModal');
+    
+    if (modalCategoria) {
+        modalCategoria.addEventListener('show.bs.modal', function() {
+            cargarCategorias();
+        });
+    }
+    
+    if (modalUnidad) {
+        modalUnidad.addEventListener('show.bs.modal', function() {
+            cargarUnidades();
+        });
+    }
+});
+
+// Función para cargar categorías y unidades en los selects
+function cargarDatosFormulario() {
+    const url = '{% url "dashboard:get_form_data" %}';
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Cargar categorías
+            const categoriaSelect = document.getElementById('categoria');
+            if (categoriaSelect) {
+                categoriaSelect.innerHTML = '<option value="">Seleccionar categoría</option>';
+                data.categorias.forEach(categoria => {
+                    const option = document.createElement('option');
+                    option.value = categoria.id;
+                    option.textContent = categoria.nombre;
+                    categoriaSelect.appendChild(option);
+                });
+            }
+            
+            // Cargar unidades de medida
+            const unidadSelect = document.getElementById('unidad_medida');
+            if (unidadSelect) {
+                unidadSelect.innerHTML = '<option value="">Seleccionar unidad</option>';
+                data.unidades.forEach(unidad => {
+                    const option = document.createElement('option');
+                    option.value = unidad.id;
+                    option.textContent = `${unidad.nombre} (${unidad.abreviacion})`;
+                    unidadSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando datos del formulario:', error);
+            mostrarNotificacionElegante(
+                'Error de Carga',
+                'No se pudieron cargar las categorías y unidades. Recarga la página e intenta nuevamente.',
+                'error'
+            );
+        });
+}
+
+// Función para abrir modal de nueva categoría
+function abrirModalCategoria() {
+    const modal = new bootstrap.Modal(document.getElementById('nuevaCategoriaModal'));
+    modal.show();
+}
+
+// Función para abrir modal de nueva unidad
+function abrirModalUnidad() {
+    const modal = new bootstrap.Modal(document.getElementById('nuevaUnidadModal'));
+    modal.show();
+}
+</script>

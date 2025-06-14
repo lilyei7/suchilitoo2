@@ -1,0 +1,119 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Ventas - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="fas fa-cash-register me-2 text-primary"></i>
+            Ventas
+        </h1>
+        <p class="text-muted mb-0">Reportes y estadísticas de ventas</p>
+    </div>
+    <div>
+        <button class="btn btn-success me-2">
+            <i class="fas fa-file-excel me-2"></i>Exportar
+        </button>
+        <button class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nueva Venta
+        </button>
+    </div>
+</div>
+
+<!-- Módulo en desarrollo -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-tools fa-4x text-muted mb-4"></i>
+                <h3 class="text-muted mb-3">Módulo de Ventas en Desarrollo</h3>
+                <p class="text-muted mb-4">Esta funcionalidad estará disponible próximamente. Incluirá:</p>
+                
+                <div class="row">
+                    <div class="col-md-6 offset-md-3">
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item border-0">
+                                <i class="fas fa-chart-line me-2 text-primary"></i>
+                                Reportes de ventas diarias, semanales y mensuales
+                            </div>
+                            <div class="list-group-item border-0">
+                                <i class="fas fa-receipt me-2 text-success"></i>
+                                Sistema de facturación y tickets
+                            </div>
+                            <div class="list-group-item border-0">
+                                <i class="fas fa-users me-2 text-info"></i>
+                                Gestión de clientes y mesas
+                            </div>
+                            <div class="list-group-item border-0">
+                                <i class="fas fa-chart-pie me-2 text-warning"></i>
+                                Análisis de productos más vendidos
+                            </div>
+                            <div class="list-group-item border-0">
+                                <i class="fas fa-dollar-sign me-2 text-danger"></i>
+                                Control de ingresos y comisiones
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <p class="text-muted">Mientras tanto, puedes gestionar el inventario y productos desde los otros módulos.</p>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'dashboard:productos_venta' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-shopping-cart me-1"></i>Ver Productos
+                        </a>
+                        <a href="{% url 'dashboard:inventario' %}" class="btn btn-outline-success">
+                            <i class="fas fa-boxes me-1"></i>Ver Inventario
+                        </a>
+                        <a href="/admin/" class="btn btn-outline-info">
+                            <i class="fas fa-cog me-1"></i>Panel Admin
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Placeholders para futuras funcionalidades -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-dollar-sign fa-2x text-success mb-3"></i>
+                <h4>$0</h4>
+                <p class="text-muted mb-0">Ventas Hoy</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-shopping-cart fa-2x text-primary mb-3"></i>
+                <h4>0</h4>
+                <p class="text-muted mb-0">Órdenes Hoy</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-info mb-3"></i>
+                <h4>0</h4>
+                <p class="text-muted mb-0">Clientes Atendidos</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x text-warning mb-3"></i>
+                <h4>0 min</h4>
+                <p class="text-muted mb-0">Tiempo Promedio</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

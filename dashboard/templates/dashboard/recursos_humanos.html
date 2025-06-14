@@ -1,0 +1,319 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Recursos Humanos - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="fas fa-users me-2 text-primary"></i>
+            Recursos Humanos
+        </h1>
+        <p class="text-muted mb-0">Gestión de empleados y personal</p>
+    </div>
+    <button class="btn btn-primary">
+        <i class="fas fa-user-plus me-2"></i>Nuevo Empleado
+    </button>
+</div>
+
+<!-- Estadísticas de RRHH -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats bg-primary text-white">
+            <div class="card-body">
+                <div>
+                    <h5 class="card-title mb-0">{{ usuarios.count }}</h5>
+                    <p class="card-text">Total Empleados</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats bg-success text-white">
+            <div class="card-body">
+                <div>
+                    <h5 class="card-title mb-0">{{ usuarios|length }}</h5>
+                    <p class="card-text">Empleados Activos</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats bg-warning text-white">
+            <div class="card-body">
+                <div>
+                    <h5 class="card-title mb-0">8</h5>
+                    <p class="card-text">Roles Definidos</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-user-tag"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats bg-info text-white">
+            <div class="card-body">
+                <div>
+                    <h5 class="card-title mb-0">0</h5>
+                    <p class="card-text">Nuevos Este Mes</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="search-container">
+            <div class="position-relative">
+                <i class="fas fa-search search-icon"></i>
+                <input type="search" class="form-control" placeholder="Buscar empleado..." 
+                       aria-label="Buscar empleado">
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="d-flex gap-2">
+            <select class="form-select" id="sucursal-filter">
+                <option value="">Todas las sucursales</option>
+                {% for sucursal in request.user.sucursal.all %}
+                <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                {% endfor %}
+            </select>
+            <select class="form-select" id="rol-filter">
+                <option value="">Todos los roles</option>
+                <option value="admin">Administrador</option>
+                <option value="gerente">Gerente</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="cajero">Cajero</option>
+                <option value="cocinero">Cocinero</option>
+                <option value="mesero">Mesero</option>
+                <option value="inventario">Inventario</option>
+                <option value="rrhh">RRHH</option>
+            </select>
+            <select class="form-select" id="estado-filter">
+                <option value="">Todos los estados</option>
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de empleados -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if usuarios %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>EMPLEADO</th>
+                        <th>ROL</th>
+                        <th>SUCURSAL</th>
+                        <th>CONTACTO</th>
+                        <th>FECHA INGRESO</th>
+                        <th>ESTADO</th>
+                        <th>ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    {% if usuario.foto %}
+                                    <img src="{{ usuario.foto.url }}" class="rounded-circle" width="40" height="40" alt="{{ usuario.first_name }}">
+                                    {% else %}
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" 
+                                         style="width: 40px; height: 40px;">
+                                        {{ usuario.first_name|first|default:usuario.username|first }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">{{ usuario.first_name }} {{ usuario.last_name }}</h6>
+                                    <small class="text-muted">{{ usuario.username }}</small>
+                                    {% if usuario.cedula %}
+                                        <br><small class="text-muted">CC: {{ usuario.cedula }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if usuario.rol %}
+                                <span class="badge bg-light text-dark">{{ usuario.rol.get_nombre_display }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Sin rol</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.sucursal %}
+                                {{ usuario.sucursal.nombre }}
+                            {% else %}
+                                <span class="text-muted">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.email %}
+                                <i class="fas fa-envelope me-1 text-muted"></i>{{ usuario.email }}
+                            {% endif %}
+                            {% if usuario.telefono %}
+                                <br><i class="fas fa-phone me-1 text-muted"></i>{{ usuario.telefono }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.fecha_ingreso %}
+                                {{ usuario.fecha_ingreso|date:"d/m/Y" }}
+                            {% else %}
+                                <span class="text-muted">No definida</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        data-bs-toggle="tooltip" title="Ver perfil">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-warning" 
+                                        data-bs-toggle="tooltip" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info" 
+                                        data-bs-toggle="tooltip" title="Horarios">
+                                    <i class="fas fa-calendar"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        data-bs-toggle="tooltip" title="Documentos">
+                                    <i class="fas fa-file-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay empleados registrados</h5>
+            <p class="text-muted">Comienza agregando el primer empleado.</p>
+            <button class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Agregar Primer Empleado
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Distribución por roles -->
+<div class="row mt-5">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Distribución por Roles
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="roles-chart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Empleados por Sucursal
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="sucursales-chart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de roles
+    const rolesCtx = document.getElementById('roles-chart');
+    if (rolesCtx) {
+        new Chart(rolesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Administrador', 'Gerente', 'Cocinero', 'Mesero', 'Cajero', 'Otros'],
+                datasets: [{
+                    data: [1, 0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB',
+                        '#FFCE56',
+                        '#4BC0C0',
+                        '#9966FF',
+                        '#FF9F40'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    // Gráfico de sucursales
+    const sucursalesCtx = document.getElementById('sucursales-chart');
+    if (sucursalesCtx) {
+        new Chart(sucursalesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Sucursal Centro', 'Sucursal Norte'],
+                datasets: [{
+                    label: 'Empleados',
+                    data: [1, 0],
+                    backgroundColor: '#36A2EB'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

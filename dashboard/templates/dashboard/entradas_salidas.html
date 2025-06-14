@@ -1,0 +1,187 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Entradas y Salidas - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-exchange-alt me-2 text-primary"></i>
+            Entradas y Salidas
+        </h1>
+        <p class="text-muted mb-0">Gestiona los movimientos de inventario</p>
+    </div>
+    <div>
+        <button class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nuevo Movimiento
+        </button>
+    </div>
+</div>
+
+<!-- Filtros de búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">Buscar movimientos</label>
+                <div class="position-relative">
+                    <input type="text" class="form-control" placeholder="Buscar por insumo, usuario...">
+                    <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-muted small mb-1">Tipo</label>
+                <select class="form-select">
+                    <option selected>Todos</option>
+                    <option value="entrada">Entrada</option>
+                    <option value="salida">Salida</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">Sucursal</label>
+                <select class="form-select">
+                    <option selected>Todas las sucursales</option>
+                    {% for sucursal in sucursales %}
+                    <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-muted small mb-1">Fecha</label>
+                <input type="date" class="form-control" placeholder="mm/dd/yyyy">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-primary w-100">
+                    <i class="fas fa-filter me-2"></i>Filtrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contenido principal -->
+<div class="card">
+    <div class="card-body">
+        {% if movimientos %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>FECHA</th>
+                        <th>TIPO</th>
+                        <th>INSUMO</th>
+                        <th>CANTIDAD</th>
+                        <th>USUARIO</th>
+                        <th>SUCURSAL</th>
+                        <th>MOTIVO</th>
+                        <th>ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>                    {% for movimiento in movimientos %}
+                    <tr>
+                        <td>
+                            <span class="text-muted">{{ movimiento.created_at|date:"d/m/Y H:i" }}</span>
+                        </td>
+                        <td>
+                            {% if movimiento.tipo_movimiento == 'entrada' %}
+                                <span class="badge bg-success">Entrada</span>
+                            {% else %}
+                                <span class="badge bg-danger">Salida</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>
+                                <h6 class="mb-0">{{ movimiento.insumo.nombre }}</h6>
+                                <small class="text-muted">{{ movimiento.insumo.codigo }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="fw-bold">{{ movimiento.cantidad }} {{ movimiento.insumo.unidad_medida }}</span>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ movimiento.usuario.get_full_name|default:movimiento.usuario.username }}</span>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ movimiento.sucursal.nombre }}</span>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ movimiento.motivo|default:"—" }}</span>
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-link text-muted" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-eye me-2"></i>Ver detalles</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Editar</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i>Eliminar</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <!-- Estado vacío -->
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-box-open text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay movimientos</h5>
+            <p class="text-muted mb-4">Aún no se han registrado movimientos de inventario</p>
+            <button class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Crear primer movimiento
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-label.small {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.position-relative .fas.fa-search {
+    pointer-events: none;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.btn-outline-primary {
+    border-color: #d1d5db;
+    color: #6b7280;
+}
+
+.btn-outline-primary:hover {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+}
+</style>
+{% endblock %}

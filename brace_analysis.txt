@@ -1,0 +1,384 @@
+Analyzing brace balance line by line:
+============================================================
+OK Line    8: +1 -0 =   1 | document.addEventListener('DOMContentLoaded', function() {
+OK Line   13: +1 -0 =   2 | document.getElementById('formCrearReceta').addEventListener('submit', 
+OK Line   16: +0 -1 =   1 | });
+OK Line   19: +1 -0 =   2 | document.getElementById('formEditarReceta').addEventListener('submit',
+OK Line   22: +0 -1 =   1 | });
+OK Line   25: +1 -0 =   2 | document.getElementById('porciones').addEventListener('change', functi
+OK Line   27: +0 -1 =   1 | });
+OK Line   28: +0 -1 =   0 | });
+OK Line   31: +1 -0 =   1 | function abrirModalCrearReceta() {
+OK Line   32: +1 -0 =   2 | try {
+OK Line   37: +1 -0 =   3 | if (!form) {
+OK Line   40: +0 -1 =   2 | }
+OK Line   61: +1 -0 =   3 | if (!modalElement) {
+OK Line   64: +0 -1 =   2 | }
+OK Line   68: +1 -1 =   2 | } catch (error) {
+OK Line   71: +0 -1 =   1 | }
+OK Line   72: +0 -1 =   0 | }
+OK Line   75: +1 -0 =   1 | function abrirModalCategorias() {
+OK Line   85: +1 -0 =   2 | formCrearCategoria.addEventListener('submit', function(e) {
+OK Line   88: +0 -1 =   1 | });
+OK Line   89: +0 -1 =   0 | }
+OK Line   92: +1 -0 =   1 | function verDetalleReceta(recetaId) {
+OK Line  109: +2 -1 =   2 | fetch(`/dashboard/recetas/detalle/${recetaId}/`, {
+OK Line  110: +1 -1 =   2 | headers: { 'X-Requested-With': 'XMLHttpRequest' }
+OK Line  111: +0 -1 =   1 | })
+OK Line  113: +1 -0 =   2 | .then(data => {
+OK Line  114: +1 -0 =   3 | if (data.success) {
+OK Line  116: +1 -1 =   3 | } else {
+OK Line  119: +1 -1 =   3 | <i class="fas fa-exclamation-circle me-1"></i> ${data.message}
+OK Line  122: +0 -1 =   2 | }
+OK Line  123: +0 -1 =   1 | })
+OK Line  124: +1 -0 =   2 | .catch(error => {
+OK Line  131: +0 -1 =   1 | });
+OK Line  132: +0 -1 =   0 | }
+OK Line  135: +1 -0 =   1 | function editarReceta(recetaId) {
+OK Line  152: +2 -1 =   2 | fetch(`/dashboard/recetas/detalle/${recetaId}/`, {
+OK Line  153: +1 -1 =   2 | headers: { 'X-Requested-With': 'XMLHttpRequest' }
+OK Line  154: +0 -1 =   1 | })
+OK Line  156: +1 -0 =   2 | .then(data => {
+OK Line  157: +1 -0 =   3 | if (data.success) {
+OK Line  159: +1 -1 =   3 | } else {
+OK Line  162: +1 -1 =   3 | <i class="fas fa-exclamation-circle me-1"></i> ${data.message}
+OK Line  165: +0 -1 =   2 | }
+OK Line  166: +0 -1 =   1 | })
+OK Line  167: +1 -0 =   2 | .catch(error => {
+OK Line  174: +0 -1 =   1 | });
+OK Line  175: +0 -1 =   0 | }
+OK Line  178: +1 -0 =   1 | function duplicarReceta(recetaId) {
+OK Line  179: +1 -0 =   2 | if (confirm('¿Estás seguro de duplicar esta receta?')) {
+OK Line  180: +2 -1 =   3 | fetch(`/dashboard/recetas/duplicar/${recetaId}/`, {
+OK Line  182: +1 -0 =   4 | headers: {
+OK Line  185: +0 -1 =   3 | }
+OK Line  186: +0 -1 =   2 | })
+OK Line  188: +1 -0 =   3 | .then(data => {
+OK Line  189: +1 -0 =   4 | if (data.success) {
+OK Line  192: +1 -0 =   5 | setTimeout(() => {
+OK Line  196: +0 -1 =   4 | }, 500);
+OK Line  197: +1 -1 =   4 | } else {
+OK Line  199: +0 -1 =   3 | }
+OK Line  200: +0 -1 =   2 | })
+OK Line  201: +1 -0 =   3 | .catch(error => {
+OK Line  204: +0 -1 =   2 | });
+OK Line  205: +0 -1 =   1 | }
+OK Line  206: +0 -1 =   0 | }
+OK Line  209: +1 -0 =   1 | function showToast(message, type) {
+OK Line  211: +1 -1 =   1 | toast.className = `toast show align-items-center text-white bg-${type 
+OK Line  219: +1 -1 =   1 | ${message}
+OK Line  228: +1 -0 =   2 | setTimeout(() => {
+OK Line  231: +0 -1 =   1 | }, 5000);
+OK Line  232: +0 -1 =   0 | }
+OK Line  235: +1 -0 =   1 | function createToastContainer() {
+OK Line  242: +0 -1 =   0 | }
+OK Line  245: +1 -0 =   1 | function renderizarDetalleReceta(receta, ingredientes) {
+OK Line  251: +1 -1 =   1 | <h5 class="border-bottom pb-2 mb-3">${receta.nombre}</h5>
+OK Line  257: +1 -1 =   1 | <span class="fw-medium">${receta.categoria || 'Sin categoría'}</span>
+OK Line  261: +1 -1 =   1 | <span class="fw-medium">${receta.tiempo_preparacion} min</span>
+OK Line  265: +1 -1 =   1 | <span class="fw-medium">${receta.porciones}</span>
+OK Line  271: +1 -1 =   1 | <span class="fw-medium">$${receta.costo_total.toFixed(2)}</span>
+OK Line  275: +1 -1 =   1 | <span class="fw-medium">$${(receta.costo_total / receta.porciones).toF
+OK Line  279: +1 -1 =   1 | <span class="fw-medium">${receta.precio_venta ? '$' + receta.precio_ve
+OK Line  284: +1 -0 =   2 | ${receta.descripcion ? `
+OK Line  287: +1 -1 =   2 | <p>${receta.descripcion}</p>
+OK Line  289: +0 -1 =   1 | ` : ''}
+OK Line  296: +1 -1 =   1 | <h6 class="border-bottom pb-2 mb-3">Ingredientes (${ingredientes.lengt
+OK Line  311: +1 -0 =   2 | if (ingredientes.length > 0) {
+OK Line  312: +1 -0 =   3 | ingredientes.forEach(ingrediente => {
+OK Line  315: +2 -2 =   3 | <td>${ingrediente.nombre} (${ingrediente.codigo})</td>
+OK Line  317: +1 -0 =   4 | <span class="badge ${
+OK Line  321: +0 -1 =   3 | }">
+OK Line  322: +1 -0 =   4 | ${
+OK Line  326: +0 -1 =   3 | }
+OK Line  329: +2 -2 =   3 | <td>${ingrediente.cantidad} ${ingrediente.unidad}</td>
+OK Line  330: +1 -1 =   3 | <td class="text-end">$${ingrediente.costo.toFixed(2)}</td>
+OK Line  333: +0 -1 =   2 | });
+OK Line  334: +1 -1 =   2 | } else {
+OK Line  342: +0 -1 =   1 | }
+OK Line  349: +1 -1 =   1 | <th class="text-end">$${receta.costo_total.toFixed(2)}</th>
+OK Line  358: +0 -1 =   0 | }
+OK Line  361: +1 -0 =   1 | function agregarIngredienteEditar(ingredienteExistente = null) {
+OK Line  362: +1 -0 =   2 | if (todosLosInsumos.length === 0) {
+OK Line  365: +0 -1 =   1 | }
+OK Line  372: +1 -0 =   2 | if (alerta) {
+OK Line  374: +0 -1 =   1 | }
+OK Line  376: +1 -1 =   1 | const id = `editar_ingrediente_${contadorIngredientesEditar}`;
+OK Line  382: +1 -0 =   2 | const insumosPorTipo = {
+OK Line  386: +0 -1 =   1 | };
+OK Line  389: +1 -0 =   2 | if (insumosPorTipo.basico.length > 0) {
+OK Line  391: +1 -0 =   3 | insumosPorTipo.basico.forEach(insumo => {
+OK Line  393: +8 -8 =   3 | opcionesInsumos += `<option value="${insumo.id}" data-tipo="${insumo.t
+OK Line  394: +0 -1 =   2 | });
+OK Line  396: +0 -1 =   1 | }
+OK Line  398: +1 -0 =   2 | if (insumosPorTipo.compuesto.length > 0) {
+OK Line  400: +1 -0 =   3 | insumosPorTipo.compuesto.forEach(insumo => {
+OK Line  402: +8 -8 =   3 | opcionesInsumos += `<option value="${insumo.id}" data-tipo="${insumo.t
+OK Line  403: +0 -1 =   2 | });
+OK Line  405: +0 -1 =   1 | }
+OK Line  407: +1 -0 =   2 | if (insumosPorTipo.elaborado.length > 0) {
+OK Line  409: +1 -0 =   3 | insumosPorTipo.elaborado.forEach(insumo => {
+OK Line  411: +8 -8 =   3 | opcionesInsumos += `<option value="${insumo.id}" data-tipo="${insumo.t
+OK Line  412: +0 -1 =   2 | });
+OK Line  414: +0 -1 =   1 | }
+OK Line  418: +1 -1 =   1 | <div id="${id}" class="row mb-2 align-items-end border-bottom pb-2">
+OK Line  421: +1 -1 =   1 | <select class="form-select form-select-sm" name="editar_ingrediente_in
+OK Line  422: +1 -1 =   1 | ${opcionesInsumos}
+OK Line  428: +2 -2 =   1 | <input type="number" class="form-control" name="editar_ingrediente_can
+OK Line  429: +1 -1 =   1 | <span class="input-group-text unidad-medida">${ingredienteExistente ? 
+OK Line  436: +1 -1 =   1 | <input type="text" class="form-control costo-ingrediente" name="editar
+OK Line  440: +1 -1 =   1 | <button type="button" class="btn btn-sm btn-outline-danger" onclick="e
+OK Line  449: +0 -1 =   0 | }
+OK Line  452: +1 -0 =   1 | function cargarDatosEdicion(receta, ingredientes) {
+OK Line  453: +1 -0 =   2 | try {
+OK Line  471: +1 -0 =   3 | if (ingredientes && ingredientes.length > 0) {
+OK Line  472: +1 -1 =   3 | console.log(`Cargando ${ingredientes.length} ingredientes existentes`)
+OK Line  473: +1 -0 =   4 | ingredientes.forEach(ingrediente => {
+OK Line  475: +1 -0 =   5 | agregarIngredienteEditar({
+OK Line  480: +0 -1 =   4 | });
+OK Line  483: +1 -1 =   4 | const filaId = `editar_ingrediente_${contadorIngredientesEditar}`;
+OK Line  485: +1 -0 =   5 | if (filaElement) {
+OK Line  491: +1 -0 =   6 | if (selectInsumo) {
+OK Line  493: +0 -1 =   5 | }
+OK Line  496: +1 -0 =   6 | if (spanUnidad) {
+OK Line  498: +0 -1 =   5 | }
+OK Line  501: +1 -0 =   6 | if (inputCantidad) {
+OK Line  503: +0 -1 =   5 | }
+OK Line  507: +0 -1 =   4 | }
+OK Line  508: +0 -1 =   3 | });
+OK Line  509: +1 -1 =   3 | } else {
+OK Line  516: +0 -1 =   2 | }
+OK Line  523: +1 -0 =   3 | document.getElementById('editar_porciones').addEventListener('change',
+OK Line  525: +0 -1 =   2 | });
+OK Line  528: +1 -1 =   2 | } catch (error) {
+OK Line  530: +0 -1 =   1 | }
+OK Line  531: +0 -1 =   0 | }
+OK Line  534: +1 -0 =   1 | function cargarInsumos() {
+OK Line  539: +1 -0 =   2 | fetch('/dashboard/recetas/insumos/todos/', {
+OK Line  540: +1 -0 =   3 | headers: {
+OK Line  542: +0 -1 =   2 | }
+OK Line  543: +0 -1 =   1 | })
+OK Line  545: +1 -0 =   2 | .then(data => {
+OK Line  546: +1 -0 =   3 | if (data.success) {
+OK Line  549: +4 -4 =   3 | console.log(`✅ Insumos cargados: ${todosLosInsumos.length} (${data.by_
+OK Line  550: +1 -1 =   3 | } else {
+OK Line  553: +0 -1 =   2 | }
+OK Line  554: +0 -1 =   1 | })
+OK Line  555: +1 -0 =   2 | .catch(error => {
+OK Line  558: +0 -1 =   1 | });
+OK Line  559: +0 -1 =   0 | }
+OK Line  562: +1 -0 =   1 | function agregarIngrediente() {
+OK Line  563: +1 -0 =   2 | if (todosLosInsumos.length === 0) {
+OK Line  566: +0 -1 =   1 | }
+OK Line  573: +1 -0 =   2 | if (alerta) {
+OK Line  575: +0 -1 =   1 | }
+OK Line  577: +1 -1 =   1 | const id = `ingrediente_${contadorIngredientes}`;
+OK Line  583: +1 -0 =   2 | const insumosPorTipo = {
+OK Line  587: +0 -1 =   1 | };
+OK Line  590: +1 -0 =   2 | if (insumosPorTipo.basico.length > 0) {
+OK Line  592: +1 -0 =   3 | insumosPorTipo.basico.forEach(insumo => {
+OK Line  593: +7 -7 =   3 | opcionesInsumos += `<option value="${insumo.id}" data-tipo="${insumo.t
+OK Line  594: +0 -1 =   2 | });
+OK Line  596: +0 -1 =   1 | }
+OK Line  598: +1 -0 =   2 | if (insumosPorTipo.compuesto.length > 0) {
+OK Line  600: +1 -0 =   3 | insumosPorTipo.compuesto.forEach(insumo => {
+OK Line  601: +7 -7 =   3 | opcionesInsumos += `<option value="${insumo.id}" data-tipo="${insumo.t
+OK Line  602: +0 -1 =   2 | });
+OK Line  604: +0 -1 =   1 | }
+OK Line  606: +1 -0 =   2 | if (insumosPorTipo.elaborado.length > 0) {
+OK Line  608: +1 -0 =   3 | insumosPorTipo.elaborado.forEach(insumo => {
+OK Line  609: +7 -7 =   3 | opcionesInsumos += `<option value="${insumo.id}" data-tipo="${insumo.t
+OK Line  610: +0 -1 =   2 | });
+OK Line  612: +0 -1 =   1 | }
+OK Line  616: +1 -1 =   1 | <div id="${id}" class="row mb-2 align-items-end border-bottom pb-2">
+OK Line  619: +1 -1 =   1 | <select class="form-select form-select-sm" name="ingrediente_insumo[]"
+OK Line  620: +1 -1 =   1 | ${opcionesInsumos}
+OK Line  626: +1 -1 =   1 | <input type="number" class="form-control" name="ingrediente_cantidad[]
+OK Line  638: +1 -1 =   1 | <button type="button" class="btn btn-sm btn-outline-danger" onclick="e
+OK Line  647: +0 -1 =   0 | }
+OK Line  650: +1 -0 =   1 | function actualizarInfoIngrediente(select, id) {
+OK Line  656: +1 -0 =   2 | if (option.value) {
+OK Line  661: +1 -0 =   3 | if (insumosSeleccionados.length > 0) {
+OK Line  668: +0 -1 =   2 | }
+OK Line  675: +1 -1 =   2 | } else {
+OK Line  679: +0 -1 =   1 | }
+OK Line  680: +0 -1 =   0 | }
+OK Line  683: +1 -0 =   1 | function actualizarInfoIngredienteEditar(select, id) {
+OK Line  689: +1 -0 =   2 | if (option.value) {
+OK Line  694: +1 -0 =   3 | if (insumosSeleccionados.length > 0) {
+OK Line  701: +0 -1 =   2 | }
+OK Line  708: +1 -1 =   2 | } else {
+OK Line  712: +0 -1 =   1 | }
+OK Line  713: +0 -1 =   0 | }
+OK Line  716: +1 -0 =   1 | function actualizarCostoIngrediente(input, id) {
+OK Line  722: +1 -0 =   2 | if (option.value && input.value > 0) {
+OK Line  727: +1 -1 =   2 | } else {
+OK Line  729: +0 -1 =   1 | }
+OK Line  732: +0 -1 =   0 | }
+OK Line  735: +1 -0 =   1 | function actualizarCostoIngredienteEditar(input, id) {
+OK Line  736: +1 -0 =   2 | try {
+OK Line  742: +1 -0 =   3 | if (option.value && input.value > 0) {
+OK Line  747: +1 -1 =   3 | } else {
+OK Line  749: +0 -1 =   2 | }
+OK Line  753: +1 -1 =   2 | } catch (error) {
+OK Line  755: +0 -1 =   1 | }
+OK Line  756: +0 -1 =   0 | }
+ERROR Line  757: +0 -1 =  -1 | }
+OK Line  760: +1 -0 =   0 | function eliminarIngrediente(id) {
+OK Line  762: +1 -0 =   1 | if (element) {
+OK Line  767: +1 -0 =   2 | if (container.children.length === 0) {
+OK Line  773: +0 -1 =   1 | }
+OK Line  777: +0 -1 =   0 | }
+ERROR Line  778: +0 -1 =  -1 | }
+OK Line  781: +1 -0 =   0 | function eliminarIngredienteEditar(id) {
+OK Line  783: +1 -0 =   1 | if (element) {
+OK Line  788: +1 -0 =   2 | if (container.children.length === 0) {
+OK Line  794: +0 -1 =   1 | }
+OK Line  798: +0 -1 =   0 | }
+ERROR Line  799: +0 -1 =  -1 | }
+OK Line  802: +1 -0 =   0 | function eliminarReceta(recetaId) {
+OK Line  803: +1 -0 =   1 | if (!confirm('¿Está seguro de eliminar esta receta? Esta acción no se 
+OK Line  805: +0 -1 =   0 | }
+OK Line  809: +1 -0 =   1 | if (!csrfToken) {
+OK Line  813: +0 -1 =   0 | }
+OK Line  816: +1 -1 =   0 | const btnEliminar = document.querySelector(`button[onclick="eliminarRe
+OK Line  818: +1 -0 =   1 | if (btnEliminar) {
+OK Line  821: +0 -1 =   0 | }
+OK Line  824: +2 -1 =   1 | fetch(`/dashboard/recetas/eliminar/${recetaId}/`, {
+OK Line  826: +1 -0 =   2 | headers: {
+OK Line  830: +0 -1 =   1 | }
+OK Line  831: +0 -1 =   0 | })
+OK Line  833: +1 -0 =   1 | .then(data => {
+OK Line  834: +1 -0 =   2 | if (data.success) {
+OK Line  838: +1 -1 =   2 | } else {
+OK Line  841: +1 -0 =   3 | if (btnEliminar) {
+OK Line  844: +0 -1 =   2 | }
+OK Line  845: +0 -1 =   1 | }
+OK Line  846: +0 -1 =   0 | })
+OK Line  847: +1 -0 =   1 | .catch(error => {
+OK Line  851: +1 -0 =   2 | if (btnEliminar) {
+OK Line  854: +0 -1 =   1 | }
+OK Line  855: +0 -1 =   0 | });
+ERROR Line  856: +0 -1 =  -1 | }
+OK Line  861: +1 -0 =   0 | function cargarCategorias() {
+OK Line  875: +1 -0 =   1 | fetch('/dashboard/api/categorias-productos/', {
+OK Line  877: +1 -0 =   2 | headers: {
+OK Line  880: +0 -1 =   1 | }
+OK Line  881: +0 -1 =   0 | })
+OK Line  883: +1 -0 =   1 | .then(data => {
+OK Line  884: +1 -0 =   2 | if (data.success) {
+OK Line  886: +1 -1 =   2 | } else {
+OK Line  890: +1 -1 =   2 | Error al cargar las categorías: ${data.message || 'Error desconocido'}
+OK Line  893: +0 -1 =   1 | }
+OK Line  894: +0 -1 =   0 | })
+OK Line  895: +1 -0 =   1 | .catch(error => {
+OK Line  903: +0 -1 =   0 | });
+ERROR Line  904: +0 -1 =  -1 | }
+OK Line  907: +1 -0 =   0 | function renderizarCategorias(categorias) {
+OK Line  910: +1 -0 =   1 | if (categorias.length === 0) {
+OK Line  918: +0 -1 =   0 | }
+OK Line  922: +1 -0 =   1 | categorias.forEach(categoria => {
+OK Line  927: +1 -1 =   1 | ${categoria.nombre}
+OK Line  929: +2 -2 =   1 | <button type="button" class="btn btn-sm btn-outline-danger" onclick="e
+OK Line  934: +0 -1 =   0 | });
+ERROR Line  937: +0 -1 =  -1 | }
+OK Line  940: +1 -0 =   0 | function crearCategoria() {
+OK Line  954: +1 -0 =   1 | fetch('/dashboard/categorias-productos/crear/', {
+OK Line  957: +1 -0 =   2 | headers: {
+OK Line  960: +0 -1 =   1 | }
+OK Line  961: +0 -1 =   0 | })
+OK Line  963: +1 -0 =   1 | .then(data => {
+OK Line  964: +1 -0 =   2 | if (data.success) {
+OK Line  970: +1 -0 =   3 | if (data.categoria) {
+OK Line  972: +1 -0 =   4 | if (selectCategoria) {
+OK Line  977: +0 -1 =   3 | }
+OK Line  980: +1 -0 =   4 | if (selectCategoriaEditar) {
+OK Line  985: +0 -1 =   3 | }
+OK Line  986: +0 -1 =   2 | }
+OK Line  987: +1 -1 =   2 | } else {
+OK Line  989: +0 -1 =   1 | }
+OK Line  990: +0 -1 =   0 | })
+OK Line  991: +1 -0 =   1 | .catch(error => {
+OK Line  994: +0 -1 =   0 | })
+OK Line  995: +1 -0 =   1 | .finally(() => {
+OK Line  999: +0 -1 =   0 | });
+ERROR Line 1000: +0 -1 =  -1 | }
+OK Line 1003: +1 -0 =   0 | function eliminarCategoria(categoriaId, nombreCategoria) {
+OK Line 1004: +2 -1 =   1 | if (!confirm(`¿Está seguro de eliminar la categoría "${nombreCategoria
+OK Line 1006: +0 -1 =   0 | }
+OK Line 1011: +2 -1 =   1 | fetch(`/dashboard/categorias-productos/eliminar/${categoriaId}/`, {
+OK Line 1013: +1 -0 =   2 | headers: {
+OK Line 1017: +0 -1 =   1 | }
+OK Line 1018: +0 -1 =   0 | })
+OK Line 1020: +1 -0 =   1 | .then(data => {
+OK Line 1021: +1 -0 =   2 | if (data.success) {
+OK Line 1027: +1 -0 =   3 | if (selectCategoria) {
+OK Line 1028: +1 -1 =   3 | const option = selectCategoria.querySelector(`option[value="${categori
+OK Line 1030: +0 -1 =   2 | }
+OK Line 1033: +1 -0 =   3 | if (selectCategoriaEditar) {
+OK Line 1034: +1 -1 =   3 | const option = selectCategoriaEditar.querySelector(`option[value="${ca
+OK Line 1036: +0 -1 =   2 | }
+OK Line 1037: +1 -1 =   2 | } else {
+OK Line 1039: +0 -1 =   1 | }
+OK Line 1040: +0 -1 =   0 | })
+OK Line 1041: +1 -0 =   1 | .catch(error => {
+OK Line 1044: +0 -1 =   0 | });
+ERROR Line 1045: +0 -1 =  -1 | }
+OK Line 1048: +1 -0 =   0 | function actualizarResumenCostos() {
+OK Line 1049: +1 -0 =   1 | try {
+OK Line 1052: +1 -0 =   2 | if (!ingredientesContainer) {
+OK Line 1055: +0 -1 =   1 | }
+OK Line 1059: +1 -0 =   2 | ingredientesContainer.querySelectorAll('.costo-ingrediente').forEach(i
+OK Line 1061: +0 -1 =   1 | });
+OK Line 1068: +1 -0 =   2 | if (!porcionesElement) {
+OK Line 1071: +0 -1 =   1 | }
+OK Line 1082: +1 -0 =   2 | if (costoIngredientesElement) {
+OK Line 1083: +1 -1 =   2 | costoIngredientesElement.textContent = `$${costoIngredientes.toFixed(2
+OK Line 1084: +0 -1 =   1 | }
+OK Line 1085: +1 -0 =   2 | if (costoTotalElement) {
+OK Line 1086: +1 -1 =   2 | costoTotalElement.textContent = `$${costoTotal.toFixed(2)}`;
+OK Line 1087: +0 -1 =   1 | }
+OK Line 1088: +1 -0 =   2 | if (costoPorcionElement) {
+OK Line 1089: +1 -1 =   2 | costoPorcionElement.textContent = `$${costoPorcion.toFixed(2)}`;
+OK Line 1090: +0 -1 =   1 | }
+OK Line 1091: +1 -1 =   1 | } catch (error) {
+OK Line 1093: +0 -1 =   0 | }
+ERROR Line 1094: +0 -1 =  -1 | }
+OK Line 1097: +1 -0 =   0 | function actualizarResumenCostosEditar() {
+OK Line 1098: +1 -0 =   1 | try {
+OK Line 1101: +1 -0 =   2 | if (!ingredientesContainer) {
+OK Line 1104: +0 -1 =   1 | }
+OK Line 1108: +1 -0 =   2 | ingredientesContainer.querySelectorAll('.costo-ingrediente').forEach(i
+OK Line 1110: +0 -1 =   1 | });
+OK Line 1117: +1 -0 =   2 | if (!porcionesElement) {
+OK Line 1120: +0 -1 =   1 | }
+OK Line 1131: +1 -0 =   2 | if (costoIngredientesElement) {
+OK Line 1132: +1 -1 =   2 | costoIngredientesElement.textContent = `$${costoIngredientes.toFixed(2
+OK Line 1133: +1 -1 =   2 | } else {
+OK Line 1135: +0 -1 =   1 | }
+OK Line 1137: +1 -0 =   2 | if (costoTotalElement) {
+OK Line 1138: +1 -1 =   2 | costoTotalElement.textContent = `$${costoTotal.toFixed(2)}`;
+OK Line 1139: +1 -1 =   2 | } else {
+OK Line 1141: +0 -1 =   1 | }
+OK Line 1142: +1 -0 =   2 | if (costoPorcionElement) {
+OK Line 1143: +1 -1 =   2 | costoPorcionElement.textContent = `$${costoPorcion.toFixed(2)}`;
+OK Line 1144: +1 -1 =   2 | } else {
+OK Line 1146: +0 -1 =   1 | }
+OK Line 1147: +1 -1 =   1 | } catch (error) {
+OK Line 1150: +0 -1 =   0 | }
+ERROR Line 1151: +0 -1 =  -1 | }
+============================================================
+Final balance: -1
+ERROR: Brace balance incorrect (-1)
+
+Lines that might have extra closing braces:
+Line  757: }
+Line  778: }
+Line  799: }
+Line  856: }
+Line  904: }
+Line  937: }
+Line 1000: }
+Line 1045: }
+Line 1094: }
+Line 1151: }

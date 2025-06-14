@@ -1,0 +1,1050 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Sucursales - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-store me-2 text-primary"></i>
+            Sucursales
+        </h1>
+        <p class="text-muted mb-0">Gestión de sucursales y ubicaciones</p>
+    </div>    <button class="btn btn-primary" onclick="abrirModalCrearSucursal()">
+        <i class="fas fa-plus me-2"></i>Nueva Sucursal
+    </button>
+</div>
+
+<!-- Resumen de estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ sucursales.count }}</h3>
+                        <p class="text-muted mb-0 small">Total Sucursales</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ sucursales_activas }}</h3>
+                        <p class="text-muted mb-0 small">Sucursales Activas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">45</h3>
+                        <p class="text-muted mb-0 small">Empleados Total</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">$12.5K</h3>
+                        <p class="text-muted mb-0 small">Ventas del Día</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tarjetas de sucursales -->
+{% if sucursales %}
+<div class="row">
+    {% for sucursal in sucursales %}
+    <div class="col-lg-6 col-xl-4 mb-4">
+        <div class="card sucursal-card h-100">
+            <div class="card-header border-0 pb-0">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1 text-dark">{{ sucursal.nombre }}</h5>
+                        <small class="text-muted">{{ sucursal.direccion|truncatechars:30 }}</small>
+                    </div>
+                    {% if sucursal.activa %}
+                        <span class="badge badge-success-soft">
+                            <i class="fas fa-circle me-1"></i>Activa
+                        </span>
+                    {% else %}
+                        <span class="badge badge-danger-soft">
+                            <i class="fas fa-circle me-1"></i>Inactiva
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card-body pt-3">
+                <!-- Información de contacto -->
+                <div class="contact-info mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="info-icon info-icon-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <span class="small text-muted">{{ sucursal.direccion }}</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="info-icon info-icon-phone">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <span class="small text-muted">{{ sucursal.telefono }}</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="info-icon info-icon-email">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <span class="small text-muted">{{ sucursal.email }}</span>
+                    </div>
+                </div>
+
+                <!-- Estadísticas rápidas -->
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value text-primary">{{ sucursal.usuario_set.count }}</div>
+                        <div class="stat-label">Empleados</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value text-success">{{ sucursal.inventario_set.count }}</div>
+                        <div class="stat-label">Inventario</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value text-info">0</div>
+                        <div class="stat-label">Ventas Hoy</div>
+                    </div>
+                </div>
+
+                <!-- Información adicional -->
+                <div class="additional-info mt-3 pt-3 border-top">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>
+                            Apertura: {{ sucursal.fecha_apertura|date:"M Y" }}
+                        </small>
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ sucursal.created_at|timesince }} atrás
+                        </small>
+                    </div>
+                </div>
+            </div>
+              <div class="card-footer border-0 pt-0">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm flex-fill" onclick="verDetalleSucursal({{ sucursal.id }})">
+                        <i class="fas fa-eye me-1"></i>Ver
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm flex-fill" onclick="editarSucursal({{ sucursal.id }})">
+                        <i class="fas fa-edit me-1"></i>Editar
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="toggleEstadoSucursal({{ sucursal.id }}, '{{ sucursal.nombre }}', {{ sucursal.activa|yesno:'true,false' }})">
+                                <i class="fas fa-{% if sucursal.activa %}pause{% else %}play{% endif %} me-2"></i>
+                                {% if sucursal.activa %}Desactivar{% else %}Activar{% endif %}
+                            </a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-boxes me-2"></i>Inventario</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-users me-2"></i>Personal</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-chart-bar me-2"></i>Reportes</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="eliminarSucursal({{ sucursal.id }}, '{{ sucursal.nombre }}')">
+                                <i class="fas fa-trash me-2"></i>Eliminar
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Estado vacío -->
+<div class="card">
+    <div class="card-body">
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-store text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay sucursales registradas</h5>
+            <p class="text-muted mb-4">Comienza agregando tu primera sucursal para gestionar tu negocio.</p>            <button class="btn btn-primary" onclick="abrirModalCrearSucursal()">
+                <i class="fas fa-plus me-2"></i>Crear Primera Sucursal
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Mapa conceptual -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header border-0">
+                <div class="d-flex align-items-center">
+                    <div class="map-icon me-3">
+                        <i class="fas fa-map"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">Distribución Geográfica</h5>
+                        <small class="text-muted">Vista general de ubicaciones</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <div class="map-placeholder">
+                        <i class="fas fa-map-marked-alt fa-3x text-primary mb-3"></i>
+                        <h6 class="text-muted mb-2">Mapa Interactivo</h6>
+                        <p class="text-muted mb-0">Integración con Google Maps próximamente disponible</p>
+                    </div>
+                </div>
+            </div>
+        </div>    </div>
+</div>
+
+<!-- Modal para crear sucursal -->
+<div class="modal fade" id="modalCrearSucursal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-store me-2 text-primary"></i>
+                    Nueva Sucursal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCrearSucursal">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required placeholder="Ej: Sucursal Centro">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="telefono" class="form-label">Teléfono <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="telefono" name="telefono" required placeholder="Ej: 123-456-7890">
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="direccion" class="form-label">Dirección <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="direccion" name="direccion" required placeholder="Ej: Calle Principal #123">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="Ej: sucursal@restaurant.com">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ciudad" class="form-label">Ciudad</label>
+                            <input type="text" class="form-control" id="ciudad" name="ciudad" placeholder="Ej: Ciudad de México">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="estado" class="form-label">Estado</label>
+                            <input type="text" class="form-control" id="estado" name="estado" placeholder="Ej: CDMX">
+                        </div>                        <div class="col-md-6 mb-3">
+                            <label for="codigo_postal" class="form-label">Código Postal</label>
+                            <input type="text" class="form-control" id="codigo_postal" name="codigo_postal" placeholder="Ej: 12345">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fecha_apertura" class="form-label">Fecha de Apertura</label>
+                            <input type="date" class="form-control" id="fecha_apertura" name="fecha_apertura" value="{{ today|date:'Y-m-d' }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Crear Sucursal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar sucursal -->
+<div class="modal fade" id="modalEditarSucursal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2 text-primary"></i>
+                    Editar Sucursal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditarSucursal">
+                {% csrf_token %}
+                <input type="hidden" id="editar_sucursal_id" name="sucursal_id">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editar_nombre" name="nombre" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_telefono" class="form-label">Teléfono <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editar_telefono" name="telefono" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="editar_direccion" class="form-label">Dirección <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editar_direccion" name="direccion" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editar_email" name="email">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_ciudad" class="form-label">Ciudad</label>
+                            <input type="text" class="form-control" id="editar_ciudad" name="ciudad">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_estado" class="form-label">Estado</label>
+                            <input type="text" class="form-control" id="editar_estado" name="estado">
+                        </div>                        <div class="col-md-6 mb-3">
+                            <label for="editar_codigo_postal" class="form-label">Código Postal</label>
+                            <input type="text" class="form-control" id="editar_codigo_postal" name="codigo_postal">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_fecha_apertura" class="form-label">Fecha de Apertura</label>
+                            <input type="date" class="form-control" id="editar_fecha_apertura" name="fecha_apertura">
+                        </div>
+                        <div class="col-12 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editar_activa" name="activa">
+                                <label class="form-check-label" for="editar_activa">
+                                    Sucursal activa
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Actualizar Sucursal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalles de sucursal -->
+<div class="modal fade" id="modalDetalleSucursal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-store me-2 text-primary"></i>
+                    Detalles de Sucursal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detalleSucursalContent">
+                    <!-- El contenido se cargará dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Tarjetas de estadísticas */
+.stats-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.stats-primary::before { background: linear-gradient(90deg, #4285f4, #3367d6); }
+.stats-success::before { background: linear-gradient(90deg, #34d399, #10b981); }
+.stats-info::before { background: linear-gradient(90deg, #06b6d4, #0891b2); }
+.stats-warning::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+
+.stats-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+}
+
+.stats-primary .stats-icon { background: linear-gradient(135deg, #4285f4, #3367d6); }
+.stats-success .stats-icon { background: linear-gradient(135deg, #34d399, #10b981); }
+.stats-info .stats-icon { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+.stats-warning .stats-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.stats-card h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+/* Tarjetas de sucursales */
+.sucursal-card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    background: white;
+    overflow: hidden;
+}
+
+.sucursal-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.sucursal-card .card-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    padding: 1.25rem;
+}
+
+/* Badges personalizados */
+.badge-success-soft {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-danger-soft {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* Iconos de información */
+.info-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.info-icon-location {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.info-icon-phone {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+}
+
+.info-icon-email {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+/* Grid de estadísticas */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-top: 0.25rem;
+}
+
+/* Botones personalizados */
+.btn-sm {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.btn-outline-secondary {
+    border-color: #e5e7eb;
+    color: #6b7280;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+/* Icono del mapa */
+.map-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #4285f4, #3367d6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.map-placeholder {
+    padding: 2rem;
+    border: 2px dashed #e5e7eb;
+    border-radius: 12px;
+    background: #f9fafb;
+}
+
+/* Animaciones y transiciones */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-footer {
+    background: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+}
+
+.contact-info {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.additional-info {
+    background: rgba(66, 133, 244, 0.03);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin: 0 -0.75rem;
+}
+
+/* Responsive mejoras */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .d-flex.gap-2 {
+        flex-direction: column;
+    }
+    
+    .d-flex.gap-2 .dropdown {
+        align-self: stretch;    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Módulo de sucursales inicializado');
+    
+    // Eventos para los formularios
+    document.getElementById('formCrearSucursal').addEventListener('submit', function(e) {
+        e.preventDefault();
+        crearSucursal();
+    });
+    
+    document.getElementById('formEditarSucursal').addEventListener('submit', function(e) {
+        e.preventDefault();
+        actualizarSucursal();
+    });
+});
+
+// Función para abrir modal de crear sucursal
+function abrirModalCrearSucursal() {
+    try {
+        const form = document.getElementById('formCrearSucursal');
+        if (!form) {
+            console.error('No se encontró el formulario de crear sucursal');
+            return;
+        }
+        
+        // Resetear formulario
+        form.reset();
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('modalCrearSucursal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error al abrir modal de crear sucursal:', error);
+        showToast('Error al abrir el formulario', 'error');
+    }
+}
+
+// Función para crear sucursal
+function crearSucursal() {
+    console.log('💾 Creando nueva sucursal...');
+    
+    const form = document.getElementById('formCrearSucursal');
+    const formData = new FormData(form);
+    
+    // Deshabilitar el botón de envío
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Creando...';
+    
+    // Enviar datos
+    fetch('/dashboard/sucursales/crear/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalCrearSucursal')).hide();
+            // Recargar la página para mostrar la nueva sucursal
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+    });
+}
+
+// Función para ver detalles de sucursal
+function verDetalleSucursal(sucursalId) {
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalleSucursal'));
+    const content = document.getElementById('detalleSucursalContent');
+    
+    // Mostrar cargando
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2 text-muted">Cargando detalles de la sucursal...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Cargar datos de la sucursal
+    fetch(`/dashboard/sucursales/detalle/${sucursalId}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            renderizarDetalleSucursal(data.sucursal, data.empleados);
+        } else {
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i> ${data.message}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        content.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-1"></i> Error al cargar los detalles
+            </div>
+        `;
+    });
+}
+
+// Función para renderizar detalles de sucursal
+function renderizarDetalleSucursal(sucursal, empleados) {
+    const content = document.getElementById('detalleSucursalContent');
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Información General
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Nombre</label>
+                                <p class="mb-0 fw-semibold">${sucursal.nombre}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Estado</label>
+                                <p class="mb-0">
+                                    <span class="badge ${sucursal.activa ? 'badge-success-soft' : 'badge-danger-soft'}">
+                                        <i class="fas fa-circle me-1"></i>${sucursal.activa ? 'Activa' : 'Inactiva'}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label small text-muted">Dirección</label>
+                                <p class="mb-0">${sucursal.direccion}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Teléfono</label>
+                                <p class="mb-0">${sucursal.telefono}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Email</label>
+                                <p class="mb-0">${sucursal.email || 'No registrado'}</p>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label small text-muted">Ciudad</label>
+                                <p class="mb-0">${sucursal.ciudad || 'No registrada'}</p>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label small text-muted">Estado</label>
+                                <p class="mb-0">${sucursal.estado || 'No registrado'}</p>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label small text-muted">Código Postal</label>
+                                <p class="mb-0">${sucursal.codigo_postal || 'No registrado'}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Fecha de Apertura</label>
+                                <p class="mb-0">${sucursal.fecha_apertura || 'No registrada'}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Fecha de Registro</label>
+                                <p class="mb-0">${sucursal.created_at}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-users me-2"></i>Personal (${empleados.length})
+                        </h6>
+                    </div>
+                    <div class="card-body">
+    `;
+    
+    if (empleados.length > 0) {
+        empleados.forEach(empleado => {
+            html += `
+                <div class="d-flex align-items-center mb-3 p-2 bg-light rounded">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">${empleado.first_name} ${empleado.last_name}</h6>
+                        <small class="text-muted">${empleado.rol}</small>
+                        <br>
+                        <small class="text-muted">@${empleado.username}</small>
+                    </div>
+                    <div>
+                        <span class="badge ${empleado.is_active ? 'bg-success' : 'bg-secondary'}">
+                            ${empleado.is_active ? 'Activo' : 'Inactivo'}
+                        </span>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        html += `
+            <div class="text-center py-3">
+                <i class="fas fa-users text-muted fa-2x mb-2"></i>
+                <p class="text-muted mb-0">No hay empleados asignados</p>
+            </div>
+        `;
+    }
+    
+    html += `
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    content.innerHTML = html;
+}
+
+// Función para editar sucursal
+function editarSucursal(sucursalId) {
+    // Primero obtener los datos de la sucursal
+    fetch(`/dashboard/sucursales/detalle/${sucursalId}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            cargarDatosEdicionSucursal(data.sucursal);
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error al cargar los datos', 'error');
+    });
+}
+
+// Función para cargar datos en el modal de edición
+function cargarDatosEdicionSucursal(sucursal) {
+    try {
+        // Cargar datos en el formulario
+        document.getElementById('editar_sucursal_id').value = sucursal.id;
+        document.getElementById('editar_nombre').value = sucursal.nombre;
+        document.getElementById('editar_direccion').value = sucursal.direccion;
+        document.getElementById('editar_telefono').value = sucursal.telefono;
+        document.getElementById('editar_email').value = sucursal.email || '';
+        document.getElementById('editar_ciudad').value = sucursal.ciudad || '';
+        document.getElementById('editar_estado').value = sucursal.estado || '';
+        document.getElementById('editar_codigo_postal').value = sucursal.codigo_postal || '';
+        document.getElementById('editar_activa').checked = sucursal.activa;
+        
+        // Cargar fecha de apertura si existe (convertir formato)
+        if (sucursal.fecha_apertura) {
+            // Convertir de DD/MM/YYYY a YYYY-MM-DD para el input date
+            const parts = sucursal.fecha_apertura.split('/');
+            if (parts.length === 3) {
+                const fechaForInput = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                document.getElementById('editar_fecha_apertura').value = fechaForInput;
+            }
+        }
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarSucursal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error al cargar datos de edición:', error);
+        showToast('❌ Error al cargar los datos', 'error');
+    }
+}
+
+// Función para actualizar sucursal
+function actualizarSucursal() {
+    console.log('🔄 Actualizando sucursal...');
+    
+    const form = document.getElementById('formEditarSucursal');
+    const formData = new FormData(form);
+    
+    // Agregar el estado del checkbox manualmente
+    const activaCheckbox = document.getElementById('editar_activa');
+    formData.append('activa', activaCheckbox.checked ? 'true' : 'false');
+    
+    const sucursalId = document.getElementById('editar_sucursal_id').value;
+    
+    // Deshabilitar el botón de envío
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Actualizando...';
+    
+    // Enviar datos
+    fetch(`/dashboard/sucursales/editar/${sucursalId}/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarSucursal')).hide();
+            // Recargar la página para mostrar los cambios
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+    });
+}
+
+// Función para alternar estado de sucursal
+function toggleEstadoSucursal(sucursalId, nombre, estadoActual) {
+    const nuevoEstado = estadoActual ? 'desactivar' : 'activar';
+    const accion = estadoActual ? 'desactivada' : 'activada';
+    
+    if (confirm(`¿Estás seguro de ${nuevoEstado} la sucursal "${nombre}"?`)) {
+        fetch(`/dashboard/sucursales/toggle-estado/${sucursalId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ ' + data.message, 'success');
+                // Recargar la página para mostrar los cambios
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                showToast('❌ ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión', 'error');
+        });
+    }
+}
+
+// Función para eliminar sucursal
+function eliminarSucursal(sucursalId, nombre) {
+    if (confirm(`¿Estás seguro de eliminar la sucursal "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+        fetch(`/dashboard/sucursales/eliminar/${sucursalId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ ' + data.message, 'success');
+                // Recargar la página para mostrar los cambios
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                showToast('❌ ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión', 'error');
+        });
+    }
+}
+
+// Toast para mensajes
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast show align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'}`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    
+    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+    toastContainer.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 500);
+    }, 5000);
+}
+
+// Crear contenedor para toasts si no existe
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    container.style.zIndex = '5000';
+    document.body.appendChild(container);    return container;
+}
+</script>
+{% endblock %}

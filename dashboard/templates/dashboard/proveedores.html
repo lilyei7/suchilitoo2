@@ -1,0 +1,2022 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Proveedores - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-truck me-2 text-primary"></i>
+            Gestión de Proveedores
+        </h1>
+        <p class="text-muted mb-0">Administra tus proveedores de insumos de manera eficiente y rápida</p>
+    </div>
+    <div>        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoProveedorModal">
+            <i class="fas fa-plus me-2"></i>Nuevo Proveedor
+        </button>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ total_proveedores }}</h3>
+                        <p class="text-muted mb-0 small">Total Proveedores</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ proveedores_activos }}</h3>
+                        <p class="text-muted mb-0 small">Activos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ nuevos_este_mes }}</h3>
+                        <p class="text-muted mb-0 small">Nuevos Este Mes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">4.8</h3>
+                        <p class="text-muted mb-0 small">Calificación Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros de búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{% url 'dashboard:proveedores' %}">
+            <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label text-muted small mb-1">Buscar proveedor</label>
+                <div class="position-relative">
+                    <input type="text" class="form-control" placeholder="Nombre, contacto o email..." name="buscar" value="{{ request.GET.buscar }}">
+                    <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                </div>
+            </div>            <div class="col-md-2">
+                <label class="form-label text-muted small mb-1">Estado</label>
+                <select class="form-select" name="estado">
+                    <option value="">Todos</option>
+                    <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activos</option>
+                    <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+                    <option value="pendiente" {% if request.GET.estado == 'pendiente' %}selected{% endif %}>Pendientes</option>
+                </select>
+            </div><div class="col-md-2">
+                <label class="form-label text-muted small mb-1">Categoría</label>
+                <select class="form-select" name="categoria">
+                    <option value="">Todas las categorías</option>
+                    <option value="ingredientes" {% if request.GET.categoria == 'ingredientes' %}selected{% endif %}>Ingredientes</option>
+                    <option value="bebidas" {% if request.GET.categoria == 'bebidas' %}selected{% endif %}>Bebidas</option>
+                    <option value="utensilios" {% if request.GET.categoria == 'utensilios' %}selected{% endif %}>Utensilios</option>
+                    <option value="empaque" {% if request.GET.categoria == 'empaque' %}selected{% endif %}>Empaque</option>
+                    <option value="limpieza" {% if request.GET.categoria == 'limpieza' %}selected{% endif %}>Limpieza</option>
+                    <option value="equipos" {% if request.GET.categoria == 'equipos' %}selected{% endif %}>Equipos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-muted small mb-1">Ubicación</label>
+                <select class="form-select">
+                    <option selected>Todas</option>
+                    <option value="local">Local</option>
+                    <option value="nacional">Nacional</option>
+                    <option value="internacional">Internacional</option>
+                </select>
+            </div>                <div class="col-md-2 d-flex align-items-end">                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de proveedores -->
+{% if proveedores %}
+<div class="row">
+    {% for proveedor in proveedores %}    <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
+        <div class="card provider-card">
+            <!-- Header compacto -->
+            <div class="provider-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <div class="provider-avatar">
+                            <i class="fas fa-store"></i>
+                        </div>                        <div class="ms-2">
+                            <h6 class="provider-name">{{ proveedor.nombre_comercial|truncatewords:3 }}</h6>
+                            <span class="provider-category">{{ proveedor.get_categoria_productos_display|capfirst }}</span>
+                        </div>
+                    </div>
+                    {% if proveedor.estado == 'activo' %}
+                        <div class="status-dot status-active"></div>
+                    {% elif proveedor.estado == 'inactivo' %}
+                        <div class="status-dot status-inactive"></div>
+                    {% else %}
+                        <div class="status-dot status-pending"></div>
+                    {% endif %}
+                </div>
+            </div>            <!-- Información de contacto compacta -->
+            <div class="provider-body">                <div class="contact-grid">                    
+                    <div class="contact-item">
+                        <i class="fas fa-user contact-icon"></i>
+                        <span>{{ proveedor.persona_contacto|default:"Sin contacto"|truncatewords:2 }}</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-phone contact-icon"></i>
+                        <span>{{ proveedor.telefono|default:"Sin teléfono"|slice:":12" }}</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope contact-icon"></i>
+                        <span>{{ proveedor.email|default:"Sin email"|truncatewords:1 }}</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt contact-icon"></i>
+                        <span>{{ proveedor.direccion|default:"Sin dirección"|truncatewords:3 }}</span>
+                    </div>                
+                </div><!-- Botones de acción principales -->
+                <div class="provider-action-buttons">
+                    <button class="btn btn-outline-primary btn-sm" onclick="verDetalleProveedor({{ proveedor.id }})" title="Ver Detalles">
+                        <i class="fas fa-eye me-1"></i>Ver
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="editarProveedor({{ proveedor.id }})" title="Editar">
+                        <i class="fas fa-edit me-1"></i>Editar
+                    </button>                    <button class="btn btn-outline-danger btn-sm" onclick="eliminarProveedor({{ proveedor.id }}, '{{ proveedor.nombre_comercial|escapejs }}')" title="Eliminar">
+                        <i class="fas fa-trash me-1"></i>Eliminar
+                    </button></div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Estado vacío -->
+<div class="card">
+    <div class="card-body">
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-truck text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay proveedores registrados</h5>
+            <p class="text-muted mb-4">Comienza agregando tu primer proveedor para gestionar mejor tu inventario.</p>
+            <button class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Crear Primer Proveedor
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Sección de análisis -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header border-0">
+                <div class="d-flex align-items-center">
+                    <div class="analysis-icon me-3">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">Análisis de Proveedores</h5>
+                        <small class="text-muted">Distribución por categorías y rendimiento</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="categoryChart" height="200"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="performanceChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>        </div>
+    </div>
+</div>
+
+<!-- Modal para Nuevo Proveedor -->
+<div class="modal fade" id="nuevoProveedorModal" tabindex="-1" aria-labelledby="nuevoProveedorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevoProveedorModalLabel">
+                    <i class="fas fa-truck me-2"></i>Nuevo Proveedor
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="formNuevoProveedor" action="{% url 'dashboard:crear_proveedor' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Información básica -->
+                        <div class="col-md-6 mb-3">
+                            <label for="nombre_comercial" class="form-label">
+                                <i class="fas fa-store me-1"></i>Nombre comercial *
+                            </label>
+                            <input type="text" class="form-control" id="nombre_comercial" name="nombre_comercial" required
+                                   placeholder="Ej: Distribuidora Los Pinos">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="razon_social" class="form-label">
+                                <i class="fas fa-building me-1"></i>Razón social
+                            </label>
+                            <input type="text" class="form-control" id="razon_social" name="razon_social"
+                                   placeholder="Ej: Los Pinos S.A. de C.V.">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="rfc" class="form-label">
+                                <i class="fas fa-id-card me-1"></i>RFC
+                            </label>
+                            <input type="text" class="form-control" id="rfc" name="rfc" maxlength="13"
+                                   placeholder="Ej: XAXX010101000">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="persona_contacto" class="form-label">
+                                <i class="fas fa-user me-1"></i>Persona de contacto
+                            </label>
+                            <input type="text" class="form-control" id="persona_contacto" name="persona_contacto"
+                                   placeholder="Ej: Juan Pérez">
+                        </div>
+                        
+                        <!-- Información de contacto -->
+                        <div class="col-md-6 mb-3">
+                            <label for="telefono" class="form-label">
+                                <i class="fas fa-phone me-1"></i>Teléfono
+                            </label>
+                            <input type="tel" class="form-control" id="telefono" name="telefono"
+                                   placeholder="Ej: +52 55 1234-5678">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>Email
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   placeholder="Ej: contacto@proveedor.com">
+                        </div>
+                        
+                        <!-- Términos comerciales -->
+                        <div class="col-md-6 mb-3">
+                            <label for="forma_pago_preferida" class="form-label">
+                                <i class="fas fa-credit-card me-1"></i>Forma de pago preferida
+                            </label>
+                            <select class="form-select" id="forma_pago_preferida" name="forma_pago_preferida">
+                                <option value="transferencia" selected>Transferencia</option>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="credito">Crédito</option>
+                                <option value="tarjeta">Tarjeta</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="dias_credito" class="form-label">
+                                <i class="fas fa-calendar-alt me-1"></i>Días de crédito
+                            </label>
+                            <input type="number" class="form-control" id="dias_credito" name="dias_credito" min="0" value="0"
+                                   placeholder="Ej: 30">
+                        </div>
+                        
+                        <!-- Ubicación -->
+                        <div class="col-md-6 mb-3">
+                            <label for="direccion" class="form-label">
+                                <i class="fas fa-map-marker-alt me-1"></i>Dirección
+                            </label>
+                            <textarea class="form-control" id="direccion" name="direccion" rows="2"
+                                      placeholder="Ej: Av. Insurgentes Sur 123, Col. Centro"></textarea>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="ciudad_estado" class="form-label">
+                                <i class="fas fa-city me-1"></i>Ciudad/Estado
+                            </label>
+                            <input type="text" class="form-control" id="ciudad_estado" name="ciudad_estado"
+                                   placeholder="Ej: Ciudad de México, CDMX">
+                        </div>
+                        
+                        <!-- Categorización -->
+                        <div class="col-md-6 mb-3">
+                            <label for="categoria_productos" class="form-label">
+                                <i class="fas fa-tags me-1"></i>Categoría de productos
+                            </label>
+                            <select class="form-select" id="categoria_productos" name="categoria_productos">
+                                <option value="ingredientes" selected>Ingredientes</option>
+                                <option value="bebidas">Bebidas</option>
+                                <option value="utensilios">Utensilios</option>
+                                <option value="empaque">Empaque</option>
+                                <option value="limpieza">Limpieza</option>
+                                <option value="equipos">Equipos</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Notas adicionales -->
+                        <div class="col-12 mb-3">
+                            <label for="notas_adicionales" class="form-label">
+                                <i class="fas fa-sticky-note me-1"></i>Notas adicionales
+                            </label>
+                            <textarea class="form-control" id="notas_adicionales" name="notas_adicionales" rows="3"
+                                      placeholder="Información adicional sobre el proveedor, condiciones especiales, etc."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Guardar Proveedor
+                    </button>
+                </div>            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle Proveedor -->
+<div class="modal fade" id="detalleProveedorModal" tabindex="-1" aria-labelledby="detalleProveedorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detalleProveedorModalLabel">
+                    <i class="fas fa-info-circle me-2"></i>Detalles del Proveedor
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detalleProveedorContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Cargando información del proveedor...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="abrirModalAsignarInsumo()">
+                    <i class="fas fa-plus me-1"></i>Asignar Insumo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Proveedor -->
+<div class="modal fade" id="editarProveedorModal" tabindex="-1" aria-labelledby="editarProveedorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarProveedorModalLabel">
+                    <i class="fas fa-edit me-2"></i>Editar Proveedor
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formEditarProveedor" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div id="editarProveedorContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Cargando formulario de edición...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Proveedor -->
+<div class="modal fade" id="eliminarProveedorModal" tabindex="-1" aria-labelledby="eliminarProveedorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eliminarProveedorModalLabel">
+                    <i class="fas fa-exclamation-triangle text-danger me-2"></i>Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-warning me-2"></i>
+                    <strong>¡Atención!</strong> Esta acción no se puede deshacer.
+                </div>
+                <p>¿Estás seguro de que deseas eliminar el proveedor <strong id="eliminarProveedorNombre"></strong>?</p>
+                <p class="text-muted">Se eliminarán también todas las asignaciones de insumos asociadas.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmarEliminar">
+                    <i class="fas fa-trash me-1"></i>Eliminar Proveedor
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Asignar Insumo -->
+<div class="modal fade" id="asignarInsumoModal" tabindex="-1" aria-labelledby="asignarInsumoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="asignarInsumoModalLabel">
+                    <i class="fas fa-boxes me-2"></i>Asignar Insumo a Proveedor
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formAsignarInsumo" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="insumo_id" class="form-label">
+                                <i class="fas fa-box me-1"></i>Insumo
+                            </label>
+                            <select class="form-select" id="insumo_id" name="insumo_id" required>
+                                <option value="">Seleccionar insumo...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="precio_unitario" class="form-label">
+                                <i class="fas fa-dollar-sign me-1"></i>Precio Unitario
+                            </label>
+                            <input type="number" class="form-control" id="precio_unitario" name="precio_unitario" 
+                                   step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tiempo_entrega_dias" class="form-label">
+                                <i class="fas fa-calendar me-1"></i>Tiempo de Entrega (días)
+                            </label>
+                            <input type="number" class="form-control" id="tiempo_entrega_dias" name="tiempo_entrega_dias" 
+                                   min="1" placeholder="3" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="cantidad_minima" class="form-label">
+                                <i class="fas fa-layer-group me-1"></i>Cantidad Mínima
+                            </label>
+                            <input type="number" class="form-control" id="cantidad_minima" name="cantidad_minima" 
+                                   step="0.01" min="0" placeholder="1">
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="observaciones" class="form-label">
+                                <i class="fas fa-sticky-note me-1"></i>Observaciones
+                            </label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3"
+                                      placeholder="Condiciones especiales, descuentos, etc."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Asignar Insumo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Variables CSS para consistencia */
+:root {
+    --primary-color: #4285f4;
+    --primary-dark: #1a73e8;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #0891b2;
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Estadísticas mejoradas */
+.stats-card {
+    border: none;
+    border-radius: var(--border-radius);
+    background: white;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    overflow: hidden;
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+
+.stats-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.stats-primary::before { 
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark)); 
+}
+.stats-success::before { 
+    background: linear-gradient(90deg, var(--success-color), #059669); 
+}
+.stats-info::before { 
+    background: linear-gradient(90deg, var(--info-color), #0e7490); 
+}
+.stats-warning::before { 
+    background: linear-gradient(90deg, var(--warning-color), #d97706); 
+}
+
+.stats-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: white;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.stats-icon::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    transition: transform 0.3s ease;
+    transform: translateX(-100%);
+}
+
+.stats-card:hover .stats-icon::before {
+    transform: translateX(0);
+}
+
+.stats-primary .stats-icon { 
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+}
+.stats-success .stats-icon { 
+    background: linear-gradient(135deg, var(--success-color), #059669);
+}
+.stats-info .stats-icon { 
+    background: linear-gradient(135deg, var(--info-color), #0e7490);
+}
+.stats-warning .stats-icon { 
+    background: linear-gradient(135deg, var(--warning-color), #d97706);
+}
+
+.stats-card h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0;
+    background: linear-gradient(135deg, #1f2937, #374151);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stats-card p {
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+/* Tarjetas de proveedores completamente rediseñadas */
+.provider-card {
+    border: none;
+    border-radius: var(--border-radius);
+    background: white;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    overflow: hidden;
+    height: 380px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+
+.provider-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.provider-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(66, 133, 244, 0.1);
+}
+
+.provider-card:hover::before {
+    opacity: 1;
+}
+
+/* Header de la tarjeta mejorado */
+.provider-header {
+    padding: 20px 20px 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #fafbff 0%, #f8fafc 100%);
+    position: relative;
+}
+
+.provider-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+    border-radius: 1px;
+}
+
+.provider-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--border-radius-sm);
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.provider-avatar::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.provider-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+
+.provider-category {
+    font-size: 0.75rem;
+    color: #6b7280;
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 500;
+    text-transform: capitalize;
+    border: 1px solid #e2e8f0;
+    display: inline-block;
+}
+
+/* Status dots completamente rediseñados */
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-active { 
+    background: var(--success-color);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.status-inactive { 
+    background: var(--danger-color);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.status-pending { 
+    background: var(--warning-color);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.7; 
+        transform: scale(0.95);
+    }
+}
+
+/* Cuerpo de la tarjeta mejorado */
+.provider-body {
+    padding: 16px 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Grid de contacto completamente rediseñado */
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: #6b7280;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.contact-item:hover {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    transform: translateX(2px);
+    border-color: #cbd5e1;
+}
+
+.contact-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--primary-color);
+    flex-shrink: 0;
+    font-size: 0.9rem;
+}
+
+.contact-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Métricas completamente rediseñadas */
+.provider-metrics {
+    display: flex;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: var(--border-radius-sm);
+    padding: 12px;
+    margin-top: auto;
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+}
+
+.provider-metrics::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary-color), var(--success-color), var(--warning-color));
+}
+
+.metric {
+    text-align: center;
+    flex: 1;
+    position: relative;
+}
+
+.metric:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 60%;
+    background: #e2e8f0;
+}
+
+.metric-value {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.metric-label {
+    font-size: 0.65rem;
+    color: #6b7280;
+    line-height: 1;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Acciones completamente rediseñadas */
+.provider-actions {
+    padding: 16px 20px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #fafbff, #f8fafc);
+}
+
+.action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--border-radius-sm);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: var(--transition);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    transform: translate(-50%, -50%);
+}
+
+.action-btn:hover::before {
+    width: 100px;
+    height: 100px;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.action-btn.primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark), #1557b0);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(66, 133, 244, 0.4);
+}
+
+.action-btn.secondary {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    color: #6b7280;
+    border: 1px solid #e2e8f0;
+}
+
+.action-btn.secondary:hover {
+    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+    color: #374151;
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+    box-shadow: var(--shadow-sm);
+}
+
+.dropdown-menu-compact {
+    border-radius: var(--border-radius-sm);
+    border: none;
+    box-shadow: var(--shadow-lg);
+    font-size: 0.8rem;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.dropdown-menu-compact .dropdown-item {
+    padding: 10px 16px;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-menu-compact .dropdown-item:hover {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    transform: translateX(2px);
+}
+
+.dropdown-menu-compact .dropdown-item i {
+    width: 16px;
+    margin-right: 8px;
+}
+
+/* Modal mejorado */
+.modal-content {
+    border-radius: var(--border-radius);
+    border: none;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #fafbff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 20px 24px;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+}
+
+.modal-title i {
+    color: var(--primary-color);
+    margin-right: 8px;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    background: linear-gradient(135deg, #fafbff 0%, #f8fafc 100%);
+    border-top: 1px solid #e2e8f0;
+    padding: 16px 24px;
+}
+
+/* Formulario mejorado */
+.form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+}
+
+.form-label i {
+    color: var(--primary-color);
+    margin-right: 6px;
+    width: 16px;
+    text-align: center;
+}
+
+.form-control, .form-select {
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius-sm);
+    padding: 10px 12px;
+    font-size: 0.875rem;
+    transition: var(--transition);
+    background: white;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+    background: #fafbff;
+}
+
+.btn {
+    border-radius: var(--border-radius-sm);
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark), #1557b0);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    color: #6b7280;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+    color: #374151;
+    transform: translateY(-1px);
+}
+
+/* Badges mejorados */
+.badge-success-soft {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.15));
+    color: #059669;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-danger-soft {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.15));
+    color: #dc2626;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.badge-warning-soft {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.15));
+    color: #d97706;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Iconos de análisis mejorados */
+.analysis-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--border-radius);
+    background: linear-gradient(135deg, var(--primary-color), #3367d6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.4rem;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.analysis-icon::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+    animation: shimmer 4s infinite;
+}
+
+/* Tarjetas generales mejoradas */
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #fafbff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Filtros mejorados */
+.form-control::placeholder,
+.form-select option:first-child {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* Toast personalizado */
+.toast {
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(10px);
+}
+
+/* Loading states */
+.btn .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Estado hover para formularios */
+.form-control:hover {
+    border-color: rgba(66, 133, 244, 0.3);
+}
+
+.form-select:hover {
+    border-color: rgba(66, 133, 244, 0.3);
+}
+
+/* Botones de acción principales - MEJORADOS */
+.provider-action-buttons {
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+    border-top: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #fafbff, #f8fafc);
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+}
+
+.provider-action-buttons .btn {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 10px 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    text-transform: none;
+    letter-spacing: 0.025em;
+    border-width: 2px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.provider-action-buttons .btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    transform: translate(-50%, -50%);
+}
+
+.provider-action-buttons .btn:hover::before {
+    width: 120px;
+    height: 120px;
+}
+
+.provider-action-buttons .btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.provider-action-buttons .btn i {
+    position: relative;
+    z-index: 1;
+}
+
+.provider-action-buttons .btn span {
+    position: relative;
+    z-index: 1;
+}
+
+/* Estilos específicos para cada botón */
+.provider-action-buttons .btn-outline-primary {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: rgba(66, 133, 244, 0.05);
+}
+
+.provider-action-buttons .btn-outline-primary:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
+}
+
+.provider-action-buttons .btn-outline-success {
+    border-color: var(--success-color);
+    color: var(--success-color);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.provider-action-buttons .btn-outline-success:hover {
+    background: linear-gradient(135deg, var(--success-color), #059669);
+    border-color: var(--success-color);
+    color: white;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.provider-action-buttons .btn-outline-danger {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.provider-action-buttons .btn-outline-danger:hover {
+    background: linear-gradient(135deg, var(--danger-color), #dc2626);
+    border-color: var(--danger-color);
+    color: white;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+/* Mejoras responsive */
+@media (max-width: 768px) {
+    .provider-card {
+        height: auto;
+        min-height: 320px;
+    }
+    
+    .contact-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .provider-action-buttons {
+        flex-direction: row;
+        gap: 8px;
+        padding: 16px;
+        flex-wrap: wrap;
+    }
+    
+    .provider-action-buttons .btn {
+        flex: 1;
+        min-width: 80px;
+        font-size: 0.75rem;
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+    
+    .provider-action-buttons .btn i {
+        font-size: 0.8rem;
+    }
+    
+    .stats-card h3 {
+        font-size: 1.5rem;
+    }
+    
+    .modal-dialog {
+        margin: 1rem;
+    }
+    
+    .modal-body {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .provider-action-buttons {
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+    }
+    
+    .provider-action-buttons .btn {
+        flex: none;
+        width: 100%;
+        font-size: 0.875rem;
+        padding: 12px 16px;
+        min-height: 44px;
+    }
+    
+    .provider-card {
+        min-height: 380px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando sistema de proveedores...');
+    
+    // Referencias del DOM
+    const modalNuevoProveedor = document.getElementById('nuevoProveedorModal');
+    const formNuevoProveedor = document.getElementById('formNuevoProveedor');
+    const submitBtnNuevo = formNuevoProveedor.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtnNuevo.innerHTML;
+
+    // Función para mostrar notificaciones toast
+    function showToast(message, type = 'success') {
+        const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        const toastBootstrap = new bootstrap.Toast(toast);
+        toastBootstrap.show();
+        
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 5000);
+    }
+
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.className = 'toast-container position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+        return container;
+    }
+
+    // Variable global para el proveedor actual
+    let proveedorActual = null;
+
+    // Ver detalles del proveedor
+    window.verDetalleProveedor = function(proveedorId) {
+        const modal = new bootstrap.Modal(document.getElementById('detalleProveedorModal'));
+        const content = document.getElementById('detalleProveedorContent');
+        
+        // Mostrar loading
+        content.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-2 text-muted">Cargando información del proveedor...</p>
+            </div>
+        `;
+        
+        modal.show();        // Cargar datos del proveedor
+        fetch(`/dashboard/proveedor/${proveedorId}/detalle/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    proveedorActual = data.proveedor;
+                    mostrarDetalleProveedor(data.proveedor, data.insumos);
+                } else {
+                    content.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                            <p class="text-muted">Error al cargar los datos del proveedor</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                content.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                        <p class="text-muted">Error de conexión</p>
+                    </div>
+                `;
+            });
+    };
+
+    // Editar proveedor
+    window.editarProveedor = function(proveedorId) {
+        const modal = new bootstrap.Modal(document.getElementById('editarProveedorModal'));
+        const content = document.getElementById('editarProveedorContent');
+        const form = document.getElementById('formEditarProveedor');
+        
+        // Mostrar loading
+        content.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-2 text-muted">Cargando formulario de edición...</p>
+            </div>
+        `;
+        
+        modal.show();        // Cargar formulario de edición
+        fetch(`/dashboard/proveedor/${proveedorId}/detalle/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    proveedorActual = data.proveedor;
+                    mostrarFormularioEdicion(data.proveedor);
+                    form.action = `/dashboard/proveedor/${proveedorId}/editar/`;
+                } else {
+                    content.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                            <p class="text-muted">Error al cargar el formulario</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                content.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                        <p class="text-muted">Error de conexión</p>
+                    </div>
+                `;
+            });
+    };
+
+    // Eliminar proveedor
+    window.eliminarProveedor = function(proveedorId, nombreProveedor) {
+        document.getElementById('eliminarProveedorNombre').textContent = nombreProveedor;
+        
+        const modal = new bootstrap.Modal(document.getElementById('eliminarProveedorModal'));
+        modal.show();
+        
+        // Configurar el botón de confirmación
+        document.getElementById('confirmarEliminar').onclick = function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Eliminando...';
+            
+            fetch(`/dashboard/proveedor/${proveedorId}/eliminar/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    modal.hide();
+                    showToast(`✅ Proveedor "${nombreProveedor}" eliminado correctamente`, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(`❌ Error: ${data.message || 'No se pudo eliminar el proveedor'}`, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('❌ Error de conexión. Intenta nuevamente.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        };
+    };
+
+    // Función para mostrar detalles del proveedor
+    function mostrarDetalleProveedor(proveedor, insumos) {
+        const content = document.getElementById('detalleProveedorContent');
+        
+        const insumosHtml = insumos.length > 0 ? insumos.map(insumo => `
+            <div class="card mb-2">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <h6 class="mb-0">${insumo.nombre}</h6>
+                            <small class="text-muted">${insumo.categoria_nombre || 'Sin categoría'}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="badge bg-light text-dark">$${parseFloat(insumo.precio_unitario).toFixed(2)}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">${insumo.tiempo_entrega_dias} días</small>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <button class="btn btn-sm btn-outline-danger" onclick="removerInsumoProveedor(${insumo.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('') : '<p class="text-muted">No hay insumos asignados a este proveedor.</p>';
+
+        content.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información General</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <td class="text-muted">Nombre Comercial:</td>
+                                    <td><strong>${proveedor.nombre_comercial}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Razón Social:</td>
+                                    <td>${proveedor.razon_social || '--'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">RFC:</td>
+                                    <td>${proveedor.rfc || '--'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Estado:</td>
+                                    <td>
+                                        <span class="badge ${proveedor.estado === 'activo' ? 'bg-success' : 
+                                                           proveedor.estado === 'inactivo' ? 'bg-secondary' : 'bg-warning'}">
+                                            ${proveedor.estado.charAt(0).toUpperCase() + proveedor.estado.slice(1)}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Categoría:</td>
+                                    <td>${proveedor.categoria_productos}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-address-book me-2"></i>Información de Contacto</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <td class="text-muted">Persona de Contacto:</td>
+                                    <td>${proveedor.persona_contacto || '--'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Teléfono:</td>
+                                    <td>${proveedor.telefono || '--'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Email:</td>
+                                    <td>${proveedor.email || '--'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Dirección:</td>
+                                    <td>${proveedor.direccion || '--'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Ciudad/Estado:</td>
+                                    <td>${proveedor.ciudad_estado || '--'}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-boxes me-2"></i>Insumos Asignados (${insumos.length})</h6>
+                            <button class="btn btn-sm btn-primary" onclick="abrirModalAsignarInsumo()">
+                                <i class="fas fa-plus me-1"></i>Asignar Insumo
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            ${insumosHtml}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Función para mostrar formulario de edición
+    function mostrarFormularioEdicion(proveedor) {
+        const content = document.getElementById('editarProveedorContent');
+        
+        content.innerHTML = `
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="edit_nombre_comercial" class="form-label">
+                        <i class="fas fa-store me-1"></i>Nombre Comercial *
+                    </label>
+                    <input type="text" class="form-control" id="edit_nombre_comercial" name="nombre_comercial" 
+                           value="${proveedor.nombre_comercial}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="edit_razon_social" class="form-label">
+                        <i class="fas fa-building me-1"></i>Razón Social
+                    </label>
+                    <input type="text" class="form-control" id="edit_razon_social" name="razon_social" 
+                           value="${proveedor.razon_social || ''}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="edit_rfc" class="form-label">
+                        <i class="fas fa-id-card me-1"></i>RFC
+                    </label>
+                    <input type="text" class="form-control" id="edit_rfc" name="rfc" 
+                           value="${proveedor.rfc || ''}" maxlength="13">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="edit_persona_contacto" class="form-label">
+                        <i class="fas fa-user me-1"></i>Persona de Contacto
+                    </label>
+                    <input type="text" class="form-control" id="edit_persona_contacto" name="persona_contacto" 
+                           value="${proveedor.persona_contacto || ''}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="edit_telefono" class="form-label">
+                        <i class="fas fa-phone me-1"></i>Teléfono
+                    </label>
+                    <input type="tel" class="form-control" id="edit_telefono" name="telefono" 
+                           value="${proveedor.telefono || ''}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="edit_email" class="form-label">
+                        <i class="fas fa-envelope me-1"></i>Email
+                    </label>
+                    <input type="email" class="form-control" id="edit_email" name="email" 
+                           value="${proveedor.email || ''}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="edit_direccion" class="form-label">
+                        <i class="fas fa-map-marker-alt me-1"></i>Dirección
+                    </label>
+                    <textarea class="form-control" id="edit_direccion" name="direccion" rows="2">${proveedor.direccion || ''}</textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="edit_ciudad_estado" class="form-label">
+                        <i class="fas fa-city me-1"></i>Ciudad/Estado
+                    </label>
+                    <input type="text" class="form-control" id="edit_ciudad_estado" name="ciudad_estado" 
+                           value="${proveedor.ciudad_estado || ''}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="edit_categoria_productos" class="form-label">
+                        <i class="fas fa-tags me-1"></i>Categoría de productos
+                    </label>
+                    <select class="form-select" id="edit_categoria_productos" name="categoria_productos">
+                        <option value="ingredientes" ${proveedor.categoria_productos === 'ingredientes' ? 'selected' : ''}>Ingredientes</option>
+                        <option value="bebidas" ${proveedor.categoria_productos === 'bebidas' ? 'selected' : ''}>Bebidas</option>
+                        <option value="utensilios" ${proveedor.categoria_productos === 'utensilios' ? 'selected' : ''}>Utensilios</option>
+                        <option value="empaque" ${proveedor.categoria_productos === 'empaque' ? 'selected' : ''}>Empaque</option>
+                        <option value="limpieza" ${proveedor.categoria_productos === 'limpieza' ? 'selected' : ''}>Limpieza</option>
+                        <option value="equipos" ${proveedor.categoria_productos === 'equipos' ? 'selected' : ''}>Equipos</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="edit_estado" class="form-label">
+                        <i class="fas fa-toggle-on me-1"></i>Estado
+                    </label>
+                    <select class="form-select" id="edit_estado" name="estado">
+                        <option value="activo" ${proveedor.estado === 'activo' ? 'selected' : ''}>Activo</option>
+                        <option value="inactivo" ${proveedor.estado === 'inactivo' ? 'selected' : ''}>Inactivo</option>
+                        <option value="pendiente" ${proveedor.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                    </select>
+                </div>
+                <div class="col-12 mb-3">
+                    <label for="edit_notas_adicionales" class="form-label">
+                        <i class="fas fa-sticky-note me-1"></i>Notas adicionales
+                    </label>
+                    <textarea class="form-control" id="edit_notas_adicionales" name="notas_adicionales" rows="3">${proveedor.notas_adicionales || ''}</textarea>
+                </div>
+            </div>
+        `;
+    }
+
+    // Manejar formulario de nuevo proveedor
+    formNuevoProveedor.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        submitBtnNuevo.disabled = true;
+        submitBtnNuevo.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(modalNuevoProveedor);
+                modal.hide();
+                showToast('✅ Proveedor creado correctamente', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                let errorMessage = '❌ ';
+                if (data.errors) {
+                    const errorList = Object.values(data.errors).flat();
+                    errorMessage += errorList.join(', ');
+                } else {
+                    errorMessage += data.message || 'Error al crear el proveedor';
+                }
+                showToast(errorMessage, 'error');
+                
+                submitBtnNuevo.disabled = false;
+                submitBtnNuevo.innerHTML = originalBtnText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión. Intenta nuevamente.', 'error');
+            submitBtnNuevo.disabled = false;
+            submitBtnNuevo.innerHTML = originalBtnText;
+        });
+    });
+
+    // Manejar formulario de edición
+    document.getElementById('formEditarProveedor').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const submitBtnEditar = form.querySelector('button[type="submit"]');
+        const originalText = submitBtnEditar.innerHTML;
+        
+        submitBtnEditar.disabled = true;
+        submitBtnEditar.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+        
+        const formData = new FormData(form);
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editarProveedorModal'));
+                modal.hide();
+                showToast('✅ Proveedor actualizado correctamente', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast(`❌ Error: ${data.message || 'No se pudo actualizar el proveedor'}`, 'error');
+                submitBtnEditar.disabled = false;
+                submitBtnEditar.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión. Intenta nuevamente.', 'error');
+            submitBtnEditar.disabled = false;
+            submitBtnEditar.innerHTML = originalText;
+        });
+    });
+
+    // Manejar formulario de asignar insumo
+    document.getElementById('formAsignarInsumo').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Asignando...';
+        
+        const formData = new FormData(form);
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('asignarInsumoModal'));
+                modal.hide();
+                
+                // Mostrar mensaje de éxito
+                showToast(`✅ ${data.message}`, 'success');
+                  // Actualizar la lista de insumos del proveedor actual
+                if (proveedorActual) {                    // Hacer nueva petición para obtener datos actualizados
+                    fetch(`/dashboard/proveedor/${proveedorActual.id}/detalle/`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                mostrarDetalleProveedor(data.proveedor, data.insumos);
+                            }
+                        })
+                        .catch(error => console.error('Error al refrescar detalles:', error));
+                }
+                
+                // Limpiar el formulario
+                form.reset();
+                
+            } else {
+                showToast(`❌ Error: ${data.message || 'No se pudo asignar el insumo'}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión. Intenta nuevamente.', 'error');
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    });
+
+    // Función para remover insumo de proveedor
+    window.removerInsumoProveedor = function(proveedorInsumoId) {
+        if (!confirm('¿Deseas remover este insumo del proveedor?')) {
+            return;
+        }
+        
+        fetch(`/dashboard/proveedor-insumo/${proveedorInsumoId}/remover/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ Insumo removido correctamente', 'success');
+                // Recargar detalles del proveedor si el modal está abierto
+                if (proveedorActual) {
+                    verDetalleProveedor(proveedorActual.id);
+                }
+            } else {
+                showToast(`❌ Error: ${data.message || 'No se pudo remover el insumo'}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión. Intenta nuevamente.', 'error');
+        });
+    };
+
+    // Función para abrir modal de asignar insumo
+    window.abrirModalAsignarInsumo = function() {
+        if (!proveedorActual) {
+            showToast('❌ Error: No se ha seleccionado un proveedor', 'error');
+            return;
+        }
+        
+        const modal = new bootstrap.Modal(document.getElementById('asignarInsumoModal'));
+        const select = document.getElementById('insumo_id');
+        const form = document.getElementById('formAsignarInsumo');
+        
+        // Configurar formulario
+        form.action = `/dashboard/proveedor/${proveedorActual.id}/asignar-insumo/`;
+        
+        // Cargar insumos disponibles
+        select.innerHTML = '<option value="">Cargando insumos...</option>';
+        
+        fetch(`/dashboard/api/insumos-disponibles/?proveedor_id=${proveedorActual.id}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    select.innerHTML = '<option value="">Seleccionar insumo...</option>';
+                    data.insumos.forEach(insumo => {
+                        select.innerHTML += `<option value="${insumo.id}">${insumo.nombre} (${insumo.categoria})</option>`;
+                    });
+                } else {
+                    select.innerHTML = '<option value="">Error al cargar insumos</option>';
+                    showToast('❌ Error al cargar los insumos disponibles', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                select.innerHTML = '<option value="">Error de conexión</option>';
+                showToast('❌ Error de conexión al cargar insumos', 'error');
+            });
+        
+        modal.show();
+    };
+
+    // Resetear formulario cuando se cierre el modal de asignar insumo
+    document.getElementById('asignarInsumoModal').addEventListener('hidden.bs.modal', function() {
+        const form = document.getElementById('formAsignarInsumo');
+        form.reset();
+        
+        // Resetear el select de insumos
+        const select = document.getElementById('insumo_id');
+        select.innerHTML = '<option value="">Seleccionar insumo...</option>';
+    });
+
+    console.log('✅ Sistema de proveedores inicializado correctamente');
+});
+</script>
+{% endblock %}

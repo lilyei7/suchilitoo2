@@ -1,0 +1,128 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Crear Proveedor - Dashboard{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="bi bi-truck"></i>
+            Crear Nuevo Proveedor
+        </h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard:principal' %}" class="breadcrumb-item">Dashboard</a>
+            <a href="{% url 'dashboard:proveedores' %}" class="breadcrumb-item">Proveedores</a>
+            <span class="breadcrumb-item active">Crear Proveedor</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="bi bi-plus-circle"></i>
+                        Información del Proveedor
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="formCrearProveedor">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="nombre" class="form-label">Nombre del Proveedor</label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="rut" class="form-label">RUT</label>
+                                    <input type="text" class="form-control" id="rut" name="rut" placeholder="12.345.678-9">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="telefono" class="form-label">Teléfono</label>
+                                    <input type="tel" class="form-control" id="telefono" name="telefono">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="email" class="form-label">Correo Electrónico</label>
+                                    <input type="email" class="form-control" id="email" name="email">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="direccion" class="form-label">Dirección</label>
+                            <textarea class="form-control" id="direccion" name="direccion" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="contacto" class="form-label">Persona de Contacto</label>
+                                    <input type="text" class="form-control" id="contacto" name="contacto">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="activo" class="form-label">Estado</label>
+                                    <select class="form-control" id="activo" name="activo">
+                                        <option value="1">Activo</option>
+                                        <option value="0">Inactivo</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i>
+                                Crear Proveedor
+                            </button>
+                            <a href="{% url 'dashboard:proveedores' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i>
+                                Volver
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="bi bi-info-circle"></i>
+                        Información
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p><strong>Campos Obligatorios:</strong></p>
+                        <ul class="mb-0">
+                            <li>Nombre del Proveedor</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <p><strong>Nota:</strong></p>
+                        <p class="mb-0">Esta es una funcionalidad en desarrollo. Los datos se guardarán como placeholder.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,1036 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Insumos Elaborados - Sushi Restaurant{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-blender me-2 text-primary"></i>
+            Gestión de Insumos Elaborados
+        </h1>
+        <p class="text-muted mb-0">Administra tus insumos elaborados usando insumos compuestos como base</p>
+    </div>
+    <div>
+        {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+        <button class="btn btn-primary me-2" onclick="abrirModalCrearElaborado()">
+            <i class="fas fa-plus me-2"></i>Nuevo Insumo Elaborado
+        </button>
+        <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
+            <i class="fas fa-tags me-2"></i>Gestionar Categorías
+        </button>
+        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#nuevaUnidadModal">
+            <i class="fas fa-balance-scale me-2"></i>Gestionar Unidades
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-blender"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ total_elaborados }}</h3>
+                        <p class="text-muted mb-0 small">Total Elaborados</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ elaborados_activos }}</h3>
+                        <p class="text-muted mb-0 small">Activos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">0</h3>
+                        <p class="text-muted mb-0 small">En Preparación</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">$0</h3>
+                        <p class="text-muted mb-0 small">Costo Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros y búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label text-muted small mb-1">Buscar insumo elaborado</label>
+                <input type="text" class="form-control" name="buscar" placeholder="Buscar por código o nombre..." 
+                       value="{{ request.GET.buscar }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">Categoría</label>
+                <select class="form-select" name="categoria">
+                    <option value="">Todas las categorías</option>
+                    <!-- Cargar categorías dinámicamente -->
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">Estado</label>
+                <select class="form-select" name="estado">
+                    <option value="">Todos</option>
+                    <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activos</option>
+                    <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-search me-1"></i>Buscar
+                </button>
+                <a href="{% url 'dashboard:insumos_elaborados' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de insumos elaborados -->
+{% if insumos_elaborados %}
+<div class="card">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                Lista de Insumos Elaborados ({{ insumos_elaborados|length }} elemento{{ insumos_elaborados|length|pluralize:"s" }})
+            </h6>
+            <small class="text-muted">Actualizado recientemente</small>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;" class="text-center">
+                            <i class="fas fa-circle text-muted"></i>
+                        </th>
+                        <th>Insumo Elaborado</th>
+                        <th class="text-center">Código</th>
+                        <th class="text-center">Componentes</th>
+                        <th class="text-center">Stock Actual</th>
+                        <th class="text-center">Estado</th>
+                        <th>Categoría</th>
+                        <th class="text-center">Precio</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for insumo in insumos_elaborados %}
+                    <tr class="insumo-row" data-id="{{ insumo.id }}">
+                        <!-- Indicador de estado -->
+                        <td class="text-center">
+                            <i class="fas fa-circle {% if insumo.activo %}text-success{% else %}text-secondary{% endif %}" 
+                               title="{% if insumo.activo %}Activo{% else %}Inactivo{% endif %}"></i>
+                        </td>
+                        
+                        <!-- Información del insumo -->
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="insumo-icon me-3">
+                                    <i class="fas fa-blender text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ insumo.nombre }}</h6>
+                                    <small class="text-muted">{{ insumo.unidad_medida.nombre|default:"Sin unidad" }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Código -->
+                        <td class="text-center">
+                            <span class="badge bg-light text-dark">{{ insumo.codigo }}</span>
+                        </td>
+                        
+                        <!-- Componentes -->
+                        <td class="text-center">
+                            {% with componentes=insumo.componentes_elaborados.all %}
+                                <span class="text-muted">{{ componentes.count }}</span>
+                                <small class="text-muted d-block">componente{{ componentes.count|pluralize }}</small>
+                            {% endwith %}
+                        </td>
+                        
+                        <!-- Stock actual -->
+                        <td class="text-center">
+                            <span class="text-muted">{{ insumo.cantidad_stock|floatformat:1 }}</span>
+                            <small class="text-muted d-block">{{ insumo.unidad_medida.abreviacion|default:"unidades" }}</small>
+                        </td>
+                        
+                        <!-- Estado visual -->
+                        <td class="text-center">
+                            <span class="badge bg-{% if insumo.activo %}success{% else %}secondary{% endif %}">
+                                {% if insumo.activo %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                        </td>
+                        
+                        <!-- Categoría -->
+                        <td>
+                            <span class="text-muted">
+                                <i class="fas fa-tag me-1"></i>
+                                {{ insumo.categoria.nombre|default:"Sin categoría" }}
+                            </span>
+                        </td>
+                        
+                        <!-- Precio -->
+                        <td class="text-center">
+                            <span class="fw-bold text-success">${{ insumo.precio_unitario|floatformat:2 }}</span>
+                        </td>
+                        
+                        <!-- Acciones -->
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-info me-1" 
+                                    onclick="verDetalleElaborado({{ insumo.id }})" 
+                                    title="Ver detalles">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-editar-elaborado" 
+                                    data-id="{{ insumo.id }}" 
+                                    onclick="editarInsumoElaborado({{ insumo.id }})" 
+                                    title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-elaborado" 
+                                    data-id="{{ insumo.id }}" 
+                                    onclick="eliminarInsumoElaborado({{ insumo.id }}, '{{ insumo.nombre|escapejs }}')" 
+                                    title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Estado vacío -->
+<div class="card">
+    <div class="card-body">
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-blender text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay insumos elaborados registrados</h5>
+            <p class="text-muted mb-4">Los insumos elaborados son productos que se preparan usando varios insumos compuestos como base.</p>
+            {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+            <button class="btn btn-primary" onclick="abrirModalCrearElaborado()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Insumo Elaborado
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal para crear insumo elaborado -->
+<div class="modal fade" id="modalCrearElaborado" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-blender me-2"></i>Crear Nuevo Insumo Elaborado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCrearElaborado">
+                <div class="modal-body">
+                    <div class="row g-4">
+                        <!-- Información básica -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información Básica</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Código <span class="text-muted">(opcional)</span></label>
+                                        <input type="text" class="form-control" name="codigo" placeholder="ELAB-001">
+                                        <div class="form-text">Si no se especifica, se generará automáticamente</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="nombre" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Descripción</label>
+                                        <textarea class="form-control" name="descripcion" rows="3"></textarea>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Categoría <span class="text-danger">*</span></label>
+                                                <select class="form-select" name="categoria_id" id="categoriaElaborado" required>
+                                                    <option value="">Seleccionar...</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Unidad de Medida <span class="text-danger">*</span></label>
+                                                <select class="form-select" name="unidad_medida_id" id="unidadElaborado" required>
+                                                    <option value="">Seleccionar...</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Cantidad Producida <span class="text-danger">*</span></label>
+                                                <input type="number" class="form-control" name="cantidad_producida" step="0.01" min="0.01" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Tiempo Total (min)</label>
+                                                <input type="number" class="form-control" name="tiempo_total_preparacion" min="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Componentes -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="fas fa-layer-group me-2"></i>Componentes (Insumos Compuestos)</h6>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="agregarComponenteElaborado()">
+                                        <i class="fas fa-plus me-1"></i>Agregar
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="componentesElaboradoContainer">
+                                        <!-- Los componentes se agregarán aquí dinámicamente -->
+                                    </div>
+                                    <div class="alert alert-info d-none" id="alertNoComponentes">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Agregue al menos un insumo compuesto como componente
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen de costos -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Resumen de Costos</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <div class="metric">
+                                        <div class="metric-value" id="costoTotalElaborado">$0.00</div>
+                                        <div class="metric-label">Costo Total</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="metric">
+                                        <div class="metric-value" id="precioUnitarioElaborado">$0.00</div>
+                                        <div class="metric-label">Precio/Unidad</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="metric">
+                                        <div class="metric-value" id="totalComponentesElaborado">0</div>
+                                        <div class="metric-label">Componentes</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="metric">
+                                        <div class="metric-value" id="tiempoTotalElaborado">0 min</div>
+                                        <div class="metric-label">Tiempo Total</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Crear Insumo Elaborado
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales de gestión (categorías y unidades) - Usando los mismos del template de compuestos -->
+{% include 'dashboard/modals/gestionar_categorias.html' %}
+{% include 'dashboard/modals/gestionar_unidades.html' %}
+
+<!-- Modal para ver detalles -->
+<div class="modal fade" id="modalDetalleElaborado" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Detalles del Insumo Elaborado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleElaboradoContent">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar -->
+<div class="modal fade" id="modalEditarElaborado" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Insumo Elaborado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditarElaborado">
+                <div class="modal-body" id="editarElaboradoContent">
+                    <!-- Contenido cargado dinámicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Funciones principales para insumos elaborados
+let contadorComponentesElaborado = 0;
+let insumosCompuestosDisponibles = [];
+
+// Abrir modal crear
+function abrirModalCrearElaborado() {
+    contadorComponentesElaborado = 0;
+    document.getElementById('componentesElaboradoContainer').innerHTML = '';
+    document.getElementById('formCrearElaborado').reset();
+    
+    cargarCategorias();
+    cargarUnidades();
+    cargarInsumosCompuestos();
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalCrearElaborado'));
+    modal.show();
+    
+    actualizarResumenElaborado();
+}
+
+// Cargar insumos compuestos
+function cargarInsumosCompuestos() {
+    fetch('/dashboard/insumos-elaborados/insumos-compuestos/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            insumosCompuestosDisponibles = data.insumos;
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Agregar componente
+function agregarComponenteElaborado() {
+    if (insumosCompuestosDisponibles.length === 0) {
+        showToast('No hay insumos compuestos disponibles', 'warning');
+        return;
+    }
+    
+    contadorComponentesElaborado++;
+    const container = document.getElementById('componentesElaboradoContainer');
+    
+    const componenteHtml = `
+        <div class="componente-item border rounded p-3 mb-3" id="componenteElaborado${contadorComponentesElaborado}">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h6 class="mb-0">Componente ${contadorComponentesElaborado}</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarComponenteElaborado(${contadorComponentesElaborado})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label">Insumo Compuesto <span class="text-danger">*</span></label>
+                    <select class="form-select" name="componente_insumo[]" onchange="actualizarInfoComponenteElaborado(this, ${contadorComponentesElaborado})" required>
+                        <option value="">Seleccionar insumo compuesto...</option>
+                        ${insumosCompuestosDisponibles.map(insumo => 
+                            `<option value="${insumo.id}" data-precio="${insumo.precio_unitario}" data-unidad="${insumo.unidad_medida_nombre}">
+                                ${insumo.nombre} - $${insumo.precio_unitario} / ${insumo.unidad_medida_nombre}
+                            </option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Cantidad <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" name="componente_cantidad[]" step="0.01" min="0.01" 
+                           onchange="actualizarResumenElaborado()" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tiempo (min)</label>
+                    <input type="number" class="form-control" name="componente_tiempo[]" min="0" 
+                           onchange="actualizarResumenElaborado()">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Costo</label>
+                    <input type="text" class="form-control" readonly id="costoComponente${contadorComponentesElaborado}" value="$0.00">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Instrucciones especiales</label>
+                    <textarea class="form-control" name="componente_instrucciones[]" rows="2" placeholder="Instrucciones específicas para este componente..."></textarea>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', componenteHtml);
+    actualizarAlertaComponentesElaborado();
+    actualizarResumenElaborado();
+}
+
+// Actualizar info del componente
+function actualizarInfoComponenteElaborado(select, id) {
+    const option = select.selectedOptions[0];
+    if (option && option.value) {
+        const precio = parseFloat(option.dataset.precio);
+        const cantidadInput = select.closest('.componente-item').querySelector('input[name="componente_cantidad[]"]');
+        const costoInput = document.getElementById(`costoComponente${id}`);
+        
+        if (cantidadInput.value) {
+            const cantidad = parseFloat(cantidadInput.value);
+            const costo = precio * cantidad;
+            costoInput.value = `$${costo.toFixed(2)}`;
+        }
+    }
+    actualizarResumenElaborado();
+}
+
+// Eliminar componente
+function eliminarComponenteElaborado(id) {
+    document.getElementById(`componenteElaborado${id}`).remove();
+    actualizarAlertaComponentesElaborado();
+    actualizarResumenElaborado();
+}
+
+// Actualizar alerta de componentes
+function actualizarAlertaComponentesElaborado() {
+    const componentes = document.querySelectorAll('.componente-item');
+    const alerta = document.getElementById('alertNoComponentes');
+    
+    if (componentes.length === 0) {
+        alerta.classList.remove('d-none');
+    } else {
+        alerta.classList.add('d-none');
+    }
+}
+
+// Actualizar resumen
+function actualizarResumenElaborado() {
+    const componentes = document.querySelectorAll('.componente-item');
+    let costoTotal = 0;
+    let tiempoTotal = 0;
+    let componentesValidos = 0;
+    
+    componentes.forEach(componente => {
+        const select = componente.querySelector('select[name="componente_insumo[]"]');
+        const cantidadInput = componente.querySelector('input[name="componente_cantidad[]"]');
+        const tiempoInput = componente.querySelector('input[name="componente_tiempo[]"]');
+        
+        if (select.value && cantidadInput.value) {
+            const option = select.selectedOptions[0];
+            const precio = parseFloat(option.dataset.precio);
+            const cantidad = parseFloat(cantidadInput.value);
+            
+            costoTotal += precio * cantidad;
+            componentesValidos++;
+        }
+        
+        if (tiempoInput.value) {
+            tiempoTotal += parseInt(tiempoInput.value);
+        }
+    });
+    
+    // Actualizar métricas
+    document.getElementById('costoTotalElaborado').textContent = `$${costoTotal.toFixed(2)}`;
+    document.getElementById('totalComponentesElaborado').textContent = componentesValidos;
+    document.getElementById('tiempoTotalElaborado').textContent = `${tiempoTotal} min`;
+    
+    // Calcular precio unitario
+    const cantidadProducida = document.querySelector('input[name="cantidad_producida"]')?.value;
+    if (cantidadProducida && cantidadProducida > 0) {
+        const precioUnitario = costoTotal / parseFloat(cantidadProducida);
+        document.getElementById('precioUnitarioElaborado').textContent = `$${precioUnitario.toFixed(2)}`;
+    } else {
+        document.getElementById('precioUnitarioElaborado').textContent = '$0.00';
+    }
+}
+
+// Enviar formulario
+document.getElementById('formCrearElaborado').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando...';
+    
+    fetch('/dashboard/insumos-elaborados/crear/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalCrearElaborado')).hide();
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast('❌ Error: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
+
+// Ver detalles
+function verDetalleElaborado(insumoId) {
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalleElaborado'));
+    const content = document.getElementById('detalleElaboradoContent');
+    
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    fetch(`/dashboard/insumos-elaborados/detalle/${insumoId}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarDetalleElaborado(data.insumo, data.componentes);
+        } else {
+            content.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        content.innerHTML = `<div class="alert alert-danger">Error al cargar los detalles</div>`;
+    });
+}
+
+// Mostrar detalles
+function mostrarDetalleElaborado(insumo, componentes) {
+    const content = document.getElementById('detalleElaboradoContent');
+    
+    const componentesHtml = componentes.map(comp => `
+        <tr>
+            <td>
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-layer-group text-primary me-2"></i>
+                    <div>
+                        <div class="fw-semibold">${comp.insumo_nombre}</div>
+                        <small class="text-muted">${comp.insumo_codigo}</small>
+                    </div>
+                </div>
+            </td>
+            <td>${comp.cantidad} ${comp.unidad_medida}</td>
+            <td>$${comp.precio_unitario}</td>
+            <td class="fw-semibold">$${comp.costo_total}</td>
+            <td>${comp.tiempo_preparacion} min</td>
+        </tr>
+    `).join('');
+    
+    content.innerHTML = `
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Información General</h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-4">Código:</dt>
+                            <dd class="col-sm-8"><code>${insumo.codigo}</code></dd>
+                            <dt class="col-sm-4">Nombre:</dt>
+                            <dd class="col-sm-8">${insumo.nombre}</dd>
+                            <dt class="col-sm-4">Categoría:</dt>
+                            <dd class="col-sm-8">${insumo.categoria}</dd>
+                            <dt class="col-sm-4">Unidad:</dt>
+                            <dd class="col-sm-8">${insumo.unidad_medida}</dd>
+                            <dt class="col-sm-4">Estado:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-${insumo.activo ? 'success' : 'secondary'}">
+                                    ${insumo.activo ? 'Activo' : 'Inactivo'}
+                                </span>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Costos y Producción</h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-6">Precio Unitario:</dt>
+                            <dd class="col-sm-6 text-success fw-bold">$${insumo.precio_unitario}</dd>
+                            <dt class="col-sm-6">Costo Total:</dt>
+                            <dd class="col-sm-6 fw-bold">$${insumo.total_costo}</dd>
+                            <dt class="col-sm-6">Stock Actual:</dt>
+                            <dd class="col-sm-6">${insumo.cantidad_stock}</dd>
+                            <dt class="col-sm-6">Componentes:</dt>
+                            <dd class="col-sm-6">${insumo.cantidad_componentes}</dd>
+                            <dt class="col-sm-6">Tiempo Total:</dt>
+                            <dd class="col-sm-6">${insumo.tiempo_total_preparacion} min</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            ${insumo.descripcion ? `
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Descripción</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">${insumo.descripcion}</p>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Componentes (${componentes.length})</h6>
+                    </div>
+                    <div class="card-body">
+                        ${componentes.length > 0 ? `
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Insumo Compuesto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Unit.</th>
+                                        <th>Costo Total</th>
+                                        <th>Tiempo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${componentesHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                        ` : '<p class="text-muted mb-0">No hay componentes definidos</p>'}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Editar insumo elaborado
+function editarInsumoElaborado(insumoId) {
+    // Por simplicidad, implementar como redirect por ahora
+    window.location.href = `/dashboard/insumos-elaborados/editar/${insumoId}/`;
+}
+
+// Eliminar insumo elaborado
+function eliminarInsumoElaborado(insumoId, nombre) {
+    if (!confirm(`¿Está seguro de eliminar el insumo elaborado "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+        return;
+    }
+    
+    fetch(`/dashboard/insumos-elaborados/eliminar/${insumoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast('❌ Error: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+    });
+}
+
+// Funciones auxiliares (usar las mismas de insumos compuestos)
+function cargarCategorias() {
+    fetch('/dashboard/api/categorias/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const select = document.getElementById('categoriaElaborado');
+            select.innerHTML = '<option value="">Seleccionar...</option>';
+            data.categorias.forEach(categoria => {
+                select.innerHTML += `<option value="${categoria.id}">${categoria.nombre}</option>`;
+            });
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function cargarUnidades() {
+    fetch('/dashboard/api/unidades-medida/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const select = document.getElementById('unidadElaborado');
+            select.innerHTML = '<option value="">Seleccionar...</option>';
+            data.unidades.forEach(unidad => {
+                select.innerHTML += `<option value="${unidad.id}">${unidad.nombre} (${unidad.abreviacion})</option>`;
+            });
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function showToast(message, type = 'info') {
+    // Implementar toast notifications
+    console.log(`${type.toUpperCase()}: ${message}`);
+    alert(message); // Temporal
+}
+
+// Listener para cantidad producida
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'cantidad_producida') {
+        actualizarResumenElaborado();
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estilos específicos para insumos elaborados */
+
+/* Iconos en la tabla (similar al inventario) */
+.insumo-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.insumo-icon i {
+    font-size: 1.2rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 6px;
+}
+
+/* Tabla responsive mejorada */
+.table-responsive {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Filas de insumos (igual que inventario) */
+.insumo-row {
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.insumo-row:hover {
+    background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+/* Badges mejorados */
+.badge {
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+}
+
+/* Botones de acción */
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Componente item para modales */
+.componente-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.metric {
+    text-align: center;
+    padding: 1rem;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Stats cards */
+.stats-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.stats-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
+}
+
+.stats-primary .stats-icon { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.stats-success .stats-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.stats-warning .stats-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.stats-info .stats-icon { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+
+/* Card general */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.125rem 0.25rem;
+        font-size: 0.7rem;
+    }
+      .insumo-icon i {
+        width: 28px;
+        height: 28px;
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+.stats-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
+}
+
+.stats-primary .stats-icon { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.stats-success .stats-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.stats-warning .stats-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.stats-info .stats-icon { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+</style>
+{% endblock %}

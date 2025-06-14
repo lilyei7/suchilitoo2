@@ -1,0 +1,332 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Principal - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="fas fa-tachometer-alt me-2 text-primary"></i>
+        Dashboard Principal
+    </h1>
+    <div class="text-muted">
+        <i class="fas fa-calendar-alt me-1"></i>
+        {% now "d/m/Y" %}
+    </div>
+</div>
+
+<!-- Tarjetas de estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div>
+                    <h5 class="card-title mb-0">{{ total_sucursales }}</h5>
+                    <p class="card-text">Sucursales Activas</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-store"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div>
+                    <h5 class="card-title mb-0">{{ total_usuarios }}</h5>
+                    <p class="card-text">Usuarios Activos</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div>
+                    <h5 class="card-title mb-0">{{ total_productos }}</h5>
+                    <p class="card-text">Productos Disponibles</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div>
+                    <h5 class="card-title mb-0">{{ movimientos_hoy }}</h5>
+                    <p class="card-text">Movimientos Hoy</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas importantes -->
+{% if insumos_stock_bajo > 0 %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning d-flex align-items-center" role="alert">
+            <i class="fas fa-exclamation-triangle me-3 fa-lg"></i>
+            <div>
+                <strong>¡Atención!</strong> Hay {{ insumos_stock_bajo }} insumo{{ insumos_stock_bajo|pluralize }} con stock bajo.
+                <a href="{% url 'dashboard:inventario' %}" class="alert-link">Ver inventario</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Accesos rápidos -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-3">
+            <i class="fas fa-rocket me-2 text-primary"></i>
+            Accesos Rápidos
+        </h4>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card quick-access-card h-100">
+            <div class="card-body text-center p-3">
+                <div class="mb-2">
+                    <i class="fas fa-boxes fa-2x text-primary"></i>
+                </div>
+                <h6 class="card-title mb-1">Inventario</h6>
+                <p class="card-text small text-muted mb-3">Gestiona stock y movimientos</p>
+                <a href="{% url 'dashboard:entradas_salidas' %}" class="btn btn-primary btn-sm w-100">
+                    Acceder
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card quick-access-card h-100">
+            <div class="card-body text-center p-3">
+                <div class="mb-2">
+                    <i class="fas fa-blender fa-2x text-success"></i>
+                </div>
+                <h6 class="card-title mb-1">Insumos Elaborados</h6>
+                <p class="card-text small text-muted mb-3">Productos de preparación</p>
+                <a href="{% url 'dashboard:insumos_elaborados' %}" class="btn btn-success btn-sm w-100">
+                    Acceder
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card quick-access-card h-100">
+            <div class="card-body text-center p-3">
+                <div class="mb-2">
+                    <i class="fas fa-shopping-cart fa-2x text-warning"></i>
+                </div>
+                <h6 class="card-title mb-1">Productos</h6>
+                <p class="card-text small text-muted mb-3">Catálogo de venta</p>
+                <a href="{% url 'dashboard:productos_venta' %}" class="btn btn-warning btn-sm w-100">
+                    Acceder
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card quick-access-card h-100">
+            <div class="card-body text-center p-3">
+                <div class="mb-2">
+                    <i class="fas fa-clipboard-check fa-2x text-info"></i>
+                </div>
+                <h6 class="card-title mb-1">Check List</h6>
+                <p class="card-text small text-muted mb-3">Tareas diarias</p>
+                <a href="{% url 'dashboard:checklist' %}" class="btn btn-info btn-sm w-100">
+                    Acceder
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card quick-access-card h-100">
+            <div class="card-body text-center p-3">
+                <div class="mb-2">
+                    <i class="fas fa-cash-register fa-2x text-danger"></i>
+                </div>
+                <h6 class="card-title mb-1">Ventas</h6>
+                <p class="card-text small text-muted mb-3">Reportes y estadísticas</p>
+                <a href="{% url 'dashboard:ventas' %}" class="btn btn-danger btn-sm w-100">
+                    Acceder
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card quick-access-card h-100">
+            <div class="card-body text-center p-3">
+                <div class="mb-2">
+                    <i class="fas fa-users fa-2x text-secondary"></i>
+                </div>
+                <h6 class="card-title mb-1">RR.HH.</h6>
+                <p class="card-text small text-muted mb-3">Gestión de personal</p>
+                <a href="{% url 'dashboard:recursos_humanos' %}" class="btn btn-secondary btn-sm w-100">
+                    Acceder
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Información del usuario -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-user me-2"></i>
+                    Información de Sesión
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Usuario:</strong> {{ user.first_name|default:user.username }}</p>
+                        <p><strong>Rol:</strong> {{ user.rol.get_nombre_display|default:"Sin rol asignado" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Sucursal:</strong> {{ user.sucursal.nombre|default:"Sin sucursal asignada" }}</p>                        <p><strong>Último acceso:</strong> {{ user.last_login|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.quick-access-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.quick-access-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.quick-access-card .card-body {
+    position: relative;
+    overflow: hidden;
+}
+
+.quick-access-card .card-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--bs-primary), var(--bs-success));
+    border-radius: 12px 12px 0 0;
+}
+
+.quick-access-card .fa-boxes { color: #4285f4 !important; }
+.quick-access-card .fa-blender { color: #34d399 !important; }
+.quick-access-card .fa-shopping-cart { color: #f59e0b !important; }
+.quick-access-card .fa-clipboard-check { color: #06b6d4 !important; }
+.quick-access-card .fa-cash-register { color: #ef4444 !important; }
+.quick-access-card .fa-users { color: #6b7280 !important; }
+
+.quick-access-card .btn {
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.quick-access-card .btn:hover {
+    transform: scale(1.05);
+}
+
+.card-stats {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.card-stats:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.card-stats .card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+}
+
+.card-stats .icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #4285f4, #3367d6);
+    color: white;
+    font-size: 1.5rem;
+}
+
+.card-stats .card-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0;
+}
+
+.card-stats .card-text {
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+.alert {
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fef3c7, #fed7aa);
+    border-left: 4px solid #f59e0b;
+}
+
+h4 {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,222 @@
+<div class="row">
+    <div class="col-md-6">
+        <h6 class="text-muted mb-3">📋 Información Básica</h6>
+        <div class="mb-3">
+            <strong>Nombre Comercial:</strong><br>
+            <span class="text-primary">{{ proveedor.nombre_comercial }}</span>
+        </div>
+        <div class="mb-3">
+            <strong>Razón Social:</strong><br>
+            {{ proveedor.razon_social }}
+        </div>
+        <div class="mb-3">
+            <strong>RFC:</strong><br>
+            {{ proveedor.rfc|upper }}
+        </div>
+        <div class="mb-3">
+            <strong>Estado:</strong><br>
+            {% if proveedor.estado == 'activo' %}
+                <span class="badge bg-success">✅ Activo</span>
+            {% else %}
+                <span class="badge bg-secondary">🔒 Inactivo</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <h6 class="text-muted mb-3">📞 Información de Contacto</h6>
+        <div class="mb-3">
+            <strong>Persona de Contacto:</strong><br>
+            {{ proveedor.persona_contacto|default:"No especificado" }}
+        </div>
+        <div class="mb-3">
+            <strong>Teléfono:</strong><br>
+            {% if proveedor.telefono %}
+                <a href="tel:{{ proveedor.telefono }}" class="text-decoration-none">
+                    📞 {{ proveedor.telefono }}
+                </a>
+            {% else %}
+                No especificado
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <strong>Email:</strong><br>
+            {% if proveedor.email %}
+                <a href="mailto:{{ proveedor.email }}" class="text-decoration-none">
+                    📧 {{ proveedor.email }}
+                </a>
+            {% else %}
+                No especificado
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <strong>Dirección:</strong><br>
+            {{ proveedor.direccion|default:"No especificada" }}
+            {% if proveedor.ciudad_estado %}
+                <br><small class="text-muted">{{ proveedor.ciudad_estado }}</small>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <h6 class="text-muted mb-3">💳 Información Comercial</h6>
+        <div class="mb-3">
+            <strong>Categoría de Productos:</strong><br>
+            {% if proveedor.categoria_productos == 'ingredientes' %}
+                🥬 Ingredientes
+            {% elif proveedor.categoria_productos == 'bebidas' %}
+                🥤 Bebidas
+            {% elif proveedor.categoria_productos == 'equipos' %}
+                🔧 Equipos
+            {% elif proveedor.categoria_productos == 'servicios' %}
+                🛠️ Servicios
+            {% elif proveedor.categoria_productos == 'otros' %}
+                📦 Otros
+            {% else %}
+                {{ proveedor.categoria_productos|title }}
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <strong>Forma de Pago Preferida:</strong><br>
+            {% if proveedor.forma_pago_preferida == 'efectivo' %}
+                💵 Efectivo
+            {% elif proveedor.forma_pago_preferida == 'transferencia' %}
+                🏦 Transferencia
+            {% elif proveedor.forma_pago_preferida == 'cheque' %}
+                📋 Cheque
+            {% elif proveedor.forma_pago_preferida == 'credito' %}
+                💳 Crédito
+            {% else %}
+                {{ proveedor.forma_pago_preferida|title }}
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <strong>Días de Crédito:</strong><br>
+            {% if proveedor.dias_credito > 0 %}
+                📅 {{ proveedor.dias_credito }} días
+            {% else %}
+                🚫 Sin crédito
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <h6 class="text-muted mb-3">📊 Estadísticas</h6>
+        <div class="mb-3">
+            <strong>Total de Insumos:</strong><br>
+            <span class="badge bg-info">{{ total_insumos }} insumos</span>
+        </div>
+        <div class="mb-3">
+            <strong>Precio Promedio:</strong><br>
+            {% if precio_promedio > 0 %}
+                <span class="text-success fw-bold">${{ precio_promedio|floatformat:2 }}</span>
+            {% else %}
+                <span class="text-muted">Sin datos</span>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <strong>Fecha de Registro:</strong><br>
+            📅 {{ proveedor.fecha_registro|date:"d/m/Y" }}
+        </div>
+    </div>
+</div>
+
+{% if proveedor.notas_adicionales %}
+<div class="row mt-4">
+    <div class="col-12">
+        <h6 class="text-muted mb-3">📝 Notas Adicionales</h6>
+        <div class="alert alert-light">
+            {{ proveedor.notas_adicionales|linebreaks }}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if insumos_proveedor %}
+<div class="row mt-4">
+    <div class="col-12">
+        <h6 class="text-muted mb-3">📦 Insumos del Proveedor ({{ total_insumos }})</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Insumo</th>
+                        <th>Categoría</th>
+                        <th>Precio Unit.</th>
+                        <th>Descuento</th>
+                        <th>Precio Final</th>
+                        <th>Qty. Mín.</th>
+                        <th>Entrega</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for insumo in insumos_proveedor %}
+                    <tr>
+                        <td>
+                            <strong>{{ insumo.insumo.nombre }}</strong>
+                            {% if insumo.insumo.unidad_medida %}
+                                <br><small class="text-muted">{{ insumo.insumo.unidad_medida }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if insumo.insumo.categoria %}
+                                <span class="badge bg-secondary">{{ insumo.insumo.categoria.nombre }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">${{ insumo.precio_unitario|floatformat:2 }}</td>
+                        <td class="text-center">
+                            {% if insumo.precio_descuento %}
+                                <span class="badge bg-success">{{ insumo.descuento_porcentaje|floatformat:1 }}%</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-primary">${{ insumo.precio_final|floatformat:2 }}</strong>
+                        </td>
+                        <td class="text-center">{{ insumo.cantidad_minima|floatformat:0 }}</td>
+                        <td class="text-center">
+                            {% if insumo.tiempo_entrega_dias %}
+                                {{ insumo.tiempo_entrega_dias }} días
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if insumo.notas %}
+                    <tr>
+                        <td colspan="7" class="bg-light">
+                            <small class="text-muted">📝 {{ insumo.notas }}</small>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle me-2"></i>
+            Este proveedor no tiene insumos asignados aún.
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-primary" onclick="editarProveedor({{ proveedor.id }})">
+                <i class="fas fa-edit me-1"></i>Editar
+            </button>            <button type="button" class="btn btn-success" onclick="asignarInsumo({{ proveedor.id }})">
+                <i class="fas fa-plus me-1"></i>Asignar Insumo
+            </button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,601 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Insumos Compuestos - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-layer-group me-2 text-primary"></i>
+            Gestión de Insumos Compuestos
+        </h1>
+        <p class="text-muted mb-0">Administra tus insumos compuestos de producción propia y sus componentes</p>
+    </div>
+    <div>        {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+        <button class="btn btn-primary" onclick="abrirModalCrearCompuesto()">
+            <i class="fas fa-plus me-2"></i>Nuevo Insumo Compuesto
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ insumos_compuestos.count }}</h3>
+                        <p class="text-muted mb-0 small">Total Compuestos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">15</h3>
+                        <p class="text-muted mb-0 small">Activos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">8</h3>
+                        <p class="text-muted mb-0 small">En Producción</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">3</h3>
+                        <p class="text-muted mb-0 small">Pendientes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros de búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{% url 'dashboard:insumos_compuestos' %}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-muted small mb-1">Buscar insumo compuesto</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control" placeholder="Nombre o código..." name="buscar" value="{{ request.GET.buscar }}">
+                        <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Estado</label>
+                    <select class="form-select" name="estado">
+                        <option value="">Todos</option>
+                        <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activos</option>
+                        <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+                        <option value="produccion" {% if request.GET.estado == 'produccion' %}selected{% endif %}>En Producción</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Categoría</label>
+                    <select class="form-select" name="categoria">
+                        <option value="">Todas las categorías</option>
+                        <option value="salsas">Salsas</option>
+                        <option value="mezclas">Mezclas</option>
+                        <option value="preparados">Preparados</option>
+                        <option value="condimentos">Condimentos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Complejidad</label>
+                    <select class="form-select" name="complejidad">
+                        <option value="">Todas</option>
+                        <option value="simple">Simple (2-3 ingredientes)</option>
+                        <option value="media">Media (4-6 ingredientes)</option>
+                        <option value="compleja">Compleja (7+ ingredientes)</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de insumos compuestos -->
+{% if insumos_compuestos %}
+<div class="row">
+    {% for insumo in insumos_compuestos %}
+    <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
+        <div class="card compuesto-card">
+            <!-- Header compacto -->
+            <div class="compuesto-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <div class="compuesto-avatar">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="ms-2">
+                            <h6 class="compuesto-name">{{ insumo.nombre|truncatewords:3 }}</h6>
+                            <span class="compuesto-code">{{ insumo.codigo }}</span>
+                        </div>
+                    </div>
+                    {% if insumo.activo %}
+                        <div class="status-dot status-active"></div>
+                    {% else %}
+                        <div class="status-dot status-inactive"></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información del insumo compuesto -->
+            <div class="compuesto-body">
+                <div class="componentes-info">
+                    <div class="componente-count">
+                        <i class="fas fa-puzzle-piece me-2"></i>
+                        <span>{{ insumo.receta.componentes.count|default:5 }} componentes</span>
+                    </div>
+                    <div class="precio-info">
+                        <span class="precio-label">Costo de producción</span>
+                        <span class="precio-value">${{ insumo.precio_unitario|floatformat:2 }}</span>
+                    </div>
+                </div>
+
+                <!-- Nivel de complejidad -->
+                <div class="complejidad-indicator">
+                    <span class="complejidad-label">Complejidad:</span>
+                    {% if insumo.receta.componentes.count <= 3 %}
+                        <span class="badge badge-success-soft">Simple</span>
+                    {% elif insumo.receta.componentes.count <= 6 %}
+                        <span class="badge badge-warning-soft">Media</span>
+                    {% else %}
+                        <span class="badge badge-danger-soft">Compleja</span>
+                    {% endif %}
+                </div>
+
+                <!-- Información adicional -->
+                <div class="compuesto-details">
+                    <div class="detail-item">
+                        <i class="fas fa-tag detail-icon"></i>
+                        <span>{{ insumo.categoria.nombre|default:"Sin categoría" }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-weight-hanging detail-icon"></i>
+                        <span>{{ insumo.unidad_medida.nombre|default:"Unidad" }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-clock detail-icon"></i>
+                        <span>Actualizado {{ insumo.updated_at|timesince|default:"hace poco" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones compactas -->
+            <div class="compuesto-actions">
+                <button class="action-btn primary" title="Ver receta">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn secondary" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn success" title="Producir">
+                    <i class="fas fa-play"></i>
+                </button>
+                <div class="dropdown">
+                    <button class="action-btn secondary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-compact">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-list me-2"></i>Ver receta</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-copy me-2"></i>Duplicar</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% if insumo.activo %}
+                        <li><a class="dropdown-item text-warning" href="#"><i class="fas fa-pause me-2"></i>Desactivar</a></li>
+                        {% else %}
+                        <li><a class="dropdown-item text-success" href="#"><i class="fas fa-play me-2"></i>Activar</a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i>Eliminar</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Estado vacío -->
+<div class="card">
+    <div class="card-body">
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-layer-group text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay insumos compuestos registrados</h5>
+            <p class="text-muted mb-4">Comienza creando tus primeros insumos compuestos para optimizar tu producción.</p>
+            <button class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Crear Primer Insumo Compuesto
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_css %}
+<style>
+/* Estadísticas mejoradas */
+.stats-card {
+    border: none;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    position: relative;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.stats-primary::before { background: linear-gradient(90deg, #4285f4, #1a73e8); }
+.stats-success::before { background: linear-gradient(90deg, #10b981, #059669); }
+.stats-info::before { background: linear-gradient(90deg, #0891b2, #0e7490); }
+.stats-warning::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+
+.stats-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stats-primary .stats-icon { background: linear-gradient(135deg, #4285f4, #1a73e8); }
+.stats-success .stats-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.stats-info .stats-icon { background: linear-gradient(135deg, #0891b2, #0e7490); }
+.stats-warning .stats-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.stats-card h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0;
+}
+
+.stats-card p {
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Tarjetas de insumos compuestos */
+.compuesto-card {
+    border: none;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.compuesto-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.compuesto-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.compuesto-card:hover::before {
+    opacity: 1;
+}
+
+/* Header de la tarjeta */
+.compuesto-header {
+    padding: 16px 16px 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+}
+
+.compuesto-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.compuesto-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
+
+.compuesto-code {
+    font-size: 0.75rem;
+    color: #6b7280;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-family: monospace;
+}
+
+/* Status dots */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-active { 
+    background: #10b981; 
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+.status-inactive { 
+    background: #ef4444; 
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+/* Cuerpo de la tarjeta */
+.compuesto-body {
+    padding: 12px 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Información de componentes */
+.componentes-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.componente-count {
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.precio-info {
+    text-align: right;
+}
+
+.precio-label {
+    display: block;
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+.precio-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Indicador de complejidad */
+.complejidad-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+}
+
+.complejidad-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Badges */
+.badge-success-soft {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.badge-warning-soft {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.badge-danger-soft {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+/* Detalles del insumo compuesto */
+.compuesto-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.detail-icon {
+    width: 12px;
+    height: 12px;
+    color: #9ca3af;
+    flex-shrink: 0;
+}
+
+/* Acciones */
+.compuesto-actions {
+    padding: 12px 16px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+    background: #fafbff;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #4285f4, #1a73e8);
+    color: white;
+    box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+}
+
+.action-btn.primary:hover {
+    background: linear-gradient(135deg, #1a73e8, #1557b0);
+    transform: scale(1.05);
+}
+
+.action-btn.success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.action-btn.success:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: scale(1.05);
+}
+
+.action-btn.secondary {
+    background: #f1f5f9;
+    color: #6b7280;
+    border: 1px solid #e2e8f0;
+}
+
+.action-btn.secondary:hover {
+    background: #e2e8f0;
+    color: #374151;
+    transform: scale(1.05);
+}
+
+.dropdown-menu-compact {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 0.8rem;
+    overflow: hidden;
+}
+
+.dropdown-menu-compact .dropdown-item {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-menu-compact .dropdown-item:hover {
+    background: #f8fafc;
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+</style>
+{% endblock %}

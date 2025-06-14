@@ -1,0 +1,904 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Insumos Elaborados - Sushi Restaurant{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-blender me-2 text-primary"></i>
+            Gestión de Insumos Elaborados
+        </h1>
+        <p class="text-muted mb-0">Administra tus insumos elaborados de preparación especial usando insumos compuestos</p>
+    </div>
+    <div>
+        {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+        <button class="btn btn-primary me-2" onclick="abrirModalCrearElaborado()">
+            <i class="fas fa-plus me-2"></i>Nuevo Insumo Elaborado
+        </button>
+        <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
+            <i class="fas fa-tags me-2"></i>Gestionar Categorías
+        </button>
+        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#nuevaUnidadModal">
+            <i class="fas fa-balance-scale me-2"></i>Gestionar Unidades
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-blender"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ total_elaborados }}</h3>
+                        <p class="text-muted mb-0 small">Total Elaborados</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ elaborados_activos }}</h3>
+                        <p class="text-muted mb-0 small">Activos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">0</h3>
+                        <p class="text-muted mb-0 small">En Preparación</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">$0</h3>
+                        <p class="text-muted mb-0 small">Costo Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros y búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label text-muted small mb-1">Buscar insumo elaborado</label>
+                <input type="text" class="form-control" name="buscar" placeholder="Buscar por código o nombre..." 
+                       value="{{ request.GET.buscar }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">Categoría</label>
+                <select class="form-select" name="categoria">
+                    <option value="">Todas las categorías</option>
+                    <!-- Cargar categorías dinámicamente -->
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">Estado</label>
+                <select class="form-select" name="estado">
+                    <option value="">Todos</option>
+                    <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activos</option>
+                    <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-search me-1"></i>Buscar
+                </button>
+                <a href="{% url 'dashboard:insumos_elaborados' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de insumos elaborados -->
+{% if insumos_elaborados %}
+<div class="row">
+    {% for insumo in insumos_elaborados %}
+    <div class="col-xl-4 col-lg-6 mb-4">
+        <div class="card insumo-card h-100">
+            <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="insumo-icon me-3">
+                        <i class="fas fa-blender text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-title mb-0">{{ insumo.nombre|truncatewords:3 }}</h6>
+                        <small class="text-muted">{{ insumo.codigo }}</small>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="verDetalleElaborado({{ insumo.id }})">
+                            <i class="fas fa-eye me-2"></i>Ver Detalles</a></li>
+                        {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+                        <li><a class="dropdown-item" href="#" onclick="editarInsumoElaborado({{ insumo.id }})">
+                            <i class="fas fa-edit me-2"></i>Editar</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="eliminarInsumoElaborado({{ insumo.id }}, '{{ insumo.nombre|escapejs }}')">
+                            <i class="fas fa-trash me-2"></i>Eliminar</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="info-item">
+                            <label class="info-label">Categoría</label>
+                            <span class="info-value">{{ insumo.categoria.nombre|default:"Sin categoría" }}</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-item">
+                            <label class="info-label">Unidad</label>
+                            <span class="info-value">{{ insumo.unidad_medida.abreviacion|default:"N/A" }}</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-item">
+                            <label class="info-label">Precio/Unidad</label>
+                            <span class="info-value text-success fw-bold">${{ insumo.precio_unitario|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-item">
+                            <label class="info-label">Stock</label>
+                            <span class="info-value">{{ insumo.cantidad_stock|floatformat:1 }}</span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="info-item">
+                            <label class="info-label">Componentes</label>
+                            <span class="info-value">
+                                {% with componentes=insumo.componentes_elaborados.all %}
+                                    {{ componentes.count }} insumo{{ componentes.count|pluralize }} compuesto{{ componentes.count|pluralize }}
+                                {% endwith %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if insumo.descripcion %}
+                <div class="mt-3">
+                    <p class="card-text text-muted small">{{ insumo.descripcion|truncatewords:15 }}</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-{{ insumo.activo|yesno:'success,secondary' }}">
+                        {{ insumo.activo|yesno:"Activo,Inactivo" }}
+                    </span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="verDetalleElaborado({{ insumo.id }})" title="Ver Detalles">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+                        <button class="btn btn-outline-success" onclick="editarInsumoElaborado({{ insumo.id }})" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="eliminarInsumoElaborado({{ insumo.id }}, '{{ insumo.nombre|escapejs }}')" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Paginación (si es necesaria) -->
+<nav aria-label="Paginación de insumos elaborados">
+    <ul class="pagination justify-content-center">
+        <!-- Paginación aquí si es necesaria -->
+    </ul>
+</nav>
+
+{% else %}
+<!-- Estado vacío -->
+<div class="card">
+    <div class="card-body">
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-blender text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay insumos elaborados registrados</h5>
+            <p class="text-muted mb-4">Los insumos elaborados son productos que se preparan usando varios insumos compuestos como base.</p>
+            {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+            <button class="btn btn-primary" onclick="abrirModalCrearElaborado()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Insumo Elaborado
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">12</h3>
+                        <p class="text-muted mb-0 small">En Elaboración</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">5</h3>
+                        <p class="text-muted mb-0 small">Stock Bajo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros de búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{% url 'dashboard:insumos_elaborados' %}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-muted small mb-1">Buscar insumo elaborado</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control" placeholder="Nombre o código..." name="buscar" value="{{ request.GET.buscar }}">
+                        <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Estado</label>
+                    <select class="form-select" name="estado">
+                        <option value="">Todos</option>
+                        <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activos</option>
+                        <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+                        <option value="elaboracion" {% if request.GET.estado == 'elaboracion' %}selected{% endif %}>En Elaboración</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Categoría</label>
+                    <select class="form-select" name="categoria">
+                        <option value="">Todas las categorías</option>
+                        <option value="marinados">Marinados</option>
+                        <option value="cocidos">Cocidos</option>
+                        <option value="fermentados">Fermentados</option>
+                        <option value="asados">Asados</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Dificultad</label>
+                    <select class="form-select" name="dificultad">
+                        <option value="">Todas</option>
+                        <option value="facil">Fácil</option>
+                        <option value="media">Media</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de insumos elaborados -->
+{% if insumos_elaborados %}
+<div class="row">
+    {% for insumo in insumos_elaborados %}
+    <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
+        <div class="card elaborado-card">
+            <!-- Header compacto -->
+            <div class="elaborado-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <div class="elaborado-avatar">
+                            <i class="fas fa-blender"></i>
+                        </div>
+                        <div class="ms-2">
+                            <h6 class="elaborado-name">{{ insumo.nombre|truncatewords:3 }}</h6>
+                            <span class="elaborado-code">{{ insumo.codigo }}</span>
+                        </div>
+                    </div>
+                    {% if insumo.activo %}
+                        <div class="status-dot status-active"></div>
+                    {% else %}
+                        <div class="status-dot status-inactive"></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información del insumo elaborado -->
+            <div class="elaborado-body">
+                <div class="precio-stock-info">
+                    <div class="precio-info">
+                        <span class="info-label">Precio Unitario</span>
+                        <span class="info-value">${{ insumo.precio_unitario|floatformat:2 }}</span>
+                    </div>
+                    <div class="stock-info">
+                        <span class="info-label">Stock Mínimo</span>
+                        <span class="info-value">{{ insumo.stock_minimo }} {{ insumo.unidad_medida.abreviacion|default:"un" }}</span>
+                    </div>
+                </div>
+
+                <!-- Nivel de dificultad -->
+                <div class="dificultad-indicator">
+                    <span class="dificultad-label">Dificultad:</span>
+                    {% if insumo.descripcion|length <= 50 %}
+                        <span class="badge badge-success-soft">Fácil</span>
+                    {% elif insumo.descripcion|length <= 100 %}
+                        <span class="badge badge-warning-soft">Media</span>
+                    {% else %}
+                        <span class="badge badge-danger-soft">Alta</span>
+                    {% endif %}
+                </div>
+
+                <!-- Proceso de elaboración -->
+                <div class="proceso-info">
+                    <div class="proceso-item">
+                        <i class="fas fa-clock proceso-icon"></i>
+                        <span>Tiempo: ~45 min</span>
+                    </div>
+                    <div class="proceso-item">
+                        <i class="fas fa-thermometer-half proceso-icon"></i>
+                        <span>Temp: Variable</span>
+                    </div>
+                </div>
+
+                <!-- Información adicional -->
+                <div class="elaborado-details">
+                    <div class="detail-item">
+                        <i class="fas fa-tag detail-icon"></i>
+                        <span>{{ insumo.categoria.nombre|default:"Sin categoría" }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-weight-hanging detail-icon"></i>
+                        <span>{{ insumo.unidad_medida.nombre|default:"Unidad" }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-calendar detail-icon"></i>
+                        <span>Creado {{ insumo.created_at|timesince|default:"hace poco" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones compactas -->
+            <div class="elaborado-actions">
+                <button class="action-btn primary" title="Ver proceso">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <a href="{% url 'dashboard:editar_insumo_elaborado' insumo.id %}" class="action-btn secondary" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <button class="action-btn success" title="Elaborar">
+                    <i class="fas fa-play"></i>
+                </button>
+                <div class="dropdown">
+                    <button class="action-btn secondary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-compact">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-list me-2"></i>Ver proceso</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-copy me-2"></i>Duplicar</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% if insumo.activo %}
+                        <li><a class="dropdown-item text-warning" href="#"><i class="fas fa-pause me-2"></i>Desactivar</a></li>
+                        {% else %}
+                        <li><a class="dropdown-item text-success" href="#"><i class="fas fa-play me-2"></i>Activar</a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item text-danger" href="#" onclick="eliminarInsumo({{ insumo.id }}, '{{ insumo.nombre }}')"><i class="fas fa-trash me-2"></i>Eliminar</a></li>
+                    </ul>
+                </div>            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Estado vacío -->
+<div class="card">
+    <div class="card-body">
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-blender text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay insumos elaborados registrados</h5>
+            <p class="text-muted mb-4">Comienza creando tus primeros insumos elaborados para especializar tu oferta.</p>
+            {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+            <a href="{% url 'dashboard:crear_insumo_elaborado' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Crear Primer Insumo Elaborado
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad de filtros
+    const categoriaFilter = document.getElementById('categoria-filter');
+    const disponibilidadFilter = document.getElementById('disponibilidad-filter');
+    
+    function aplicarFiltros() {
+        const categoria = categoriaFilter.value.toLowerCase();
+        const disponibilidad = disponibilidadFilter.value.toLowerCase();
+        const filas = document.querySelectorAll('tbody tr');
+        
+        filas.forEach(fila => {
+            let mostrar = true;
+            
+            // Filtro por categoría
+            if (categoria && !fila.textContent.toLowerCase().includes(categoria)) {
+                mostrar = false;
+            }
+            
+            // Filtro por disponibilidad
+            if (disponibilidad === 'agotado' && !fila.textContent.includes('Agotado')) {
+                mostrar = false;
+            } else if (disponibilidad === 'disponible' && fila.textContent.includes('Agotado')) {
+                mostrar = false;
+            }
+            
+            fila.style.display = mostrar ? '' : 'none';
+        });
+    }
+    
+    categoriaFilter.addEventListener('change', aplicarFiltros);
+    disponibilidadFilter.addEventListener('change', aplicarFiltros);
+});
+
+function verDetalles(insumoId) {
+    // Aquí puedes implementar la lógica para mostrar detalles del insumo
+    alert('Ver detalles del insumo ID: ' + insumoId);
+}
+
+function eliminarInsumo(insumoId, nombre) {
+    if (confirm(`¿Estás seguro de que quieres eliminar el insumo "${nombre}"?`)) {
+        fetch(`{% url 'dashboard:eliminar_insumo_elaborado' 0 %}`.replace('0', insumoId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error al eliminar el insumo');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar el insumo');
+        });
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estadísticas mejoradas */
+.stats-card {
+    border: none;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    position: relative;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.stats-primary::before { background: linear-gradient(90deg, #4285f4, #1a73e8); }
+.stats-success::before { background: linear-gradient(90deg, #10b981, #059669); }
+.stats-info::before { background: linear-gradient(90deg, #0891b2, #0e7490); }
+.stats-warning::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+
+.stats-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stats-primary .stats-icon { background: linear-gradient(135deg, #4285f4, #1a73e8); }
+.stats-success .stats-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.stats-info .stats-icon { background: linear-gradient(135deg, #0891b2, #0e7490); }
+.stats-warning .stats-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.stats-card h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0;
+}
+
+.stats-card p {
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Tarjetas de insumos elaborados */
+.elaborado-card {
+    border: none;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    height: 320px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.elaborado-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #ea580c, #dc2626);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.elaborado-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.elaborado-card:hover::before {
+    opacity: 1;
+}
+
+/* Header de la tarjeta */
+.elaborado-header {
+    padding: 16px 16px 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #fef7f0 0%, #fed7aa 100%);
+}
+
+.elaborado-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ea580c, #dc2626);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+}
+
+.elaborado-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
+
+.elaborado-code {
+    font-size: 0.75rem;
+    color: #6b7280;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-family: monospace;
+}
+
+/* Status dots */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-active { 
+    background: #10b981; 
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+.status-inactive { 
+    background: #ef4444; 
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+/* Cuerpo de la tarjeta */
+.elaborado-body {
+    padding: 12px 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Información de precio y stock */
+.precio-stock-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.precio-info, .stock-info {
+    text-align: center;
+}
+
+.info-label {
+    display: block;
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Indicador de dificultad */
+.dificultad-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+}
+
+.dificultad-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Información del proceso */
+.proceso-info {
+    display: flex;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.proceso-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.proceso-icon {
+    width: 12px;
+    height: 12px;
+    color: #ea580c;
+}
+
+/* Badges */
+.badge-success-soft {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.badge-warning-soft {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.badge-danger-soft {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+/* Detalles del insumo elaborado */
+.elaborado-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.detail-icon {
+    width: 12px;
+    height: 12px;
+    color: #9ca3af;
+    flex-shrink: 0;
+}
+
+/* Acciones */
+.elaborado-actions {
+    padding: 12px 16px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+    background: #fafbff;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #4285f4, #1a73e8);
+    color: white;
+    box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+}
+
+.action-btn.primary:hover {
+    background: linear-gradient(135deg, #1a73e8, #1557b0);
+    transform: scale(1.05);
+}
+
+.action-btn.success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.action-btn.success:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: scale(1.05);
+}
+
+.action-btn.secondary {
+    background: #f1f5f9;
+    color: #6b7280;
+    border: 1px solid #e2e8f0;
+}
+
+.action-btn.secondary:hover {
+    background: #e2e8f0;
+    color: #374151;
+    transform: scale(1.05);
+}
+
+.dropdown-menu-compact {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 0.8rem;
+    overflow: hidden;
+}
+
+.dropdown-menu-compact .dropdown-item {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-menu-compact .dropdown-item:hover {
+    background: #f8fafc;
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+</style>
+{% endblock %}
