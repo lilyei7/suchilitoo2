@@ -158,6 +158,7 @@
             </div>
             <div class="modal-body">
                 <form id="formCrearReceta" class="needs-validation" novalidate>
+                    {% csrf_token %}
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="nombre" class="form-label">Nombre de la Receta</label>
@@ -460,17 +461,37 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarInsumos();
     cargarCategoriasEnSelectores(); // Cargar categorías de recetas en los selectores
     
-    // Evento para el formulario de creación
-    document.getElementById('formCrearReceta').addEventListener('submit', function(e) {
-        e.preventDefault();
-        guardarReceta();
-    });
+    // Evento para el formulario de creación - Usando try-catch para evitar errores si el elemento no existe
+    try {
+        const formCrearReceta = document.getElementById('formCrearReceta');
+        if (formCrearReceta) {
+            formCrearReceta.addEventListener('submit', function(e) {
+                e.preventDefault(); // Prevenir el envío normal del formulario
+                guardarReceta();
+            });
+            console.log('✅ Evento submit configurado para formCrearReceta');
+        } else {
+            console.warn('⚠️ No se encontró el formulario formCrearReceta');
+        }
+    } catch (error) {
+        console.error('Error al configurar evento para formCrearReceta:', error);
+    }
     
-    // Evento para el formulario de edición
-    document.getElementById('formEditarReceta').addEventListener('submit', function(e) {
-        e.preventDefault();
-        actualizarReceta();
-    });
+    // Evento para el formulario de edición - Usando try-catch para evitar errores
+    try {
+        const formEditarReceta = document.getElementById('formEditarReceta');
+        if (formEditarReceta) {
+            formEditarReceta.addEventListener('submit', function(e) {
+                e.preventDefault(); // Prevenir el envío normal del formulario
+                actualizarReceta();
+            });
+            console.log('✅ Evento submit configurado para formEditarReceta');
+        } else {
+            console.warn('⚠️ No se encontró el formulario formEditarReceta');
+        }
+    } catch (error) {
+        console.error('Error al configurar evento para formEditarReceta:', error);
+    }
     
     // Actualizar costo por porción cuando cambie el número de porciones en creación
     document.getElementById('porciones').addEventListener('change', function() {
@@ -1440,7 +1461,8 @@ function guardarReceta() {
         showToast('⚠️ Debe agregar al menos un ingrediente', 'warning');
         return;
     }
-      // Verificar que todos los ingredientes tengan insumo seleccionado
+    
+    // Verificar que todos los ingredientes tengan insumo seleccionado
     let todosValidos = true;
     ingredientes.forEach(ing => {
         const selectInsumo = ing.querySelector('select[name="ingrediente_insumo[]"]');
@@ -1460,17 +1482,26 @@ function guardarReceta() {
     // Obtener datos del formulario
     const form = document.getElementById('formCrearReceta');
     const formData = new FormData(form);
-      // Añadir el costo total calculado al formData
+    
+    // Añadir el costo total calculado al formData
     const costoTotalInput = document.getElementById('costoTotal');
     const costoTotal = costoTotalInput ? parseFloat(costoTotalInput.value || '0') : 0;
     formData.append('costo_total', costoTotal);
     
-    // Deshabilitar el botón de envío
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn.innerHTML;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
-      // Enviar datos
+    // Deshabilitar el botón de envío - buscando por atributo onclick
+    const submitBtn = document.querySelector('button[onclick="guardarReceta()"]');
+    let originalBtnText = 'Guardar Receta';
+    
+    if (submitBtn) {
+        originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
+        console.log('Botón de guardar encontrado y deshabilitado');
+    } else {
+        console.warn('Botón de guardar no encontrado');
+    }
+    
+    // Enviar datos
     fetch('/dashboard/recetas/crear/', {
         method: 'POST',
         body: formData,
@@ -1516,9 +1547,13 @@ function guardarReceta() {
         showToast('❌ Error de conexión', 'error');
     })
     .finally(() => {
-        // Restaurar el botón
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText;
+        // Restaurar el botón si existe - buscándolo nuevamente por si ha cambiado el DOM
+        const btn = document.querySelector('button[onclick="guardarReceta()"]');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+            console.log('Botón de guardar restaurado');
+        }
     });
 }
 

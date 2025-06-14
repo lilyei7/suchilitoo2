@@ -11,11 +11,10 @@
             Gestión de Usuarios
         </h1>
         <p class="text-muted mb-0">Administra usuarios, roles y permisos del sistema</p>
-    </div>
-    {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
-    <a href="{% url 'dashboard:crear_usuario' %}" class="btn btn-primary">
+    </div>    {% if user.is_superuser or user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+    <button class="btn btn-primary" onclick="abrirModalCrearUsuario()">
         <i class="fas fa-user-plus me-2"></i>Nuevo Usuario
-    </a>
+    </button>
     {% endif %}
 </div>
 
@@ -240,29 +239,27 @@
             </div>
 
             <!-- Acciones -->
-            <div class="card-footer border-0 pt-0">
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary btn-sm flex-fill">
+            <div class="card-footer border-0 pt-0">                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm flex-fill" onclick="verDetalleUsuario({{ usuario.id }})">
                         <i class="fas fa-eye me-1"></i>Ver perfil
                     </button>
-                    <button class="btn btn-outline-primary btn-sm flex-fill">
+                    <button class="btn btn-outline-primary btn-sm flex-fill" onclick="editarUsuario({{ usuario.id }})">
                         <i class="fas fa-edit me-1"></i>Editar
                     </button>
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fas fa-ellipsis-h"></i>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-key me-2"></i>Cambiar contraseña</a></li>
+                        </button>                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="cambiarContrasena({{ usuario.id }})"><i class="fas fa-key me-2"></i>Cambiar contraseña</a></li>
                             <li><a class="dropdown-item" href="#"><i class="fas fa-user-shield me-2"></i>Permisos</a></li>
                             <li><a class="dropdown-item" href="#"><i class="fas fa-history me-2"></i>Historial</a></li>
                             <li><hr class="dropdown-divider"></li>
                             {% if usuario.is_active %}
-                            <li><a class="dropdown-item text-warning" href="#"><i class="fas fa-user-slash me-2"></i>Desactivar</a></li>
+                            <li><a class="dropdown-item text-warning" href="#" onclick="toggleEstadoUsuario({{ usuario.id }}, '{{ usuario.username }}', true)"><i class="fas fa-user-slash me-2"></i>Desactivar</a></li>
                             {% else %}
-                            <li><a class="dropdown-item text-success" href="#"><i class="fas fa-user-check me-2"></i>Activar</a></li>
+                            <li><a class="dropdown-item text-success" href="#" onclick="toggleEstadoUsuario({{ usuario.id }}, '{{ usuario.username }}', false)"><i class="fas fa-user-check me-2"></i>Activar</a></li>
                             {% endif %}
-                            <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i>Eliminar</a></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="eliminarUsuario({{ usuario.id }}, '{{ usuario.username }}')"><i class="fas fa-trash me-2"></i>Eliminar</a></li>
                         </ul>
                     </div>
                 </div>
@@ -278,17 +275,266 @@
         <div class="text-center py-5">
             <div class="mb-4">
                 <i class="fas fa-users text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
-            </div>
-            <h5 class="text-muted mb-2">No hay usuarios registrados</h5>
+            </div>            <h5 class="text-muted mb-2">No hay usuarios registrados</h5>
             <p class="text-muted mb-4">Comienza agregando el primer usuario del sistema.</p>
-            <a href="{% url 'dashboard:crear_usuario' %}" class="btn btn-primary">
+            <button class="btn btn-primary" onclick="abrirModalCrearUsuario()">
                 <i class="fas fa-user-plus me-2"></i>Crear Primer Usuario
-            </a>
+            </button>
         </div>
     </div>
 </div>
 {% endif %}
 
+<!-- Modal para crear usuario -->
+<div class="modal fade" id="modalCrearUsuario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2 text-primary"></i>
+                    Nuevo Usuario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCrearUsuario">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">Nombre de usuario <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" name="username" required placeholder="Ej: jperez">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" required placeholder="Ej: jperez@ejemplo.com">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" required placeholder="Ej: Juan">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Apellido <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" required placeholder="Ej: Pérez">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="telefono" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="telefono" name="telefono" placeholder="Ej: 555-123-4567">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="cedula" class="form-label">Cédula/Identificación</label>
+                            <input type="text" class="form-control" id="cedula" name="cedula" placeholder="Ej: 123456789">
+                        </div>                        <div class="col-md-6 mb-3">
+                            <label for="sucursal" class="form-label">Sucursal</label>
+                            <select class="form-select" id="sucursal" name="sucursal">
+                                <option value="">-- Seleccionar Sucursal --</option>
+                                {% for sucursal in sucursales %}
+                                <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div><div class="col-md-6 mb-3">
+                            <label for="rol" class="form-label">Rol</label>
+                            <select class="form-select" id="rol" name="rol">
+                                <option value="">-- Seleccionar Rol --</option>
+                                {% for rol in roles %}
+                                <option value="{{ rol.id }}">
+                                    {% if rol.nombre == 'admin' %}Administrador
+                                    {% elif rol.nombre == 'gerente' %}Gerente
+                                    {% elif rol.nombre == 'supervisor' %}Supervisor
+                                    {% elif rol.nombre == 'cajero' %}Cajero
+                                    {% elif rol.nombre == 'cocinero' %}Cocinero
+                                    {% elif rol.nombre == 'mesero' %}Mesero
+                                    {% elif rol.nombre == 'inventario' %}Encargado de Inventario
+                                    {% elif rol.nombre == 'rrhh' %}Recursos Humanos
+                                    {% else %}{{ rol.nombre }}
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                <label class="form-check-label" for="is_active">
+                                    Usuario activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Crear Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar usuario -->
+<div class="modal fade" id="modalEditarUsuario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit me-2 text-primary"></i>
+                    Editar Usuario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditarUsuario">
+                {% csrf_token %}
+                <input type="hidden" id="editar_usuario_id" name="usuario_id">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_username" class="form-label">Nombre de usuario <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editar_username" name="username" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="editar_email" name="email" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_first_name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editar_first_name" name="first_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_last_name" class="form-label">Apellido <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editar_last_name" name="last_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_password" class="form-label">Nueva Contraseña <small class="text-muted">(Dejar en blanco para mantener)</small></label>
+                            <input type="password" class="form-control" id="editar_password" name="password" minlength="8">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_telefono" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="editar_telefono" name="telefono">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editar_cedula" class="form-label">Cédula/Identificación</label>
+                            <input type="text" class="form-control" id="editar_cedula" name="cedula">
+                        </div>                        <div class="col-md-6 mb-3">
+                            <label for="editar_sucursal" class="form-label">Sucursal</label>
+                            <select class="form-select" id="editar_sucursal" name="sucursal">
+                                <option value="">-- Seleccionar Sucursal --</option>
+                                {% for sucursal in sucursales %}
+                                <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div><div class="col-md-6 mb-3">
+                            <label for="editar_rol" class="form-label">Rol</label>
+                            <select class="form-select" id="editar_rol" name="rol">
+                                <option value="">-- Seleccionar Rol --</option>
+                                {% for rol in roles %}
+                                <option value="{{ rol.id }}">
+                                    {% if rol.nombre == 'admin' %}Administrador
+                                    {% elif rol.nombre == 'gerente' %}Gerente
+                                    {% elif rol.nombre == 'supervisor' %}Supervisor
+                                    {% elif rol.nombre == 'cajero' %}Cajero
+                                    {% elif rol.nombre == 'cocinero' %}Cocinero
+                                    {% elif rol.nombre == 'mesero' %}Mesero
+                                    {% elif rol.nombre == 'inventario' %}Encargado de Inventario
+                                    {% elif rol.nombre == 'rrhh' %}Recursos Humanos
+                                    {% else %}{{ rol.nombre }}
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editar_is_active" name="is_active">
+                                <label class="form-check-label" for="editar_is_active">
+                                    Usuario activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Actualizar Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalles de usuario -->
+<div class="modal fade" id="modalDetalleUsuario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user me-2 text-primary"></i>
+                    Detalles de Usuario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detalleUsuarioContent">
+                    <!-- El contenido se cargará dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="btnEditarDesdeDetalle">
+                    <i class="fas fa-edit me-1"></i>Editar Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar contraseña -->
+<div class="modal fade" id="modalCambiarContrasena" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-key me-2 text-primary"></i>
+                    Cambiar Contraseña
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCambiarContrasena">
+                {% csrf_token %}
+                <input type="hidden" id="cambiar_contrasena_usuario_id" name="usuario_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="cambiar_contrasena_username" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="cambiar_contrasena_username" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nueva_contrasena" class="form-label">Nueva Contraseña <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="nueva_contrasena" name="password" required minlength="8">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmar_contrasena" class="form-label">Confirmar Contraseña <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="confirmar_contrasena" required minlength="8">
+                        <div id="contrasenas_error" class="invalid-feedback">
+                            Las contraseñas no coinciden
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Guardar Contraseña
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -621,4 +867,691 @@
     background: #e5e7eb;
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Módulo de usuarios inicializado');
+    
+    // Cargar sucursales y roles para los formularios
+    cargarSucursalesRoles();
+    
+    // Eventos para los formularios
+    document.getElementById('formCrearUsuario').addEventListener('submit', function(e) {
+        e.preventDefault();
+        crearUsuario();
+    });
+    
+    document.getElementById('formEditarUsuario').addEventListener('submit', function(e) {
+        e.preventDefault();
+        actualizarUsuario();
+    });
+    
+    document.getElementById('formCambiarContrasena').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (validarContrasenas()) {
+            guardarNuevaContrasena();
+        }
+    });
+    
+    // Botón de editar desde detalle
+    document.getElementById('btnEditarDesdeDetalle').addEventListener('click', function() {
+        const usuarioId = document.getElementById('btnEditarDesdeDetalle').dataset.usuarioId;
+        if (usuarioId) {
+            bootstrap.Modal.getInstance(document.getElementById('modalDetalleUsuario')).hide();
+            setTimeout(() => {
+                editarUsuario(usuarioId);
+            }, 500);
+        }
+    });
+    
+    // Validación de contraseñas
+    document.getElementById('confirmar_contrasena').addEventListener('input', validarContrasenas);
+});
+
+// Función para cargar sucursales y roles
+function cargarSucursalesRoles() {
+    fetch('/dashboard/api/sucursales-roles/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const sucursales = data.sucursales;
+            const roles = data.roles;
+            
+            // Cargar sucursales
+            const sucursalSelects = [
+                document.getElementById('sucursal'),
+                document.getElementById('editar_sucursal')
+            ];
+            
+            sucursalSelects.forEach(select => {
+                if (!select) return;
+                
+                // Verificar si el select ya tiene opciones (además del default)
+                if (select.options.length <= 1) {
+                    // Mantener la opción de "Seleccionar"
+                    const defaultOption = select.querySelector('option');
+                    select.innerHTML = '';
+                    select.appendChild(defaultOption);
+                    
+                    // Agregar sucursales
+                    sucursales.forEach(sucursal => {
+                        const option = document.createElement('option');
+                        option.value = sucursal.id;
+                        option.textContent = sucursal.nombre;
+                        select.appendChild(option);
+                    });
+                }
+            });
+            
+            // Cargar roles solo si no existen ya en el HTML
+            const rolSelects = [
+                document.getElementById('rol'),
+                document.getElementById('editar_rol')
+            ];
+            
+            rolSelects.forEach(select => {
+                if (!select) return;
+                
+                // Verificar si el select ya tiene opciones (además del default)
+                if (select.options.length <= 1) {
+                    console.log('Cargando roles por AJAX ya que no existen en el HTML...');
+                    
+                    // Mantener la opción de "Seleccionar"
+                    const defaultOption = select.querySelector('option');
+                    select.innerHTML = '';
+                    select.appendChild(defaultOption);
+                    
+                    // Agregar roles
+                    roles.forEach(rol => {
+                        const option = document.createElement('option');
+                        option.value = rol.id;
+                        
+                        // Mostrar nombre legible del rol
+                        let rolNombre = rol.nombre;
+                        switch (rol.nombre) {
+                            case 'admin': rolNombre = 'Administrador'; break;
+                            case 'gerente': rolNombre = 'Gerente'; break;
+                            case 'supervisor': rolNombre = 'Supervisor'; break;
+                            case 'cajero': rolNombre = 'Cajero'; break;
+                            case 'cocinero': rolNombre = 'Cocinero'; break;
+                            case 'mesero': rolNombre = 'Mesero'; break;
+                            case 'inventario': rolNombre = 'Encargado de Inventario'; break;
+                            case 'rrhh': rolNombre = 'Recursos Humanos'; break;
+                        }
+                        
+                        option.textContent = rolNombre;
+                        select.appendChild(option);
+                    });
+                } else {
+                    console.log('Usando roles predefinidos en el HTML');
+                }
+            });
+            
+        } else {
+            console.error('Error cargando sucursales y roles:', data.message);
+            showToast('❌ Error al cargar sucursales y roles', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error en la petición de sucursales y roles:', error);
+        showToast('❌ Usando roles predefinidos por el sistema', 'warning');
+    });
+}
+
+// Función para abrir modal de crear usuario
+function abrirModalCrearUsuario() {
+    try {
+        // Verificar si los roles ya están disponibles en el HTML
+        const selectRol = document.getElementById('rol');
+        const rolesDisponibles = selectRol.options.length > 1;
+        
+        console.log(`Roles disponibles en HTML: ${rolesDisponibles}`);
+        
+        if (!rolesDisponibles) {
+            // Solo cargar por AJAX si no hay roles en el HTML
+            console.log('Cargando roles y sucursales por AJAX...');
+            cargarSucursalesRoles();
+        } else {
+            console.log('Usando roles predefinidos en el HTML');
+        }
+        
+        const form = document.getElementById('formCrearUsuario');
+        if (!form) {
+            console.error('No se encontró el formulario de crear usuario');
+            return;
+        }
+        
+        // Resetear formulario
+        form.reset();
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('modalCrearUsuario'));
+        modal.show();
+        
+        // Verificar si los roles se cargaron correctamente
+        setTimeout(() => {
+            const rolesActuales = selectRol.options.length - 1; // Restamos 1 por la opción default
+            console.log(`Roles disponibles: ${rolesActuales}`);
+            
+            if (rolesActuales === 0) {
+                // No hay roles disponibles, mostrar advertencia
+                showToast('⚠️ No se encontraron roles disponibles. Contacte al administrador.', 'warning');
+            }
+        }, 500);
+    } catch (error) {
+        console.error('Error al abrir modal de crear usuario:', error);
+        showToast('❌ Error al abrir el formulario', 'error');
+    }
+}
+
+// Función para crear usuario
+function crearUsuario() {
+    console.log('💾 Creando nuevo usuario...');
+    
+    const form = document.getElementById('formCrearUsuario');
+    const formData = new FormData(form);
+    
+    // Agregar el estado del checkbox manualmente
+    const isActiveCheckbox = document.getElementById('is_active');
+    formData.append('is_active', isActiveCheckbox.checked ? 'true' : 'false');
+    
+    // Deshabilitar el botón de envío
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Creando...';
+    
+    // Enviar datos
+    fetch('/dashboard/usuarios/crear/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalCrearUsuario')).hide();
+            // Recargar la página para mostrar el nuevo usuario
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+    });
+}
+
+// Función para ver detalles de usuario
+function verDetalleUsuario(usuarioId) {
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalleUsuario'));
+    const content = document.getElementById('detalleUsuarioContent');
+    const btnEditar = document.getElementById('btnEditarDesdeDetalle');
+    
+    // Almacenar ID del usuario para el botón de editar
+    btnEditar.dataset.usuarioId = usuarioId;
+    
+    // Mostrar cargando
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2 text-muted">Cargando detalles del usuario...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Cargar datos del usuario
+    fetch(`/dashboard/usuarios/detalle/${usuarioId}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            renderizarDetalleUsuario(data.usuario);
+        } else {
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i> ${data.message}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        content.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-1"></i> Error al cargar los detalles
+            </div>
+        `;
+    });
+}
+
+// Función para renderizar detalles de usuario
+function renderizarDetalleUsuario(usuario) {
+    const content = document.getElementById('detalleUsuarioContent');
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-7">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Información General
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="avatar-lg me-3">
+                                <div class="avatar-placeholder">
+                                    ${usuario.first_name.charAt(0).toUpperCase()}
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="mb-1">${usuario.first_name} ${usuario.last_name}</h5>
+                                <p class="text-muted mb-0">@${usuario.username}</p>
+                                <div class="mt-2">
+                                    <span class="badge ${usuario.is_active ? 'bg-success' : 'bg-secondary'}">
+                                        ${usuario.is_active ? 'Activo' : 'Inactivo'}
+                                    </span>
+                                    ${usuario.is_superuser ? 
+                                        `<span class="badge bg-danger ms-1">
+                                            <i class="fas fa-shield-alt me-1"></i>Superusuario
+                                        </span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Email</label>
+                                <p class="mb-0">${usuario.email}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Teléfono</label>
+                                <p class="mb-0">${usuario.telefono || 'No registrado'}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Cédula/Identificación</label>
+                                <p class="mb-0">${usuario.cedula || 'No registrada'}</p>
+                            </div>                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Rol</label>
+                                <p class="mb-0">${usuario.rol ? usuario.rol.nombre : 'Sin rol asignado'}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Fecha de Registro</label>
+                                <p class="mb-0">${usuario.date_joined}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-muted">Último Acceso</label>
+                                <p class="mb-0">${usuario.last_login}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-building me-2"></i>Sucursal Asignada
+                        </h6>
+                    </div>
+                    <div class="card-body">
+    `;
+    
+    if (usuario.sucursal) {
+        html += `
+            <div class="text-center mb-3">
+                <div class="branch-icon mb-3">
+                    <i class="fas fa-store fa-3x text-primary"></i>
+                </div>
+                <h6 class="mb-1">${usuario.sucursal.nombre}</h6>
+                <p class="text-muted mb-3">${usuario.sucursal.direccion}</p>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="text-center py-4">
+                <div class="empty-state mb-3">
+                    <i class="fas fa-building text-muted fa-3x mb-3"></i>
+                </div>
+                <h6 class="text-muted mb-0">No hay sucursal asignada</h6>
+            </div>
+        `;
+    }
+    
+    html += `
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    content.innerHTML = html;
+}
+
+// Función para editar usuario
+function editarUsuario(usuarioId) {
+    // Verificar si los roles ya están disponibles en el HTML
+    const selectRol = document.getElementById('editar_rol');
+    const rolesDisponibles = selectRol && selectRol.options.length > 1;
+    
+    console.log(`Roles disponibles en HTML para edición: ${rolesDisponibles}`);
+    
+    if (!rolesDisponibles) {
+        // Solo cargar por AJAX si no hay roles en el HTML
+        console.log('Cargando roles y sucursales por AJAX para edición...');
+        cargarSucursalesRoles();
+    }
+    
+    // Primero obtener los datos del usuario
+    fetch(`/dashboard/usuarios/detalle/${usuarioId}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            cargarDatosEdicionUsuario(data.usuario);
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error al cargar los datos', 'error');
+    });
+}
+
+// Función para cargar datos en el modal de edición
+function cargarDatosEdicionUsuario(usuario) {
+    try {
+        // Cargar datos en el formulario
+        document.getElementById('editar_usuario_id').value = usuario.id;
+        document.getElementById('editar_username').value = usuario.username;
+        document.getElementById('editar_email').value = usuario.email;
+        document.getElementById('editar_first_name').value = usuario.first_name;
+        document.getElementById('editar_last_name').value = usuario.last_name;
+        document.getElementById('editar_telefono').value = usuario.telefono || '';
+        document.getElementById('editar_cedula').value = usuario.cedula || '';
+        document.getElementById('editar_is_active').checked = usuario.is_active;
+        
+        // Limpiar campo de contraseña (es opcional en edición)
+        document.getElementById('editar_password').value = '';
+        
+        // Seleccionar sucursal si existe
+        if (usuario.sucursal) {
+            document.getElementById('editar_sucursal').value = usuario.sucursal.id;
+        } else {
+            document.getElementById('editar_sucursal').value = '';
+        }
+        
+        // Seleccionar rol si existe
+        if (usuario.rol) {
+            document.getElementById('editar_rol').value = usuario.rol.id;
+        } else {
+            document.getElementById('editar_rol').value = '';
+        }
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarUsuario'));
+        modal.show();
+    } catch (error) {
+        console.error('Error al cargar datos de edición:', error);
+        showToast('❌ Error al cargar los datos', 'error');
+    }
+}
+
+// Función para actualizar usuario
+function actualizarUsuario() {
+    console.log('🔄 Actualizando usuario...');
+    
+    const form = document.getElementById('formEditarUsuario');
+    const formData = new FormData(form);
+    
+    // Agregar el estado del checkbox manualmente
+    const isActiveCheckbox = document.getElementById('editar_is_active');
+    formData.append('is_active', isActiveCheckbox.checked ? 'true' : 'false');
+    
+    const usuarioId = document.getElementById('editar_usuario_id').value;
+    
+    // Deshabilitar el botón de envío
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Actualizando...';
+    
+    // Enviar datos
+    fetch(`/dashboard/usuarios/editar/${usuarioId}/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarUsuario')).hide();
+            // Recargar la página para mostrar los cambios
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+    });
+}
+
+// Función para cambiar contraseña
+function cambiarContrasena(usuarioId) {
+    // Primero obtener los datos del usuario
+    fetch(`/dashboard/usuarios/detalle/${usuarioId}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Cargar datos en el formulario de cambio de contraseña
+            document.getElementById('cambiar_contrasena_usuario_id').value = data.usuario.id;
+            document.getElementById('cambiar_contrasena_username').value = data.usuario.username;
+            
+            // Resetear campos de contraseña
+            document.getElementById('nueva_contrasena').value = '';
+            document.getElementById('confirmar_contrasena').value = '';
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('modalCambiarContrasena'));
+            modal.show();
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error al cargar los datos', 'error');
+    });
+}
+
+// Función para validar contraseñas
+function validarContrasenas() {
+    const nuevaContrasena = document.getElementById('nueva_contrasena').value;
+    const confirmarContrasena = document.getElementById('confirmar_contrasena').value;
+    const errorElement = document.getElementById('contrasenas_error');
+    
+    if (nuevaContrasena && confirmarContrasena) {
+        if (nuevaContrasena !== confirmarContrasena) {
+            document.getElementById('confirmar_contrasena').classList.add('is-invalid');
+            errorElement.style.display = 'block';
+            return false;
+        } else {
+            document.getElementById('confirmar_contrasena').classList.remove('is-invalid');
+            errorElement.style.display = 'none';
+            return true;
+        }
+    }
+    
+    return true;
+}
+
+// Función para guardar nueva contraseña
+function guardarNuevaContrasena() {
+    const form = document.getElementById('formCambiarContrasena');
+    const formData = new FormData(form);
+    
+    const usuarioId = document.getElementById('cambiar_contrasena_usuario_id').value;
+    
+    // Deshabilitar el botón de envío
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
+      // Enviar datos
+    fetch(`/dashboard/usuarios/cambiar-contrasena/${usuarioId}/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Contraseña actualizada exitosamente', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalCambiarContrasena')).hide();
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+    });
+}
+
+// Función para eliminar usuario
+function eliminarUsuario(usuarioId, username) {
+    if (confirm(`¿Estás seguro de eliminar al usuario "${username}"?\n\nEsta acción no se puede deshacer.`)) {
+        fetch(`/dashboard/usuarios/eliminar/${usuarioId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ ' + data.message, 'success');
+                // Recargar la página para actualizar la lista
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                showToast('❌ ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión', 'error');
+        });
+    }
+}
+
+// Función para alternar estado de usuario
+function toggleEstadoUsuario(usuarioId, username, estadoActual) {
+    const nuevoEstado = estadoActual ? 'desactivar' : 'activar';
+    
+    if (confirm(`¿Estás seguro de ${nuevoEstado} al usuario "${username}"?`)) {
+        fetch(`/dashboard/usuarios/toggle-estado/${usuarioId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ ' + data.message, 'success');
+                // Recargar la página para mostrar los cambios
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                showToast('❌ ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión', 'error');
+        });
+    }
+}
+
+// Toast para mensajes
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast show align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'}`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    
+    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+    toastContainer.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 500);
+    }, 5000);
+}
+
+// Crear contenedor para toasts si no existe
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    container.style.zIndex = '5000';
+    document.body.appendChild(container);
+    return container;
+}
+</script>
 {% endblock %}

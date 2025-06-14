@@ -34,15 +34,11 @@ def sucursales_view(request):
 def crear_sucursal(request):
     """Vista para crear una nueva sucursal"""
     if request.method == 'POST':
-        try:
-            # Obtener datos del formulario
+        try:            # Obtener datos del formulario
             nombre = request.POST.get('nombre', '').strip()
             direccion = request.POST.get('direccion', '').strip()
             telefono = request.POST.get('telefono', '').strip()
             email = request.POST.get('email', '').strip()
-            ciudad = request.POST.get('ciudad', '').strip()
-            estado = request.POST.get('estado', '').strip()
-            codigo_postal = request.POST.get('codigo_postal', '').strip()
             fecha_apertura_str = request.POST.get('fecha_apertura', '')
             
             # Procesar fecha de apertura
@@ -73,9 +69,6 @@ def crear_sucursal(request):
                     direccion=direccion,
                     telefono=telefono,
                     email=email if email else f'{nombre.lower().replace(" ", "")}@sushirestaurant.com',
-                    ciudad=ciudad if ciudad else None,
-                    estado=estado if estado else None,
-                    codigo_postal=codigo_postal if codigo_postal else None,
                     fecha_apertura=fecha_apertura,
                     activa=True
                 )
@@ -106,17 +99,13 @@ def detalle_sucursal(request, sucursal_id):
         
         # Obtener empleados de la sucursal
         empleados = Usuario.objects.filter(sucursal=sucursal).select_related('rol')
-        
-        # Preparar datos de la sucursal
+          # Preparar datos de la sucursal
         sucursal_data = {
             'id': sucursal.id,
             'nombre': sucursal.nombre,
             'direccion': sucursal.direccion,
             'telefono': sucursal.telefono,
             'email': sucursal.email,
-            'ciudad': sucursal.ciudad,
-            'estado': sucursal.estado,
-            'codigo_postal': sucursal.codigo_postal,
             'activa': sucursal.activa,
             'fecha_apertura': sucursal.fecha_apertura.strftime('%d/%m/%Y') if sucursal.fecha_apertura else None,
             'created_at': sucursal.created_at.strftime('%d/%m/%Y %H:%M')
@@ -157,15 +146,11 @@ def editar_sucursal(request, sucursal_id):
         return JsonResponse({'success': False, 'message': 'Método no permitido'})
     
     try:
-        sucursal = get_object_or_404(Sucursal, id=sucursal_id)
-          # Obtener datos del formulario
+        sucursal = get_object_or_404(Sucursal, id=sucursal_id)        # Obtener datos del formulario
         nombre = request.POST.get('nombre', '').strip()
         direccion = request.POST.get('direccion', '').strip()
         telefono = request.POST.get('telefono', '').strip()
         email = request.POST.get('email', '').strip()
-        ciudad = request.POST.get('ciudad', '').strip()
-        estado = request.POST.get('estado', '').strip()
-        codigo_postal = request.POST.get('codigo_postal', '').strip()
         fecha_apertura_str = request.POST.get('fecha_apertura', '')
         activa = request.POST.get('activa') == 'true'
         
@@ -177,11 +162,11 @@ def editar_sucursal(request, sucursal_id):
                 fecha_apertura = datetime.strptime(fecha_apertura_str, '%Y-%m-%d').date()
             except ValueError:
                 fecha_apertura = None
-        
-        # Validaciones básicas
+          # Validaciones básicas
         if not all([nombre, direccion, telefono]):
             return JsonResponse({'success': False, 'message': 'Los campos nombre, dirección y teléfono son obligatorios'})
-          # Verificar que no exista otra sucursal con el mismo nombre
+        
+        # Verificar que no exista otra sucursal con el mismo nombre
         if Sucursal.objects.filter(nombre__iexact=nombre).exclude(id=sucursal_id).exists():
             return JsonResponse({'success': False, 'message': f'Ya existe otra sucursal con el nombre "{nombre}"'})
         
@@ -191,9 +176,6 @@ def editar_sucursal(request, sucursal_id):
             sucursal.direccion = direccion
             sucursal.telefono = telefono
             sucursal.email = email if email else None
-            sucursal.ciudad = ciudad if ciudad else None
-            sucursal.estado = estado if estado else None
-            sucursal.codigo_postal = codigo_postal if codigo_postal else None
             if fecha_apertura:
                 sucursal.fecha_apertura = fecha_apertura
             sucursal.activa = activa

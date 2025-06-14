@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import categorias_unidades_views
 
 app_name = 'dashboard'
 
@@ -34,13 +35,14 @@ urlpatterns = [
     path('api/insumos/todos/', views.obtener_todos_los_insumos, name='api_obtener_todos_insumos'),
     path('api/insumos/basicos/', views.obtener_insumos_basicos, name='api_obtener_insumos_basicos'),
     path('api/insumos/compuestos/', views.obtener_insumos_compuestos, name='api_obtener_insumos_compuestos'),
-    path('api/insumos/elaborados/', views.obtener_insumos_elaborados, name='api_obtener_insumos_elaborados'),
-      # Gestión de categorías y unidades
-    path('categorias/crear/', views.crear_categoria, name='crear_categoria'),
+    path('api/insumos/elaborados/', views.obtener_insumos_elaborados, name='api_obtener_insumos_elaborados'),    # Gestión de categorías y unidades
+    path('categorias/crear/', categorias_unidades_views.crear_categoria, name='crear_categoria'),
     path('categorias/eliminar/<int:categoria_id>/', views.eliminar_categoria, name='eliminar_categoria'),
+    path('categorias/listar/', categorias_unidades_views.listar_categorias, name='listar_categorias'),
     path('categorias-productos/crear/', views.crear_categoria_producto, name='crear_categoria_producto'),
     path('categorias-productos/eliminar/<int:categoria_id>/', views.eliminar_categoria_producto, name='eliminar_categoria_producto'),
-    path('unidades/crear/', views.crear_unidad, name='crear_unidad_medida'),
+    path('unidades/crear/', categorias_unidades_views.crear_unidad, name='crear_unidad_medida'),
+    path('unidades/listar/', categorias_unidades_views.listar_unidades, name='listar_unidades'),
     path('unidades/eliminar/<int:unidad_id>/', views.eliminar_unidad, name='eliminar_unidad_medida'),
       # URLs principales del dashboard
     path('entradas-salidas/', views.entradas_salidas_view, name='entradas_salidas'),
@@ -81,5 +83,14 @@ urlpatterns = [
     path('sucursales/editar/<int:sucursal_id>/', views.editar_sucursal, name='editar_sucursal'),
     path('sucursales/eliminar/<int:sucursal_id>/', views.eliminar_sucursal, name='eliminar_sucursal'),
     path('sucursales/toggle-estado/<int:sucursal_id>/', views.toggle_estado_sucursal, name='toggle_estado_sucursal'),
+    
+    # Usuarios CRUD
     path('usuarios/', views.usuarios_view, name='usuarios'),
+    path('usuarios/crear/', views.crear_usuario, name='crear_usuario'),
+    path('usuarios/detalle/<int:usuario_id>/', views.detalle_usuario, name='detalle_usuario'),
+    path('usuarios/editar/<int:usuario_id>/', views.editar_usuario, name='editar_usuario'),
+    path('usuarios/cambiar-contrasena/<int:usuario_id>/', views.cambiar_contrasena_usuario, name='cambiar_contrasena_usuario'),
+    path('usuarios/eliminar/<int:usuario_id>/', views.eliminar_usuario, name='eliminar_usuario'),
+    path('usuarios/toggle-estado/<int:usuario_id>/', views.toggle_estado_usuario, name='toggle_estado_usuario'),
+    path('api/sucursales-roles/', views.obtener_sucursales_roles, name='obtener_sucursales_roles'),
 ]

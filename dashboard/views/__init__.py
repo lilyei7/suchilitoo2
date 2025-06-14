@@ -55,8 +55,15 @@ from .sucursales_views import (
     eliminar_sucursal, toggle_estado_sucursal
 )
 
+# Usuarios views
+from .usuarios_views import (
+    usuarios_view, crear_usuario, detalle_usuario, editar_usuario,
+    eliminar_usuario, toggle_estado_usuario, obtener_sucursales_roles,
+    cambiar_contrasena_usuario
+)
+
 # Otros views
 from .otros_views import (
-    productos_venta_view, usuarios_view, reportes_view, 
+    productos_venta_view, reportes_view, 
     checklist_view, ventas_view, recursos_humanos_view
 )
