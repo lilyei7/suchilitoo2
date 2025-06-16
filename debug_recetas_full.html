@@ -1,0 +1,1298 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetas - Sushi Restaurant</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/dashboard/img/logo.png">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/dashboard/css/style.css">
+    
+    
+</head>
+<body>
+    <div class="d-flex" id="wrapper">
+        <!-- Sidebar -->
+        
+        <div class="sidebar-dark" id="sidebar-wrapper">
+            <div class="sidebar-heading text-center py-4">
+                <img src="/static/dashboard/img/logo.png" alt="Sushi Restaurant Logo" class="sidebar-logo">
+            </div>
+              <div class="list-group list-group-flush">
+                <a href="/dashboard/" class="sidebar-item ">
+                    <i class="fas fa-tachometer-alt me-2"></i>Principal
+                </a>
+                  <!-- Inventario Section -->
+                <button class="sidebar-item sidebar-collapsible active" type="button" data-bs-toggle="collapse" data-bs-target="#inventarioCollapse" aria-expanded="true" aria-controls="inventarioCollapse">
+                    <span><i class="fas fa-boxes me-2"></i>Inventario</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                  <div class="collapse show" id="inventarioCollapse">
+                    <div class="sidebar-submenu">                        <a href="/dashboard/entradas-salidas/" class="sidebar-subitem ">
+                            <i class="fas fa-arrow-right me-2"></i>Entradas y salidas
+                        </a><a href="/dashboard/proveedores/" class="sidebar-subitem ">
+                            <i class="fas fa-truck me-2"></i>Proveedores
+                        </a>
+                        <a href="/dashboard/inventario/" class="sidebar-subitem ">
+                            <i class="fas fa-cubes me-2"></i>Insumos
+                        </a>
+                        <a href="/dashboard/insumos-compuestos/" class="sidebar-subitem ">
+                            <i class="fas fa-layer-group me-2"></i>Insumos compuestos
+                        </a>
+                        <a href="/dashboard/insumos-elaborados/" class="sidebar-subitem ">
+                            <i class="fas fa-blender me-2"></i>Insumos elaborados                        </a>                        <a href="/dashboard/recetas/" class="sidebar-subitem active">
+                            <i class="fas fa-utensils me-2"></i>Recetas
+                        </a>
+                        <a href="#" class="sidebar-subitem ">
+                            <i class="fas fa-chart-line me-2"></i>Reportes
+                        </a>
+                    </div>
+                </div>
+                  <a href="#" class="sidebar-item ">
+                    <i class="fas fa-shopping-bag me-2"></i>Productos de venta
+                </a>
+                  <a href="#" class="sidebar-item ">
+                    <i class="fas fa-building me-2"></i>Sucursales
+                </a>
+                
+                <a href="#" class="sidebar-item ">
+                    <i class="fas fa-chart-bar me-2"></i>Ventas
+                </a>
+                  <a href="#" class="sidebar-item ">
+                    <i class="fas fa-tasks me-2"></i>Check List
+                </a>
+                
+                <a href="#" class="sidebar-item ">
+                    <i class="fas fa-user-tie me-2"></i>Recursos Humanos
+                </a>
+                
+                <a href="#" class="sidebar-item ">
+                    <i class="fas fa-users-cog me-2"></i>Usuarios
+                </a>
+            </div>
+        </div>
+        
+        
+        <!-- Page Content -->
+        <div id="page-content-wrapper" class="w-100">
+            
+            <!-- Top Navigation -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+                <div class="container-fluid">
+                    <button class="btn btn-primary" id="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                      <div class="navbar-brand d-none d-md-flex align-items-center">
+                        <img src="/static/dashboard/img/logo.png" alt="Logo" class="navbar-logo me-2">
+                    </div>
+                    
+                    <div class="navbar-nav ms-auto">
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-2"></i>
+                                test_recetas
+                                
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog me-2"></i>Admin Panel</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/dashboard/logout/"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            
+            
+            <!-- Main Content -->
+            <div class="container-fluid p-4">
+                
+                
+                
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-book-open text-primary me-2"></i>
+            Gestión de Recetas
+        </h1>
+        <p class="text-muted mb-0">Administra las recetas y preparaciones del restaurante</p>
+    </div>
+    <div>
+        <button class="btn btn-primary" onclick="abrirModalCrearReceta()">
+            <i class="fas fa-plus me-1"></i>
+            Nueva Receta
+        </button>
+        <button class="btn btn-outline-secondary ms-2" onclick="abrirModalCategorias()">
+            <i class="fas fa-tags me-1"></i>
+            Gestionar Categorías
+        </button>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">0</h3>
+                        <p class="text-muted mb-0 small">Recetas Totales</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">$</h3>
+                        <p class="text-muted mb-0 small">Costo Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0"> min</h3>
+                        <p class="text-muted mb-0 small">Tiempo Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Recetas -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Tiempo</th>
+                        <th>Porciones</th>
+                        <th>Costo</th>
+                        <th>Precio Venta</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="fas fa-book fa-2x mb-3"></i>
+                                <p>No hay recetas registradas</p>
+                            </td>
+                        </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para crear receta -->
+<div class="modal fade" id="modalCrearReceta" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Nueva Receta
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCrearReceta" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrfmiddlewaretoken" value="AQFUzxItu6dGBunrHrAInrnQCCSkJBfODMUcOhxaSEtWvwU2mCEa9W1jKwpGh1ta">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="nombre" class="form-label">Nombre de la Receta</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        </div>                        <div class="col-md-6">
+                            <label for="categoria" class="form-label">Categoría</label>
+                            <select class="form-select" id="categoria" name="categoria">
+                                <option value="">Seleccionar categoría...</option>
+                                <!-- Las opciones se cargarán dinámicamente desde las categorías de recetas -->
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcion" name="descripcion" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tiempo_preparacion" class="form-label">Tiempo de Preparación (minutos)</label>
+                            <input type="number" class="form-control" id="tiempo_preparacion" name="tiempo_preparacion" required min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="porciones" class="form-label">Porciones</label>
+                            <input type="number" class="form-control" id="porciones" name="porciones" required min="1" value="1">
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h5>Ingredientes</h5>
+                    <div id="ingredientesContainer">
+                        <!-- Aquí se agregarán dinámicamente los ingredientes -->
+                    </div>
+                    
+                    <div class="text-center my-3">
+                        <button type="button" class="btn btn-outline-primary" onclick="agregarIngrediente()">
+                            <i class="fas fa-plus"></i> Agregar Ingrediente
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-warning" id="alertaIngredientes">
+                        <i class="fas fa-exclamation-triangle"></i> Debes agregar al menos un ingrediente
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Costo por Porción</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" class="form-control" id="costoPorcion" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Costo Total</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" class="form-control" id="costoTotal" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="precio_venta" class="form-label">Precio de Venta Sugerido</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="precio_venta" name="precio_venta" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary" form="formCrearReceta">
+                    <i class="fas fa-save me-1"></i> Guardar Receta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalles de una receta -->
+<div class="modal fade" id="modalDetalleReceta" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalle de Receta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleRecetaContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Cargando detalles...</p>
+                </div>
+            </div>        </div>
+    </div>
+</div>
+
+<!-- Modal para editar receta -->
+<div class="modal fade" id="modalEditarReceta" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Receta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditarReceta" class="needs-validation" novalidate>
+                    <input type="hidden" id="editar_receta_id" name="receta_id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="editar_nombre" class="form-label">Nombre de la Receta</label>
+                            <input type="text" class="form-control" id="editar_nombre" name="nombre" required>
+                        </div>                        <div class="col-md-6">
+                            <label for="editar_categoria" class="form-label">Categoría</label>
+                            <select class="form-select" id="editar_categoria" name="categoria">
+                                <option value="">Seleccionar categoría...</option>
+                                <!-- Las opciones se cargarán dinámicamente desde las categorías de recetas -->
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="editar_descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="editar_descripcion" name="descripcion" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editar_tiempo_preparacion" class="form-label">Tiempo de Preparación (minutos)</label>
+                            <input type="number" class="form-control" id="editar_tiempo_preparacion" name="tiempo_preparacion" required min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editar_porciones" class="form-label">Porciones</label>
+                            <input type="number" class="form-control" id="editar_porciones" name="porciones" required min="1">
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h5>Ingredientes</h5>
+                    <div id="editarIngredientesContainer">
+                        <!-- Aquí se agregarán dinámicamente los ingredientes -->
+                    </div>
+                    
+                    <div class="text-center my-3">
+                        <button type="button" class="btn btn-outline-primary" onclick="agregarIngredienteEditar()">
+                            <i class="fas fa-plus"></i> Agregar Ingrediente
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-warning" id="alertaIngredientesEditar">
+                        <i class="fas fa-exclamation-triangle"></i> Debes agregar al menos un ingrediente
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Costo por Porción</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" class="form-control" id="editar_costoPorcion" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Costo Total</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" class="form-control" id="editar_costoTotal" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editar_precio_venta" class="form-label">Precio de Venta</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="editar_precio_venta" name="precio_venta" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="actualizarReceta()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para gestionar categorías -->
+<div class="modal fade" id="modalCategorias" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-tags text-primary me-2"></i>
+                    Gestionar Categorías
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCrearCategoria" class="mb-4">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="AQFUzxItu6dGBunrHrAInrnQCCSkJBfODMUcOhxaSEtWvwU2mCEa9W1jKwpGh1ta">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="categoria_codigo" class="form-label">Código</label>
+                            <input type="text" class="form-control" id="categoria_codigo" name="codigo" required maxlength="10">
+                        </div>
+                        <div class="col-md-8">
+                            <label for="categoria_nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="categoria_nombre" name="nombre" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="categoria_descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="categoria_descripcion" name="descripcion" rows="2"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Crear Categoría
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <hr>
+                
+                <div id="listaCategorias">
+                    <!-- Las categorías se cargarán aquí -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar categoría -->
+<div class="modal fade" id="modalEditarCategoria" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit text-primary me-2"></i>
+                    Editar Categoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditarCategoria">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="AQFUzxItu6dGBunrHrAInrnQCCSkJBfODMUcOhxaSEtWvwU2mCEa9W1jKwpGh1ta">
+                    <input type="hidden" id="editar_categoria_id" name="categoria_id">
+                    <div class="mb-3">
+                        <label for="editar_categoria_codigo" class="form-label">Código</label>
+                        <input type="text" class="form-control" id="editar_categoria_codigo" name="codigo" required maxlength="10">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editar_categoria_nombre" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="editar_categoria_nombre" name="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editar_categoria_descripcion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="editar_categoria_descripcion" name="descripcion" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary" form="formEditarCategoria">
+                    <i class="fas fa-save me-1"></i> Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Contenedor de notificaciones elegantes -->
+    <div id="notification-container" class="notification-container"></div>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom JS -->
+    <script src="/static/dashboard/js/script.js"></script>
+    
+    
+<script>
+// Variables globales
+let todosLosInsumos = [];
+let contadorIngredientes = 0;
+let contadorIngredientesEditar = 0; // Variable para el modo edición
+
+// ===== DEFINICIÓN DE FUNCIONES PRINCIPALES =====
+
+// Función para mostrar mensajes de notificación
+function showToast(message, type = 'info') {
+    // Crear el contenedor de toasts si no existe
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.style.zIndex = '5000';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Crear el toast
+    const toastId = 'toast-' + Date.now();
+    const toast = document.createElement('div');
+    toast.id = toastId;
+    toast.className = `toast show align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'}`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    // Crear el contenido del toast
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    
+    // Añadir el toast al contenedor
+    toastContainer.appendChild(toast);
+    
+    // Eliminar el toast después de 5 segundos
+    setTimeout(() => {
+        if (toast && toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+// Test de funciones disponibles
+console.log('🔧 Funciones principales definidas:', {
+    abrirModalCrearReceta: typeof abrirModalCrearReceta,
+    abrirModalCategorias: typeof abrirModalCategorias,
+    showToast: typeof showToast
+});
+
+// Funciones para abrir modales
+function abrirModalCrearReceta() {
+    try {
+        console.log('🔄 Iniciando apertura del modal crear receta');
+        
+        // Verificar que exista el formulario
+        const form = document.getElementById('formCrearReceta');
+        if (!form) {
+            console.error('No se encontró el formulario formCrearReceta');
+            showToast('Error: Formulario no encontrado', 'error');
+            return;
+        }
+        
+        // Resetear formulario
+        form.reset();
+        
+        // Limpiar container de ingredientes
+        const container = document.getElementById('ingredientesContainer');
+        if (container) {
+            container.innerHTML = `
+                <div id="alertaIngredientes" class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i> Agrega ingredientes para tu receta
+                </div>
+            `;
+        }
+        
+        // Resetear contador
+        contadorIngredientes = 0;
+        
+        // Cargar datos necesarios
+        Promise.all([
+            cargarInsumos(),
+            actualizarSelectoresCategorias()
+        ]).then(() => {
+            // Mostrar modal
+            const modalElement = document.getElementById('modalCrearReceta');
+            if (!modalElement) {
+                console.error('No se encontró el elemento modalCrearReceta');
+                showToast('Error: Modal no encontrado', 'error');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }).catch(error => {
+            console.error('Error al cargar datos:', error);
+            showToast('Error al cargar datos necesarios', 'error');
+        });
+    } catch (error) {
+        console.error('Error al abrir modal:', error);
+        showToast('Error al abrir el formulario', 'error');
+    }
+}
+
+// Abrir modal de categorías
+function abrirModalCategorias() {
+    try {
+        console.log('🔄 Iniciando apertura del modal categorías');
+        
+        const modalElement = document.getElementById('modalCategorias');
+        if (!modalElement) {
+            console.error('No se encontró el elemento modalCategorias');
+            showToast('Error: Modal no encontrado', 'error');
+            return;
+        }
+
+        const modal = new bootstrap.Modal(modalElement);
+        
+        // Cargar las categorías
+        cargarCategoriasRecetas().then(() => {
+            modal.show();
+        }).catch(error => {
+            console.error('Error al cargar categorías:', error);
+            showToast('Error al cargar categorías', 'error');
+        });
+        
+        // Inicializar el formulario de creación
+        const formCrearCategoria = document.getElementById('formCrearCategoria');
+        if (formCrearCategoria) {
+            formCrearCategoria.addEventListener('submit', function(e) {
+                e.preventDefault();
+                crearCategoriaReceta();
+            });
+        }
+    } catch (error) {
+        console.error('Error al abrir modal de categorías:', error);
+        showToast('Error al abrir el formulario de categorías', 'error');
+    }
+}
+
+// Función para cargar insumos
+async function cargarInsumos() {
+    try {
+        console.log('🔄 Cargando insumos...');
+        
+        const response = await fetch('/dashboard/recetas/insumos/todos/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (!data.insumos || !Array.isArray(data.insumos)) {
+                console.error('La respuesta no contiene un array de insumos:', data);
+                showToast('Error al cargar insumos: formato de respuesta incorrecto', 'error');
+                return [];
+            }
+            
+            todosLosInsumos = data.insumos;
+            console.log('✅ Insumos cargados:', todosLosInsumos.length);
+            
+            // Verificar insumos por tipo
+            const tiposInsumos = {
+                basico: todosLosInsumos.filter(i => i.tipo === 'basico').length,
+                compuesto: todosLosInsumos.filter(i => i.tipo === 'compuesto').length,
+                elaborado: todosLosInsumos.filter(i => i.tipo === 'elaborado').length
+            };
+            
+            console.log('✅ Tipos de insumos:', JSON.stringify(tiposInsumos));
+              return todosLosInsumos;
+        } else {
+            console.error('Error en respuesta del servidor:', data.message);
+            showToast(data.message || 'Error al cargar insumos', 'error');
+            return [];
+        }
+    } catch (error) {
+        console.error('Error al cargar insumos:', error);
+        showToast('Error al cargar insumos: ' + (error.message || 'Error desconocido'), 'error');
+        return [];
+    }
+}
+
+// Función para actualizar selectores de categorías
+async function actualizarSelectoresCategorias() {
+    try {
+        console.log('🔄 Actualizando selectores de categorías...');
+        
+        const response = await fetch('/dashboard/recetas/categorias/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.categorias) {
+            // Actualizar selectores en los modales
+            const selectorCrear = document.getElementById('categoria');
+            const selectorEditar = document.getElementById('editar_categoria');
+            
+            // Función para llenar un selector
+            const llenarSelector = (selector) => {
+                if (!selector) return;
+                
+                // Limpiar opciones existentes
+                selector.innerHTML = '<option value="">Seleccionar categoría...</option>';
+                
+                // Agregar nuevas opciones
+                data.categorias.forEach(categoria => {
+                    const option = document.createElement('option');
+                    option.value = categoria.id;
+                    option.textContent = categoria.nombre;
+                    selector.appendChild(option);
+                });
+            };
+            
+            // Llenar los selectores
+            llenarSelector(selectorCrear);
+            llenarSelector(selectorEditar);
+            
+            console.log('✅ Selectores de categorías actualizados');
+            return data.categorias;
+        } else {
+            throw new Error(data.message || 'Error al cargar categorías');
+        }
+    } catch (error) {
+        console.error('Error actualizando selectores:', error);
+        showToast('Error al actualizar selectores de categorías', 'error');
+        throw error;  // Re-lanzar el error para manejo superior
+    }
+}
+
+// Cargar categorías de recetas
+async function cargarCategoriasRecetas() {
+    try {
+        const response = await fetch('/dashboard/recetas/categorias/', {
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const container = document.getElementById('listaCategorias');
+            if (!container) {
+                console.error('No se encontró el contenedor de categorías');
+                return;
+            }
+            
+            if (data.categorias && data.categorias.length > 0) {
+                let html = '<div class="list-group">';
+                data.categorias.forEach(categoria => {
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">${categoria.nombre}</h6>
+                                    <small class="text-muted">Código: ${categoria.codigo}</small>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary me-2" onclick="editarCategoriaReceta(${categoria.id}, '${categoria.codigo}', '${categoria.nombre}', '${categoria.descripcion}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarCategoriaReceta(${categoria.id}, '${categoria.nombre}')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            ${categoria.descripcion ? `<small class="text-muted d-block mt-1">${categoria.descripcion}</small>` : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay categorías registradas
+                    </div>
+                `;
+            }
+        } else {
+            throw new Error(data.message || 'Error al cargar categorías');
+        }
+    } catch (error) {
+        console.error('Error cargando categorías:', error);
+        showToast('Error al cargar las categorías', 'error');
+    }
+}
+
+// Funciones para manejo de categorías
+async function crearCategoriaReceta(event) {
+    if (event) event.preventDefault();
+    
+    try {
+        console.log('🔄 Creando categoría...');
+        const form = document.getElementById('formCrearCategoria');
+        if (!form) {
+            throw new Error('Formulario no encontrado');
+        }
+        
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const formData = new FormData(form);
+        
+        // Obtener el token CSRF
+        const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+        const response = await fetch('/dashboard/recetas/categorias/crear/', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast('Categoría creada exitosamente', 'success');
+            await cargarCategoriasRecetas();
+            await actualizarSelectoresCategorias();
+            form.reset();
+        } else {
+            throw new Error(data.message || 'Error al crear categoría');
+        }
+    } catch (error) {
+        console.error('Error al crear categoría:', error);
+        showToast(error.message || 'Error al crear categoría', 'error');
+    }
+}
+
+function editarCategoriaReceta(id, codigo, nombre, descripcion) {
+    try {
+        console.log('🔄 Editando categoría:', id);
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarCategoria'));
+        
+        // Llenar formulario
+        document.getElementById('editar_categoria_id').value = id;
+        document.getElementById('editar_categoria_codigo').value = codigo;
+        document.getElementById('editar_categoria_nombre').value = nombre;
+        document.getElementById('editar_categoria_descripcion').value = descripcion || '';
+        
+        modal.show();
+    } catch (error) {
+        console.error('Error al abrir modal de edición:', error);
+        showToast('Error al cargar datos de la categoría', 'error');
+    }
+}
+
+async function actualizarCategoriaReceta(event) {
+    event.preventDefault();
+    try {
+        const form = document.getElementById('formEditarCategoria');
+        const formData = new FormData(form);
+        const categoriaId = formData.get('categoria_id');
+
+        const response = await fetch(`/dashboard/recetas/categorias/editar/${categoriaId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast('Categoría actualizada exitosamente', 'success');
+            cargarCategoriasRecetas();
+            actualizarSelectoresCategorias();
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarCategoria')).hide();
+        } else {
+            throw new Error(data.message || 'Error al actualizar categoría');
+        }
+    } catch (error) {
+        console.error('Error al actualizar categoría:', error);
+        showToast(error.message || 'Error al actualizar categoría', 'error');
+    }
+}
+
+async function eliminarCategoriaReceta(id, nombre) {
+    if (!confirm(`¿Estás seguro de eliminar la categoría "${nombre}"?`)) {
+        return;
+    }
+    
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const response = await fetch(`/dashboard/recetas/categorias/eliminar/${id}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast('Categoría eliminada exitosamente', 'success');
+            cargarCategoriasRecetas();
+            actualizarSelectoresCategorias();
+        } else {
+            throw new Error(data.message || 'Error al eliminar categoría');
+        }
+    } catch (error) {
+        console.error('Error al eliminar categoría:', error);
+        showToast(error.message || 'Error al eliminar categoría', 'error');
+    }
+}
+
+// Función para agregar ingrediente
+function agregarIngrediente() {
+    console.log('Llamando a agregarIngrediente, insumos disponibles:', todosLosInsumos ? todosLosInsumos.length : 0);
+    
+    // Si no hay insumos disponibles, intentar cargarlos
+    if (!todosLosInsumos || todosLosInsumos.length === 0) {
+        console.log('No hay insumos cargados, intentando cargar...');
+        
+        cargarInsumos()
+            .then(insumos => {
+                if (insumos && insumos.length > 0) {
+                    console.log('Insumos cargados correctamente, continuando...');
+                    agregarIngredienteInterno();
+                } else {
+                    showToast('No hay insumos disponibles. Primero debe crear insumos en el sistema.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar insumos:', error);
+                showToast('Error al cargar insumos', 'error');
+            });
+            
+        return;
+    }
+    
+    agregarIngredienteInterno();
+}
+
+// Función interna para agregar ingrediente una vez que tenemos los insumos
+function agregarIngredienteInterno() {
+    contadorIngredientes++;
+    const container = document.getElementById('ingredientesContainer');
+    
+    // Ocultar alerta si es el primer ingrediente
+    const alerta = document.getElementById('alertaIngredientes');
+    if (alerta) {
+        alerta.style.display = 'none';
+    }
+    
+    const id = `ingrediente_${contadorIngredientes}`;
+    
+    // Crear opciones agrupadas por tipo
+    let opcionesInsumos = '<option value="">Seleccionar insumo</option>';
+      // Agrupar insumos por tipo
+    const insumosPorTipo = {
+        basico: todosLosInsumos.filter(i => i.tipo === 'basico'),
+        compuesto: todosLosInsumos.filter(i => i.tipo === 'compuesto'),
+        elaborado: todosLosInsumos.filter(i => i.tipo === 'elaborado')
+    };
+    
+    console.log('Insumos por tipo:', {
+        basicos: insumosPorTipo.basico.length,
+        compuestos: insumosPorTipo.compuesto.length,
+        elaborados: insumosPorTipo.elaborado.length
+    });
+    
+    // Crear grupos de opciones
+    if (insumosPorTipo.basico.length > 0) {
+        opcionesInsumos += '<optgroup label="Insumos Básicos">';
+        insumosPorTipo.basico.forEach(insumo => {
+            opcionesInsumos += `<option value="${insumo.id}" data-precio="${insumo.precio_unitario}" data-unidad="${insumo.unidad_abrev}">${insumo.nombre}</option>`;
+        });
+        opcionesInsumos += '</optgroup>';
+    }
+    
+    if (insumosPorTipo.compuesto.length > 0) {
+        opcionesInsumos += '<optgroup label="Insumos Compuestos">';
+        insumosPorTipo.compuesto.forEach(insumo => {
+            opcionesInsumos += `<option value="${insumo.id}" data-precio="${insumo.precio_unitario}" data-unidad="${insumo.unidad_abrev}">${insumo.nombre}</option>`;
+        });
+        opcionesInsumos += '</optgroup>';
+    }
+    
+    if (insumosPorTipo.elaborado.length > 0) {
+        opcionesInsumos += '<optgroup label="Insumos Elaborados">';
+        insumosPorTipo.elaborado.forEach(insumo => {
+            opcionesInsumos += `<option value="${insumo.id}" data-precio="${insumo.precio_unitario}" data-unidad="${insumo.unidad_abrev}">${insumo.nombre}</option>`;
+        });
+        opcionesInsumos += '</optgroup>';
+    }
+    
+    // Crear fila de ingrediente
+    const html = `
+        <div id="${id}" class="row mb-2 align-items-center ingredient-row">
+            <div class="col-5">
+                <select class="form-select" name="insumo[]" required onchange="actualizarInfoIngrediente(this, '${id}')">
+                    ${opcionesInsumos}
+                </select>
+            </div>            <div class="col-3">
+                <div class="input-group">
+                    <input type="number" class="form-control" name="cantidad[]" step="0.01" min="0.01" required onchange="actualizarInfoIngrediente(this, '${id}')" onkeyup="actualizarInfoIngrediente(this, '${id}')">
+                    <span class="input-group-text unidad">UN</span>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="text" class="form-control costo" name="costo[]" readonly value="0.00">
+                </div>
+            </div>
+            <div class="col-1">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarIngrediente('${id}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>    `;    
+    container.insertAdjacentHTML('beforeend', html);
+}
+
+// Funciones para manejo de ingredientes
+function actualizarInfoIngrediente(elemento, id) {
+    const row = document.getElementById(id);
+    if (!row) return;
+
+    const select = row.querySelector('select[name="insumo[]"]');
+    const cantidad = row.querySelector('input[name="cantidad[]"]');
+    const unidadSpan = row.querySelector('.unidad');
+    const costoInput = row.querySelector('.costo');
+    
+    if (select && select.selectedIndex > 0) {
+        const option = select.options[select.selectedIndex];
+        const precio = parseFloat(option.dataset.precio) || 0;
+        const cantidadValor = parseFloat(cantidad.value) || 0;
+        
+        // Actualizar unidad de medida
+        if (unidadSpan) {
+            unidadSpan.textContent = option.dataset.unidad || 'UN';
+        }
+        
+        // Actualizar costo
+        if (costoInput) {
+            const costo = precio * cantidadValor;
+            costoInput.value = costo.toFixed(2);
+        }
+    } else {
+        // Resetear valores
+        if (unidadSpan) unidadSpan.textContent = 'UN';
+        if (costoInput) costoInput.value = '0.00';
+    }
+    
+    actualizarCostoTotal();
+}
+
+function eliminarIngrediente(id) {
+    const elemento = document.getElementById(id);
+    if (elemento) {
+        elemento.remove();
+        actualizarCostoTotal();
+        
+        // Mostrar alerta si no hay ingredientes
+        const container = document.getElementById('ingredientesContainer');
+        if (container && !container.querySelector('.row')) {
+            container.innerHTML = `
+                <div id="alertaIngredientes" class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i> Agrega ingredientes para tu receta
+                </div>
+            `;
+        }
+    }
+}
+
+function actualizarCostoTotal() {
+    let costoTotal = 0;
+    const ingredientes = document.querySelectorAll('.ingredient-row');
+    
+    ingredientes.forEach(row => {
+        const costoInput = row.querySelector('.costo');
+        if (costoInput) {
+            costoTotal += parseFloat(costoInput.value) || 0;
+        }
+    });
+    
+    // Actualizar campo de costo total
+    const costoTotalInput = document.getElementById('costoTotal');
+    if (costoTotalInput) {
+        costoTotalInput.value = costoTotal.toFixed(2);
+    }
+    
+    // Actualizar costo por porción
+    const porcionesInput = document.getElementById('porciones');
+    const costoPorcionInput = document.getElementById('costoPorcion');
+    if (porcionesInput && costoPorcionInput) {
+        const porciones = parseInt(porcionesInput.value) || 1;
+        const costoPorcion = costoTotal / porciones;
+        costoPorcionInput.value = costoPorcion.toFixed(2);
+    }
+}
+
+// Función para guardar una nueva receta
+async function guardarReceta() {
+    try {
+        console.log('🔄 Guardando receta...');
+        
+        // Validar formulario
+        const form = document.getElementById('formCrearReceta');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        // Verificar que haya ingredientes
+        const ingredientesContainer = document.getElementById('ingredientesContainer');
+        const ingredientes = ingredientesContainer.querySelectorAll('.row:not(#alertaIngredientes)');
+        if (ingredientes.length === 0) {
+            showToast('Debes agregar al menos un ingrediente', 'error');
+            return;
+        }
+        
+        // Crear FormData
+        const formData = new FormData(form);
+        
+        // Generar código único si no existe
+        if (!formData.get('codigo')) {
+            formData.set('codigo', 'REC' + Date.now().toString().substring(5));
+        }
+        
+        // Obtener insumos y cantidades
+        const insumos = [];
+        const cantidades = [];
+        
+        ingredientes.forEach(row => {
+            const select = row.querySelector('select[name="insumo[]"]');
+            const cantidad = row.querySelector('input[name="cantidad[]"]');
+            
+            if (select && select.value && cantidad && cantidad.value) {
+                insumos.push(select.value);
+                cantidades.push(cantidad.value);
+            }
+        });
+        
+        // Agregar arrays al formData
+        insumos.forEach(insumo => formData.append('ingrediente_insumo[]', insumo));
+        cantidades.forEach(cantidad => formData.append('ingrediente_cantidad[]', cantidad));
+        
+        // Agregar costo total
+        const costoTotal = document.getElementById('costoTotal').value || '0';
+        formData.append('costo_total', costoTotal);
+        
+        // Deshabilitar botones para evitar doble envío
+        const submitBtn = document.querySelector('button[type="submit"][form="formCrearReceta"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Guardando...';
+        }
+        
+        // Enviar datos
+        const response = await fetch('/dashboard/recetas/crear/', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Receta guardada exitosamente', 'success');
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalCrearReceta'));
+            if (modal) modal.hide();
+            
+            // Recargar página para mostrar la nueva receta
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            throw new Error(data.message || 'Error al guardar la receta');
+        }
+    } catch (error) {
+        console.error('Error al guardar receta:', error);
+        showToast(error.message || 'Error al guardar la receta', 'error');
+    } finally {
+        // Restaurar botón de envío
+        const submitBtn = document.querySelector('button[type="submit"][form="formCrearReceta"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Guardar Receta';
+        }
+    }
+}
+
+// Inicialización y configuración de eventos
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Inicializando módulo de recetas...');
+    
+    // Crear contenedor de toasts si no existe
+    if (!document.getElementById('toastContainer')) {
+        const toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.style.zIndex = '5';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Cargar datos iniciales
+    Promise.all([
+        cargarInsumos(),
+        actualizarSelectoresCategorias()
+    ]).then(([insumos, categorias]) => {
+        console.log('✅ Datos iniciales cargados correctamente');
+        console.log(`- Insumos: ${insumos ? insumos.length : 0}`);
+        
+        // Verificar que se hayan cargado los insumos
+        if (!insumos || insumos.length === 0) {
+            console.warn('⚠️ No se cargaron insumos en la inicialización');
+        }
+    }).catch(error => {
+        console.error('❌ Error al cargar datos iniciales:', error);
+    });
+    
+    // Configurar eventos de formularios
+    const formCrearReceta = document.getElementById('formCrearReceta');
+    if (formCrearReceta) {
+        formCrearReceta.addEventListener('submit', function(event) {
+            event.preventDefault();
+            guardarReceta();
+        });
+    }
+    
+    const formCrearCategoria = document.getElementById('formCrearCategoria');
+    if (formCrearCategoria) {
+        formCrearCategoria.addEventListener('submit', function(event) {
+            event.preventDefault();
+            crearCategoriaReceta(event);
+        });
+    }
+    
+    const formEditarCategoria = document.getElementById('formEditarCategoria');
+    if (formEditarCategoria) {
+        formEditarCategoria.addEventListener('submit', function(event) {
+            event.preventDefault();
+            actualizarCategoriaReceta(event);
+        });
+    }
+    
+    // Configurar event listeners para los botones
+    document.querySelectorAll('[data-bs-toggle="modal"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const target = this.getAttribute('data-bs-target');
+            if (target === '#modalCrearReceta') {
+                abrirModalCrearReceta();
+            } else if (target === '#modalCategorias') {
+                abrirModalCategorias();
+            }
+        });
+    });
+});
+</script>
+
+</body>
+</html>

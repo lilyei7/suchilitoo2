@@ -216,3 +216,39 @@ def eliminar_insumo(request, insumo_id):
         'success': False,
         'error': 'Método no permitido'
     })
+
+@login_required
+def obtener_insumos_basicos(request):
+    """API para obtener insumos básicos disponibles para insumos compuestos"""
+    try:
+        # Obtener insumos básicos activos
+        insumos_basicos = Insumo.objects.filter(
+            tipo='basico', 
+            activo=True
+        ).select_related('categoria', 'unidad_medida').order_by('nombre')
+        
+        insumos_data = []
+        for insumo in insumos_basicos:
+            insumos_data.append({
+                'id': insumo.id,
+                'codigo': insumo.codigo,
+                'nombre': insumo.nombre,
+                'categoria': insumo.categoria.nombre if insumo.categoria else 'Sin categoría',
+                'unidad_medida': str(insumo.unidad_medida) if insumo.unidad_medida else 'Sin unidad',
+                'precio_unitario': float(insumo.precio_unitario),
+                'stock_actual': float(insumo.stock_actual) if hasattr(insumo, 'stock_actual') else 0,
+                'activo': insumo.activo
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'insumos': insumos_data,
+            'total': len(insumos_data)
+        })
+        
+    except Exception as e:
+        print(f"Error obteniendo insumos básicos: {e}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Error interno: {str(e)}'
+        })

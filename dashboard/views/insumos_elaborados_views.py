@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from restaurant.models import (
     Insumo as RestaurantInsumo, CategoriaInsumo, UnidadMedida, 
-    InsumoElaborado
+    InsumoElaborado, InsumoCompuesto
 )
 from .base_views import get_sidebar_context, is_admin_or_manager
 
@@ -15,15 +15,14 @@ Insumo = RestaurantInsumo
 
 @login_required
 def insumos_elaborados_view(request):
-    """Vista principal de insumos elaborados con funcionalidad completa"""
-    # Filtrar insumos elaborados con sus componentes
+    """Vista principal de insumos elaborados con funcionalidad completa"""    # Filtrar insumos elaborados con sus componentes
     insumos_elaborados = Insumo.objects.filter(
         tipo='elaborado'
     ).select_related(
         'categoria', 'unidad_medida'
     ).prefetch_related(
-        'componentes_elaborados__insumo_componente__categoria',
-        'componentes_elaborados__insumo_componente__unidad_medida'
+        'componentes__insumo_componente__categoria',
+        'componentes__insumo_componente__unidad_medida'
     ).order_by('nombre')
     
     # Estadísticas
@@ -253,20 +252,33 @@ def obtener_insumos_para_elaborados(request):
 def detalle_insumo_elaborado(request, insumo_id):
     """Vista para ver detalles de un insumo elaborado"""
     try:
-        insumo = get_object_or_404(Insumo, id=insumo_id, tipo='elaborado')
-        componentes = InsumoElaborado.objects.filter(
-            insumo_elaborado=insumo
+        insumo = get_object_or_404(Insumo, id=insumo_id, tipo='elaborado')        # Obtener componentes
+        componentes = InsumoCompuesto.objects.filter(
+            insumo_compuesto=insumo
         ).select_related(
             'insumo_componente__categoria', 
             'insumo_componente__unidad_medida'
-        ).order_by('orden')
-        
-        # Calcular estadísticas
-        total_costo = sum(c.costo_total() for c in componentes)
-        tiempo_total = sum(c.tiempo_preparacion_minutos for c in componentes)
-        
+        ).order_by('id')
+          # Calcular estadísticas
+        total_costo = 0
         componentes_data = []
+        
         for componente in componentes:
+            costo_componente = float(componente.cantidad) * float(componente.insumo_componente.precio_unitario)
+            total_costo += costo_componente
+            
+            componentes_data.append({
+                'id': componente.id,
+                'insumo_id': componente.insumo_componente.id,
+                'nombre': componente.insumo_componente.nombre,
+                'codigo': componente.insumo_componente.codigo,
+                'categoria': componente.insumo_componente.categoria.nombre if componente.insumo_componente.categoria else 'Sin categoría',
+                'unidad_medida': str(componente.insumo_componente.unidad_medida) if componente.insumo_componente.unidad_medida else 'Sin unidad',
+                'cantidad': float(componente.cantidad),
+                'precio_unitario': float(componente.insumo_componente.precio_unitario),
+                'costo_total': costo_componente,
+                'notas': componente.notas or ''
+            })
             componentes_data.append({
                 'id': componente.id,
                 'insumo_nombre': componente.insumo_componente.nombre,

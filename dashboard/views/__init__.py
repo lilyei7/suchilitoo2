@@ -12,7 +12,7 @@ from .inventario_views import inventario_view, entradas_salidas_view
 
 # Insumos básicos views
 from .insumos_views import (
-    crear_insumo, detalle_insumo, editar_insumo, eliminar_insumo
+    crear_insumo, detalle_insumo, editar_insumo, eliminar_insumo, obtener_insumos_basicos
 )
 
 # Insumos elaborados views
@@ -21,19 +21,18 @@ from .insumos_elaborados_views import (
     detalle_insumo_elaborado, editar_insumo_elaborado, eliminar_insumo_elaborado
 )
 
+# Recetas views
+from .recetas_views import (
+    recetas_view, obtener_categorias_recetas, crear_categoria_receta,
+    crear_receta, detalle_receta, editar_receta, eliminar_receta,
+    duplicar_receta, editar_categoria_receta, eliminar_categoria_receta,
+    obtener_todos_los_insumos
+)
+
 # Insumos compuestos views
 from .insumos_compuestos_views import (
     insumos_compuestos_view, crear_insumo_compuesto, detalle_insumo_compuesto,
     editar_insumo_compuesto, eliminar_insumo_compuesto
-)
-
-# Recetas views
-from .recetas_views import (
-    recetas_view, crear_receta, detalle_receta, eliminar_receta, editar_receta, duplicar_receta,
-    obtener_insumos_basicos, obtener_insumos_compuestos, obtener_insumos_elaborados,
-    obtener_todos_los_insumos, obtener_categorias_productos, crear_categoria_producto,
-    eliminar_categoria_producto, obtener_categorias_recetas, crear_categoria_receta,
-    editar_categoria_receta, eliminar_categoria_receta
 )
 
 # Categorias views

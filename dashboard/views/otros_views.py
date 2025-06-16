@@ -29,21 +29,6 @@ def reportes_view(request):
     return render(request, 'dashboard/reportes.html', context)
 
 @login_required
-def sucursales_view(request):
-    """Vista para gestionar sucursales"""
-    # Obtener todas las sucursales (activas e inactivas para vista completa)
-    sucursales = Sucursal.objects.all()
-    sucursales_activas = sucursales.filter(activa=True).count()
-    
-    context = {
-        'sucursales': sucursales,
-        'sucursales_activas': sucursales_activas,
-        **get_sidebar_context('sucursales')
-    }
-    
-    return render(request, 'dashboard/sucursales.html', context)
-
-@login_required
 def ventas_view(request):
     """Vista para gestionar ventas"""
     # Aquí agregarás la lógica de ventas más adelante
@@ -83,24 +68,3 @@ def recursos_humanos_view(request):
     }
     
     return render(request, 'dashboard/recursos_humanos.html', context)
-
-@login_required
-def usuarios_view(request):
-    """Vista para gestionar usuarios"""
-    usuarios = Usuario.objects.all()
-    
-    # Estadísticas para la vista
-    usuarios_activos = usuarios.filter(is_active=True).count()
-    from django.db.models import Q
-    usuarios_admin = usuarios.filter(
-        Q(is_superuser=True) | Q(rol__nombre__in=['admin', 'gerente'])
-    ).count()
-    
-    context = {
-        'usuarios': usuarios,
-        'usuarios_activos': usuarios_activos,
-        'usuarios_admin': usuarios_admin,
-        **get_sidebar_context('usuarios')
-    }
-    
-    return render(request, 'dashboard/usuarios.html', context)

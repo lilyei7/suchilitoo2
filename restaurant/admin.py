@@ -28,15 +28,16 @@ class InsumoAdmin(admin.ModelAdmin):
     search_fields = ['codigo', 'nombre']
     list_editable = ['precio_unitario', 'stock_minimo', 'activo']
 
+
 class RecetaInsumoInline(admin.TabularInline):
     model = RecetaInsumo
     extra = 1
 
 @admin.register(Receta)
 class RecetaAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'tiempo_preparacion', 'porciones', 'costo_total', 'activa']
-    list_filter = ['activa', 'tiempo_preparacion']
-    search_fields = ['nombre', 'descripcion']
+    list_display = ['producto', 'tiempo_preparacion', 'porciones', 'activo']
+    list_filter = ['activo', 'tiempo_preparacion']
+    search_fields = ['producto__nombre', 'instrucciones']
     inlines = [RecetaInsumoInline]
 
 @admin.register(Inventario)
@@ -56,14 +57,14 @@ class MovimientoInventarioAdmin(admin.ModelAdmin):
 
 @admin.register(CategoriaProducto)
 class CategoriaProductoAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'descripcion', 'activa']
-    list_filter = ['activa']
+    list_display = ['nombre', 'descripcion', 'activo']
+    list_filter = ['activo']
     search_fields = ['nombre']
 
 @admin.register(ProductoVenta)
 class ProductoVentaAdmin(admin.ModelAdmin):
     list_display = ['codigo', 'nombre', 'categoria', 'precio', 'disponible', 'es_promocion']
-    list_filter = ['categoria', 'disponible', 'es_promocion', 'created_at']
+    list_filter = ['categoria', 'disponible', 'es_promocion', 'fecha_creacion']
     search_fields = ['codigo', 'nombre', 'descripcion']
     list_editable = ['precio', 'disponible']
 

@@ -164,8 +164,8 @@
                             <label for="nombre" class="form-label">Nombre de la Receta</label>
                             <input type="text" class="form-control" id="nombre" name="nombre" required>
                         </div>                        <div class="col-md-6">
-                            <label for="categoria" class="form-label">Categoría</label>
-                            <select class="form-select" id="categoria" name="categoria">
+                            <label for="categoria_id" class="form-label">Categoría</label>
+                            <select class="form-select" id="categoria_id" name="categoria_id">
                                 <option value="">Seleccionar categoría...</option>
                                 <!-- Las opciones se cargarán dinámicamente desde las categorías de recetas -->
                             </select>
@@ -251,7 +251,11 @@
                     </div>
                     <p class="mt-2 text-muted">Cargando detalles...</p>
                 </div>
-            </div>        </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -271,8 +275,8 @@
                             <label for="editar_nombre" class="form-label">Nombre de la Receta</label>
                             <input type="text" class="form-control" id="editar_nombre" name="nombre" required>
                         </div>                        <div class="col-md-6">
-                            <label for="editar_categoria" class="form-label">Categoría</label>
-                            <select class="form-select" id="editar_categoria" name="categoria">
+                            <label for="editar_categoria_id" class="form-label">Categoría</label>
+                            <select class="form-select" id="editar_categoria_id" name="categoria_id">
                                 <option value="">Seleccionar categoría...</option>
                                 <!-- Las opciones se cargarán dinámicamente desde las categorías de recetas -->
                             </select>
@@ -454,6 +458,11 @@
 let todosLosInsumos = [];
 let contadorIngredientes = 0;
 let contadorIngredientesEditar = 0; // Variable para el modo edición
+let currentRecetaId = null; // Para almacenar el ID de la receta actual en detalles o edición
+
+// Funciones globales para acceso desde HTML
+window.abrirModalCrearReceta = null;
+window.abrirModalCategorias = null;
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
@@ -499,32 +508,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Funciones para abrir modales
-function abrirModalCrearReceta() {
+// Funciones para abrir modales - Definir en el scope global para acceso desde HTML
+window.abrirModalCrearReceta = function() {
     try {
         console.log('Iniciando apertura del modal crear receta');
         
-        // Verificar que exista el formulario
-        const form = document.getElementById('formCrearReceta');
-        if (!form) {
-            console.error('No se encontró el formulario formCrearReceta');
-            return;
-        }
-        
         // Resetear formulario
-        form.reset();
+        const form = document.getElementById('formCrearReceta');
+        if (form) {
+            form.reset();
+        }
         
         // Limpiar container de ingredientes
         const container = document.getElementById('ingredientesContainer');
-        container.innerHTML = `
-            <div id="alertaIngredientes" class="alert alert-info">
-                <i class="fas fa-info-circle me-1"></i> Agrega ingredientes para tu receta
-            </div>
-        `;
+        if (container) {
+            container.innerHTML = `
+                <div id="alertaIngredientes" class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i> Agrega ingredientes para tu receta
+                </div>
+            `;
+        }
         
         // Resetear contador
         contadorIngredientes = 0;
-          // Actualizar resumen de costos
+        
+        // Actualizar resumen de costos
         actualizarResumenCostos();
         
         // Asegurar que las categorías estén cargadas
@@ -532,37 +540,58 @@ function abrirModalCrearReceta() {
         
         // Mostrar modal
         const modalElement = document.getElementById('modalCrearReceta');
-        if (!modalElement) {
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
             console.error('No se encontró el elemento modalCrearReceta');
-            return;
         }
-        
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
     } catch (error) {
         console.error('Error al abrir modal de crear receta:', error);
         showToast('Error al abrir el formulario', 'error');
     }
 }
 
-// Abrir modal de categorías
-function abrirModalCategorias() {
-    const modalCategorias = new bootstrap.Modal(document.getElementById('modalCategorias'));
-    modalCategorias.show();
-    
-    // Cargar las categorías
-    cargarCategoriasRecetas();
-    
-    // Inicializar el formulario de creación
-    const formCrearCategoria = document.getElementById('formCrearCategoria');
-    formCrearCategoria.addEventListener('submit', function(e) {
-        e.preventDefault();
-        crearCategoriaReceta();
-    });
+window.abrirModalCategorias = function() {
+    try {
+        const modalElement = document.getElementById('modalCategorias');
+        if (modalElement) {
+            const modalCategorias = new bootstrap.Modal(modalElement);
+            modalCategorias.show();
+            
+            // Cargar las categorías
+            cargarCategoriasRecetas();
+            
+            // Inicializar el formulario de creación
+            const formCrearCategoria = document.getElementById('formCrearCategoria');
+            if (formCrearCategoria) {
+                // Remover listeners previos para evitar duplicación
+                const newForm = formCrearCategoria.cloneNode(true);
+                if (formCrearCategoria.parentNode) {
+                    formCrearCategoria.parentNode.replaceChild(newForm, formCrearCategoria);
+                }
+                
+                newForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    crearCategoriaReceta();
+                });
+            }
+        } else {
+            console.error('No se encontró el elemento modalCategorias');
+            showToast('Error al abrir el modal de categorías', 'error');
+        }
+    } catch (error) {
+        console.error('Error al abrir modal de categorías:', error);
+        showToast('Error al abrir el formulario', 'error');
+    }
 }
 
 // Ver detalle de receta
 function verDetalleReceta(recetaId) {
+    // Guardar el ID de la receta actual
+    currentRecetaId = recetaId;
+    console.log(`🔍 Cargando detalles de receta ID: ${recetaId}`);
+    
     const modal = new bootstrap.Modal(document.getElementById('modalDetalleReceta'));
     const content = document.getElementById('detalleRecetaContent');
     
@@ -582,11 +611,19 @@ function verDetalleReceta(recetaId) {
     fetch(`/dashboard/recetas/detalle/${recetaId}/`, {
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Status:', response.status);
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
+            console.log('✅ Datos de receta recibidos:', data);
+            console.log(`- Nombre: ${data.receta.nombre}`);
+            console.log(`- Costo Total: ${data.receta.costo_total}`);
+            console.log(`- Ingredientes: ${data.ingredientes ? data.ingredientes.length : 0}`);
             renderizarDetalleReceta(data.receta, data.ingredientes);
         } else {
+            console.error('❌ Error en la respuesta:', data.message);
             content.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-circle me-1"></i> ${data.message}
@@ -595,7 +632,7 @@ function verDetalleReceta(recetaId) {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('❌ Error:', error);
         content.innerHTML = `
             <div class="alert alert-danger">
                 <i class="fas fa-exclamation-circle me-1"></i> Error al cargar los datos
@@ -720,55 +757,73 @@ function createToastContainer() {
 function renderizarDetalleReceta(receta, ingredientes) {
     const content = document.getElementById('detalleRecetaContent');
     
+    // Validar que receta contenga los campos necesarios para evitar errores
+    if (!receta) {
+        content.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-1"></i> Error: Datos de receta no disponibles
+            </div>
+        `;
+        return;
+    }
+    
+    // Valores por defecto seguros para evitar errores
+    const nombre = receta.nombre || 'Sin nombre';
+    const categoria = (receta.categoria && receta.categoria.nombre) ? receta.categoria.nombre : 'Sin categoría';
+    const tiempo = receta.tiempo_preparacion || 0;
+    const porciones = receta.porciones || 1;
+    const costoTotal = receta.costo_total || 0;
+    const precioVenta = receta.precio_venta || 0;
+    const descripcion = receta.descripcion || '';
+    
     // Encabezado con información básica
     let html = `
         <div class="mb-4">
-            <h5 class="border-bottom pb-2 mb-3">${receta.nombre}</h5>
+            <h5 class="border-bottom pb-2 mb-3">${nombre}</h5>
             
             <div class="row mb-3">
                 <div class="col-md-6">
                     <div class="mb-2">
                         <span class="text-muted">Categoría:</span>
-                        <span class="fw-medium">${receta.categoria || 'Sin categoría'}</span>
+                        <span class="fw-medium">${categoria}</span>
                     </div>
                     <div class="mb-2">
                         <span class="text-muted">Tiempo de preparación:</span>
-                        <span class="fw-medium">${receta.tiempo_preparacion} min</span>
+                        <span class="fw-medium">${tiempo} min</span>
                     </div>
                     <div class="mb-2">
                         <span class="text-muted">Porciones:</span>
-                        <span class="fw-medium">${receta.porciones}</span>
+                        <span class="fw-medium">${porciones}</span>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="mb-2">
                         <span class="text-muted">Costo total:</span>
-                        <span class="fw-medium">$${receta.costo_total.toFixed(2)}</span>
+                        <span class="fw-medium">$${costoTotal.toFixed(2)}</span>
                     </div>
                     <div class="mb-2">
                         <span class="text-muted">Costo por porción:</span>
-                        <span class="fw-medium">$${(receta.costo_total / receta.porciones).toFixed(2)}</span>
+                        <span class="fw-medium">$${(costoTotal / porciones).toFixed(2)}</span>
                     </div>
                     <div class="mb-2">
                         <span class="text-muted">Precio de venta:</span>
-                        <span class="fw-medium">${receta.precio_venta ? '$' + receta.precio_venta.toFixed(2) : 'Sin precio'}</span>
+                        <span class="fw-medium">$${precioVenta.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
             
-            ${receta.descripcion ? `
+            ${descripcion ? `
             <div class="mb-3">
                 <p class="text-muted mb-1">Descripción:</p>
-                <p>${receta.descripcion}</p>
+                <p>${descripcion}</p>
             </div>
             ` : ''}
         </div>
     `;
-    
-    // Listado de ingredientes
+      // Listado de ingredientes
     html += `
         <div class="mb-4">
-            <h6 class="border-bottom pb-2 mb-3">Ingredientes (${ingredientes.length})</h6>
+            <h6 class="border-bottom pb-2 mb-3">Ingredientes (${ingredientes ? ingredientes.length : 0})</h6>
             
             <div class="table-responsive">
                 <table class="table table-sm table-hover">
@@ -783,26 +838,46 @@ function renderizarDetalleReceta(receta, ingredientes) {
                     <tbody>
     `;
     
-    if (ingredientes.length > 0) {
+    if (ingredientes && ingredientes.length > 0) {
         ingredientes.forEach(ingrediente => {
+            // Asegurarnos de que insumo existe
+            const insumo = ingrediente.insumo || {};
+            const nombreInsumo = insumo.nombre || 'Sin nombre';
+            const tipo = insumo.tipo || 'basico';
+            
+            // Determinar el nombre del tipo para mostrar
+            let tipoNombre = 'Básico';
+            let tipoBadgeColor = 'bg-primary';
+            
+            if (tipo === 'compuesto') {
+                tipoNombre = 'Compuesto';
+                tipoBadgeColor = 'bg-success';
+            } else if (tipo === 'elaborado') {
+                tipoNombre = 'Elaborado';
+                tipoBadgeColor = 'bg-info';
+            }
+            
+            // Obtener unidad de medida de forma segura
+            let unidadMedida = '';
+            if (insumo.unidad_medida && insumo.unidad_medida.nombre) {
+                unidadMedida = insumo.unidad_medida.nombre;
+            } else if (insumo.unidad_abrev) {
+                unidadMedida = insumo.unidad_abrev;
+            }
+            
+            const cantidad = ingrediente.cantidad || 0;
+            const costoTotal = ingrediente.costo_total || 0;
+            
             html += `
                 <tr>
-                    <td>${ingrediente.nombre} (${ingrediente.codigo})</td>
+                    <td>${nombreInsumo}</td>
                     <td>
-                        <span class="badge ${
-                            ingrediente.tipo === 'basico' ? 'bg-primary' : 
-                            ingrediente.tipo === 'compuesto' ? 'bg-success' : 
-                            'bg-info'
-                        }">
-                            ${
-                                ingrediente.tipo === 'basico' ? 'Básico' : 
-                                ingrediente.tipo === 'compuesto' ? 'Compuesto' : 
-                                'Elaborado'
-                            }
+                        <span class="badge ${tipoBadgeColor}">
+                            ${tipoNombre}
                         </span>
                     </td>
-                    <td>${ingrediente.cantidad} ${ingrediente.unidad}</td>
-                    <td class="text-end">$${ingrediente.costo.toFixed(2)}</td>
+                    <td>${cantidad} ${unidadMedida}</td>
+                    <td class="text-end">$${costoTotal.toFixed(2)}</td>
                 </tr>
             `;
         });
@@ -821,7 +896,7 @@ function renderizarDetalleReceta(receta, ingredientes) {
                     <tfoot class="table-light">
                         <tr>
                             <th colspan="3" class="text-end">Total:</th>
-                            <th class="text-end">$${receta.costo_total.toFixed(2)}</th>
+                            <th class="text-end">$${(receta.costo_total || 0).toFixed(2)}</th>
                         </tr>
                     </tfoot>
                 </table>
@@ -927,10 +1002,17 @@ function agregarIngredienteEditar(ingredienteExistente = null) {
 function cargarDatosEdicion(receta, ingredientes) {
     try {
         console.log('Iniciando carga de datos para edición');
-          // Cargar datos básicos
+        // Cargar datos básicos
         document.getElementById('editar_receta_id').value = receta.id;
         document.getElementById('editar_nombre').value = receta.nombre;
-        document.getElementById('editar_categoria').value = receta.categoria_codigo || '';
+        
+        // Establecer la categoría correcta si existe
+        if (receta.categoria && receta.categoria.id) {
+            document.getElementById('editar_categoria_id').value = receta.categoria.id;
+        } else {
+            document.getElementById('editar_categoria_id').value = '';
+        }
+        
         document.getElementById('editar_descripcion').value = receta.descripcion || '';
         document.getElementById('editar_tiempo_preparacion').value = receta.tiempo_preparacion;
         document.getElementById('editar_porciones').value = receta.porciones;
@@ -1007,27 +1089,41 @@ function cargarDatosEdicion(receta, ingredientes) {
 // Cargar insumos
 function cargarInsumos() {
     // Mostrar spinner de carga
-    console.log('Cargando insumos...');
+    console.log('🔄 Cargando insumos...');
     
     // Realizar petición para obtener todos los insumos
     fetch('/dashboard/recetas/insumos/todos/', {
         headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
-        if (data.success) {
+        if (data.success && data.insumos) {
             // Guardar insumos en variable global
             todosLosInsumos = data.insumos;
-            console.log(`✅ Insumos cargados: ${todosLosInsumos.length} (${data.by_type.basicos} básicos, ${data.by_type.compuestos} compuestos, ${data.by_type.elaborados} elaborados)`);
+            console.log(`✅ Insumos cargados: ${todosLosInsumos.length} insumos disponibles`);
+            
+            // Mostrar estadísticas por tipo
+            const stats = {
+                basico: data.insumos.filter(i => i.tipo === 'basico').length,
+                compuesto: data.insumos.filter(i => i.tipo === 'compuesto').length,
+                elaborado: data.insumos.filter(i => i.tipo === 'elaborado').length
+            };
+            console.log(`📊 Básicos: ${stats.basico}, Compuestos: ${stats.compuesto}, Elaborados: ${stats.elaborado}`);
         } else {
-            console.error('Error cargando insumos:', data.message);
-            showToast('Error cargando insumos', 'error');
+            console.error('❌ Error cargando insumos:', data.message);
+            showToast('Error cargando insumos: ' + (data.message || 'Error desconocido'), 'error');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('❌ Error:', error);
         showToast('Error de conexión al cargar insumos', 'error');
     });
 }
@@ -1141,8 +1237,17 @@ function actualizarInfoIngrediente(select, id) {
             return;
         }
         
-        const unidadAbrev = option.dataset.unidadAbrev || option.dataset.unidad;
-        unidadSpan.textContent = unidadAbrev || 'Und';
+        // Obtener insumo seleccionado de la lista global para asegurar que tenemos todos los datos
+        const insumoSeleccionado = todosLosInsumos.find(i => i.id.toString() === option.value);
+        
+        // Usar la abreviación de la unidad si está disponible
+        if (insumoSeleccionado) {
+            unidadSpan.textContent = insumoSeleccionado.unidad_abrev || 'Und';
+        } else {
+            // Usar el dataset como fallback
+            const unidadAbrev = option.dataset.unidadAbrev || option.dataset.unidad || 'Und';
+            unidadSpan.textContent = unidadAbrev;
+        }
         
         // Actualizar el costo del ingrediente
         actualizarCostoIngrediente(inputCantidad, id);
@@ -1174,8 +1279,17 @@ function actualizarInfoIngredienteEditar(select, id) {
             return;
         }
         
-        const unidadAbrev = option.dataset.unidadAbrev || option.dataset.unidad;
-        unidadSpan.textContent = unidadAbrev || 'Und';
+        // Obtener insumo seleccionado de la lista global para asegurar que tenemos todos los datos
+        const insumoSeleccionado = todosLosInsumos.find(i => i.id.toString() === option.value);
+        
+        // Usar la abreviación de la unidad si está disponible
+        if (insumoSeleccionado) {
+            unidadSpan.textContent = insumoSeleccionado.unidad_abrev || 'Und';
+        } else {
+            // Usar el dataset como fallback
+            const unidadAbrev = option.dataset.unidadAbrev || option.dataset.unidad || 'Und';
+            unidadSpan.textContent = unidadAbrev;
+        }
         
         // Actualizar el costo del ingrediente
         actualizarCostoIngredienteEditar(inputCantidad, id);
@@ -1650,9 +1764,8 @@ function cargarCategoriasRecetas() {
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> No hay categorías creadas aún.
                     </div>
-                `;
-            } else {
-                data.categorias.forEach(categoria => {
+                `;            } else {
+                data.categorias.forEach((categoria, index) => {
                     html += `
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
@@ -1670,6 +1783,7 @@ function cargarCategoriasRecetas() {
                                 </button>
                             </div>
                         </div>
+                        ${index < data.categorias.length - 1 ? '<hr class="my-2 mx-3 border-secondary-subtle opacity-50">' : ''}
                     `;
                 });
             }
@@ -1686,6 +1800,7 @@ function cargarCategoriasRecetas() {
     .catch(error => {
         console.error('Error:', error);
         container.innerHTML = `
+
             <div class="alert alert-danger">
                 <i class="fas fa-exclamation-triangle"></i> Error de conexión
             </div>
@@ -1797,31 +1912,52 @@ function cargarCategoriasEnSelectores() {
 }
 
 // Función para actualizar los selectores de categorías en los formularios de recetas
-function actualizarSelectoresCategorias() {
-    fetch('/dashboard/recetas/categorias/', {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Actualizar selector en modal de crear receta
-            const selectorCrear = document.getElementById('categoria');
-            const selectorEditar = document.getElementById('editar_categoria');
+async function actualizarSelectoresCategorias() {
+    try {
+        console.log('🔄 Actualizando selectores de categorías...');
+        
+        const response = await fetch('/dashboard/recetas/categorias/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.categorias) {
+            // Actualizar selector de crear receta
+            const selectorCrear = document.getElementById('categoria_id');
             
-            let opciones = '<option value="">Seleccionar categoría...</option>';
-            data.categorias.forEach(categoria => {
-                if (categoria.activa) {
-                    opciones += `<option value="${categoria.codigo}">${categoria.nombre}</option>`;
-                }
-            });
+            if (selectorCrear) {
+                selectorCrear.innerHTML = '<option value="">Seleccionar categoría...</option>';
+                data.categorias.forEach(categoria => {
+                    selectorCrear.innerHTML += `<option value="${categoria.id}">${categoria.nombre}</option>`;
+                });
+            }
             
-            if (selectorCrear) selectorCrear.innerHTML = opciones;
-            if (selectorEditar) selectorEditar.innerHTML = opciones;
+            // Actualizar selector de editar receta
+            const selectorEditar = document.getElementById('editar_categoria_id');
+            
+            if (selectorEditar) {
+                selectorEditar.innerHTML = '<option value="">Seleccionar categoría...</option>';
+                data.categorias.forEach(categoria => {
+                    selectorEditar.innerHTML += `<option value="${categoria.id}">${categoria.nombre}</option>`;
+                });
+            }
+            
+            console.log('✅ Selectores de categorías actualizados');
+            return data.categorias;
+        } else {
+            console.error('Error al cargar categorías:', data.message);
+            showToast(data.message || 'Error al cargar categorías', 'error');
+            throw new Error(data.message || 'Error al cargar categorías');
         }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error actualizando selectores:', error);
-    });
+        showToast('Error al actualizar selectores de categorías', 'error');
+        throw error;
+    }
 }
 </script>
 {% endblock %}
