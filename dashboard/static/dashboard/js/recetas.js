@@ -81,8 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (error) {
         console.error('Error al configurar evento para formCrearReceta:', error);
     }
-    
-    // Evento para el formulario de edición - Usando try-catch para evitar errores
+      // Evento para el formulario de edición - Usando try-catch para evitar errores
     try {
         const formEditarReceta = document.getElementById('formEditarReceta');
         if (formEditarReceta) {
@@ -96,6 +95,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     } catch (error) {
         console.error('Error al configurar evento para formEditarReceta:', error);
+    }
+    
+    // Evento para el formulario de crear categoría
+    try {
+        const formCrearCategoria = document.getElementById('formCrearCategoria');
+        if (formCrearCategoria) {
+            formCrearCategoria.addEventListener('submit', function(e) {
+                e.preventDefault();
+                crearCategoriaReceta();
+            });
+            console.log('✅ Evento submit configurado para formCrearCategoria');
+        } else {
+            console.warn('⚠️ No se encontró el formulario formCrearCategoria');
+        }
+    } catch (error) {
+        console.error('Error al configurar evento para formCrearCategoria:', error);
     }
       // Actualizar costo por porción cuando cambie el número de porciones en creación
     document.getElementById('porciones').addEventListener('change', function() {

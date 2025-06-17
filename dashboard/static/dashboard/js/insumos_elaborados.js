@@ -464,6 +464,7 @@ function configurarFormularioEdicion() {
     console.log('✅ Formulario de edición configurado correctamente');
 }
 
+
 // Actualizar resumen de edición
 function actualizarResumenEdicion() {
     console.log('🔄 Actualizando resumen de edición...');
@@ -1767,6 +1768,190 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('⚠️ No se encontró el formulario de creación de insumo elaborado');
     }
 });
+// FUNCIONES PARA ELIMINAR INSUMOS ELABORADOS
+// -------------------------------------------
+
+// Función para eliminar un insumo elaborado
+function eliminarInsumoElaborado(insumoId, nombre) {
+    console.log(`🗑️ Iniciando eliminación del insumo elaborado ID: ${insumoId} - ${nombre}`);
+    
+    // Mostrar confirmación con SweetAlert2 si está disponible, si no usar confirm
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: '¿Eliminar insumo elaborado?',
+            text: `¿Está seguro de que desea eliminar "${nombre}"? Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                ejecutarEliminacionInsumoElaborado(insumoId, nombre);
+            }
+        });
+    } else {
+        // Usar confirm nativo si SweetAlert2 no está disponible
+        const confirmacion = confirm(
+            `¿Está seguro de que desea eliminar el insumo elaborado "${nombre}"?\n\n` +
+            `Esta acción eliminará:\n` +
+            `• El insumo elaborado\n` +
+            `• Todos sus componentes asociados\n\n` +
+            `Esta acción no se puede deshacer.`
+        );
+        
+        if (confirmacion) {
+            ejecutarEliminacionInsumoElaborado(insumoId, nombre);
+        }
+    }
+}
+
+// Función para ejecutar la eliminación del insumo elaborado
+function ejecutarEliminacionInsumoElaborado(insumoId, nombre) {
+    console.log(`🔄 Ejecutando eliminación del insumo elaborado: ${nombre}`);
+    
+    // Mostrar indicador de carga
+    showToast('Eliminando insumo elaborado...', 'info');
+    
+    // Realizar petición de eliminación
+    fetch(`/dashboard/insumos-elaborados/eliminar/${insumoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    })
+    .then(response => {
+        console.log(`📡 Response status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        console.log('📊 Response data:', data);
+        
+        if (data.success) {
+            // Mostrar mensaje de éxito
+            if (data.was_deactivated) {
+                showToast(data.message, 'warning');
+                console.log('⚠️ Insumo marcado como inactivo debido a dependencias');
+            } else {
+                showToast(data.message || `Insumo elaborado "${nombre}" eliminado exitosamente`, 'success');
+                console.log('✅ Insumo elaborado eliminado completamente');
+            }
+            
+            // Remover la fila de la tabla o recargar la página
+            const filaInsumo = document.querySelector(`tr.insumo-row[data-id="${insumoId}"]`);
+            if (filaInsumo) {
+                // Animación de fade out
+                filaInsumo.style.transition = 'opacity 0.3s ease';
+                filaInsumo.style.opacity = '0';
+                
+                setTimeout(() => {
+                    filaInsumo.remove();
+                    
+                    // Verificar si quedan filas
+                    const filasRestantes = document.querySelectorAll('tr.insumo-row');
+                    if (filasRestantes.length === 0) {
+                        // Si no quedan filas, recargar la página para mostrar el estado vacío
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    }
+                }, 300);
+            } else {
+                // Si no encontramos la fila, recargar la página
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+            
+        } else {
+            // Manejar diferentes tipos de errores
+            if (data.tipo_error === 'dependencia') {
+                // Error por dependencias
+                showToast(
+                    `No se puede eliminar "${nombre}" porque está siendo utilizado en otros elementos del sistema`, 
+                    'warning'
+                );
+                console.log('⚠️ Error por dependencias:', data.message);
+                
+                // Opcionalmente, ofrecer marcar como inactivo
+                setTimeout(() => {
+                    const confirmInactivar = confirm(
+                        `El insumo "${nombre}" no se puede eliminar porque está siendo utilizado.\n\n` +
+                        `¿Desea marcarlo como inactivo en su lugar?`
+                    );
+                    
+                    if (confirmInactivar) {
+                        marcarInsumoElaboradoComoInactivo(insumoId, nombre);
+                    }
+                }, 2000);
+                
+            } else {
+                // Error general
+                showToast(data.message || 'Error al eliminar el insumo elaborado', 'error');
+                console.error('❌ Error al eliminar:', data.message);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error de conexión:', error);
+        showToast('Error de conexión al eliminar el insumo elaborado. Por favor, intente nuevamente.', 'error');
+    });
+}
+
+// Función para marcar un insumo elaborado como inactivo (alternativa a eliminación)
+function marcarInsumoElaboradoComoInactivo(insumoId, nombre) {
+    console.log(`🔄 Marcando insumo elaborado como inactivo: ${nombre}`);
+    
+    // Esta funcionalidad requeriría un endpoint adicional en el backend
+    // Por ahora, mostrar mensaje informativo
+    showToast(
+        `La funcionalidad para marcar como inactivo está en desarrollo. ` +
+        `El insumo "${nombre}" permanece activo.`, 
+        'info'
+    );
+    
+    // TODO: Implementar endpoint para marcar como inactivo
+    /*
+    fetch(`/dashboard/insumos-elaborados/desactivar/${insumoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`Insumo "${nombre}" marcado como inactivo`, 'success');
+            // Actualizar la fila para mostrar estado inactivo
+            const fila = document.querySelector(`tr.insumo-row[data-id="${insumoId}"]`);
+            if (fila) {
+                const indicadorEstado = fila.querySelector('.fas.fa-circle');
+                const badgeEstado = fila.querySelector('.badge');
+                
+                if (indicadorEstado) {
+                    indicadorEstado.className = 'fas fa-circle text-secondary';
+                    indicadorEstado.title = 'Inactivo';
+                }
+                
+                if (badgeEstado) {
+                    badgeEstado.className = 'badge bg-secondary';
+                    badgeEstado.textContent = 'Inactivo';
+                }
+            }
+        } else {
+            showToast(data.message || 'Error al marcar como inactivo', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error:', error);
+        showToast('Error de conexión', 'error');
+    });
+    */
+}
 
 // Función para configurar los event listeners de los botones de acción
 function configurarBotonesAccion() {
