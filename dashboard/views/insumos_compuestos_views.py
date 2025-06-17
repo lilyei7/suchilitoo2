@@ -162,12 +162,10 @@ def crear_insumo_compuesto(request):
             )
             
             # Crear componentes
-            for i, componente in enumerate(componentes_data):
-                InsumoCompuesto.objects.create(
+            for i, componente in enumerate(componentes_data):                InsumoCompuesto.objects.create(
                     insumo_compuesto=insumo_compuesto,
                     insumo_componente=componente['insumo'],
-                    cantidad=componente['cantidad'],
-                    orden=i+1
+                    cantidad=componente['cantidad']
                 )
             
             return JsonResponse({
@@ -195,14 +193,13 @@ def detalle_insumo_compuesto(request, insumo_id):
     """Vista para ver detalles de un insumo compuesto"""
     try:
         insumo = get_object_or_404(Insumo, id=insumo_id, tipo='compuesto')
-        
-        # Obtener componentes
+          # Obtener componentes
         componentes = InsumoCompuesto.objects.filter(
             insumo_compuesto=insumo
         ).select_related(
             'insumo_componente__categoria', 
             'insumo_componente__unidad_medida'
-        ).order_by('orden')
+        )
         
         # Calcular costo total
         costo_total = 0
@@ -297,8 +294,7 @@ def editar_insumo_compuesto(request, insumo_id):
                 InsumoCompuesto.objects.create(
                     insumo_compuesto=insumo,
                     insumo_componente=insumo_componente,
-                    cantidad=cantidad_float,
-                    orden=i+1
+                    cantidad=cantidad_float
                 )
             
             # Actualizar precio unitario
@@ -334,11 +330,37 @@ def eliminar_insumo_compuesto(request, insumo_id):
         try:
             insumo = get_object_or_404(Insumo, id=insumo_id, tipo='compuesto')
             nombre = insumo.nombre
-            
-            # Eliminar componentes
+
+            # Verificar si este insumo es usado como componente en otros insumos compuestos
+            usado_en_compuestos = InsumoCompuesto.objects.filter(insumo_componente=insumo).exists()
+            if usado_en_compuestos:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'No se puede eliminar el insumo "{nombre}" porque está siendo utilizado como componente en otros insumos compuestos.',
+                    'tipo_error': 'dependencia'
+                })
+
+            # Verificar si este insumo es usado en recetas
+            usado_en_recetas = False
+            try:
+                from restaurant.models import RecetaInsumo
+                usado_en_recetas = RecetaInsumo.objects.filter(insumo=insumo).exists()
+            except ImportError:
+                # Si no podemos importar RecetaInsumo, asumimos que no se usa
+                pass
+
+            if usado_en_recetas:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'No se puede eliminar el insumo "{nombre}" porque está siendo utilizado en recetas.',
+                    'tipo_error': 'dependencia'
+                })
+
+            # Si llegamos aquí, podemos proceder con la eliminación
+            # Primero eliminar componentes (relaciones)
             InsumoCompuesto.objects.filter(insumo_compuesto=insumo).delete()
             
-            # Eliminar insumo
+            # Luego eliminar el insumo
             insumo.delete()
             
             return JsonResponse({
@@ -347,10 +369,13 @@ def eliminar_insumo_compuesto(request, insumo_id):
             })
             
         except Exception as e:
+            import traceback
             print(f"Error eliminando insumo compuesto: {e}")
+            traceback.print_exc()
             return JsonResponse({
                 'success': False,
-                'message': f'Error interno: {str(e)}'
+                'message': f'Error interno: {str(e)}',
+                'tipo_error': 'sistema'
             })
     
     return JsonResponse({

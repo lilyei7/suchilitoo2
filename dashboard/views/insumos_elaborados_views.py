@@ -3,15 +3,13 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
 from django.db import transaction
 from decimal import Decimal
+import traceback
+import traceback
 
 from restaurant.models import (
-    Insumo as RestaurantInsumo, CategoriaInsumo, UnidadMedida, 
-    InsumoElaborado, InsumoCompuesto
+    Insumo, CategoriaInsumo, UnidadMedida, InsumoCompuesto
 )
-from .base_views import get_sidebar_context, is_admin_or_manager
-
-# Usamos el Insumo de restaurant para tener consistencia
-Insumo = RestaurantInsumo
+from dashboard.views import get_sidebar_context, is_admin_or_manager
 
 @login_required
 def insumos_elaborados_view(request):
@@ -165,16 +163,13 @@ def crear_insumo_elaborado(request):
                 stock_minimo=Decimal('0'),  # Se iniciará en 0
                 activo=True
             )
-            
-            # Crear los componentes
+              # Crear los componentes
             for i, componente_data in enumerate(componentes_data):
-                InsumoElaborado.objects.create(
-                    insumo_elaborado=insumo_elaborado,
+                InsumoCompuesto.objects.create(
+                    insumo_compuesto=insumo_elaborado,
                     insumo_componente=componente_data['insumo'],
                     cantidad=componente_data['cantidad'],
-                    orden=i + 1,
-                    tiempo_preparacion_minutos=componente_data['tiempo_preparacion'],
-                    instrucciones=componente_data['instrucciones']
+                    notas=''
                 )
             
             return JsonResponse({
@@ -252,69 +247,80 @@ def obtener_insumos_para_elaborados(request):
 def detalle_insumo_elaborado(request, insumo_id):
     """Vista para ver detalles de un insumo elaborado"""
     try:
-        insumo = get_object_or_404(Insumo, id=insumo_id, tipo='elaborado')        # Obtener componentes
+        # Obtener insumo elaborado según modelo Insumo
+        insumo = get_object_or_404(Insumo, id=insumo_id, tipo='elaborado')
+        
+        # Obtener componentes según modelo InsumoCompuesto
         componentes = InsumoCompuesto.objects.filter(
             insumo_compuesto=insumo
         ).select_related(
-            'insumo_componente__categoria', 
+            'insumo_componente',
+            'insumo_componente__categoria',
             'insumo_componente__unidad_medida'
-        ).order_by('id')
-          # Calcular estadísticas
-        total_costo = 0
+        )
+        
+        # Calcular costo total usando los campos del modelo
+        costo_total = Decimal('0.00')
         componentes_data = []
         
         for componente in componentes:
-            costo_componente = float(componente.cantidad) * float(componente.insumo_componente.precio_unitario)
-            total_costo += costo_componente
+            # Usar los campos del modelo para los cálculos
+            cantidad = componente.cantidad or Decimal('0')
+            precio_unitario = componente.insumo_componente.precio_unitario or Decimal('0')
+            costo_componente = cantidad * precio_unitario
+            costo_total += costo_componente
             
             componentes_data.append({
                 'id': componente.id,
                 'insumo_id': componente.insumo_componente.id,
-                'nombre': componente.insumo_componente.nombre,
+                'insumo_nombre': componente.insumo_componente.nombre,
                 'codigo': componente.insumo_componente.codigo,
+                'tipo': componente.insumo_componente.tipo,
                 'categoria': componente.insumo_componente.categoria.nombre if componente.insumo_componente.categoria else 'Sin categoría',
-                'unidad_medida': str(componente.insumo_componente.unidad_medida) if componente.insumo_componente.unidad_medida else 'Sin unidad',
-                'cantidad': float(componente.cantidad),
-                'precio_unitario': float(componente.insumo_componente.precio_unitario),
-                'costo_total': costo_componente,
+                'unidad_medida': str(componente.insumo_componente.unidad_medida) if componente.insumo_componente.unidad_medida else '',
+                'unidad_abrev': componente.insumo_componente.unidad_medida.abreviacion if componente.insumo_componente.unidad_medida else '',
+                'cantidad': float(cantidad),
+                'precio_unitario': float(precio_unitario),
+                'costo_total': float(costo_componente),
                 'notas': componente.notas or ''
             })
-            componentes_data.append({
-                'id': componente.id,
-                'insumo_nombre': componente.insumo_componente.nombre,
-                'insumo_codigo': componente.insumo_componente.codigo,
-                'categoria': componente.insumo_componente.categoria.nombre if componente.insumo_componente.categoria else 'Sin categoría',
-                'cantidad': float(componente.cantidad),
-                'unidad_medida': str(componente.insumo_componente.unidad_medida),                'precio_unitario': float(componente.insumo_componente.precio_unitario),
-                'costo_total': float(componente.costo_total()),
-                'tiempo_preparacion': componente.tiempo_preparacion_minutos,
-                'instrucciones': componente.instrucciones,
-                'orden': componente.orden
-            })
         
-        insumo_data = {
-            'id': insumo.id,
-            'codigo': insumo.codigo,
-            'nombre': insumo.nombre,
-            'descripcion': insumo.descripcion,
-            'categoria': insumo.categoria.nombre if insumo.categoria else 'Sin categoría',
-            'unidad_medida': str(insumo.unidad_medida),
-            'precio_unitario': float(insumo.precio_unitario),
-            'stock_minimo': float(insumo.stock_minimo),  # Cambiado de cantidad_stock
-            'activo': insumo.activo,
-            'total_costo': float(total_costo),
-            'tiempo_total_preparacion': tiempo_total,
-            'cantidad_componentes': len(componentes_data)
-        }
+        # Actualizar el costo de producción en la base de datos
+        if costo_total > 0:
+            insumo.costo_produccion = costo_total
+            insumo.save(update_fields=['costo_produccion', 'fecha_actualizacion'])
         
+        # Retornar los datos basados directamente en los campos del modelo
         return JsonResponse({
             'success': True,
-            'insumo': insumo_data,
+            'insumo': {
+                'id': insumo.id,
+                'codigo': insumo.codigo,
+                'nombre': insumo.nombre,
+                'descripcion': insumo.descripcion or '',
+                'categoria': insumo.categoria.nombre if insumo.categoria else 'Sin categoría',
+                'categoria_id': insumo.categoria.id if insumo.categoria else None,
+                'unidad_medida': str(insumo.unidad_medida) if insumo.unidad_medida else 'Sin unidad',
+                'unidad_medida_id': insumo.unidad_medida.id if insumo.unidad_medida else None,                'precio_unitario': float(insumo.precio_unitario) if insumo.precio_unitario is not None else 0.0,
+                'stock_minimo': float(insumo.stock_minimo) if insumo.stock_minimo is not None else 0.0,
+                'stock_actual': float(insumo.stock_actual) if insumo.stock_actual is not None else 0.0,
+                'activo': insumo.activo,
+                'perecedero': insumo.perecedero,
+                'dias_vencimiento': insumo.dias_vencimiento,
+                'cantidad_producida': float(insumo.cantidad_producida) if insumo.cantidad_producida is not None else 1.0,
+                'tiempo_preparacion': insumo.tiempo_preparacion or 0,
+                'costo_produccion': float(insumo.costo_produccion) if insumo.costo_produccion is not None else 0.0,
+                'fecha_creacion': insumo.fecha_creacion.strftime('%Y-%m-%d %H:%M:%S'),
+                'fecha_actualizacion': insumo.fecha_actualizacion.strftime('%Y-%m-%d %H:%M:%S'),
+                'total_costo': float(costo_total),
+                'cantidad_componentes': len(componentes_data)
+            },
             'componentes': componentes_data
         })
         
     except Exception as e:
-        print(f"Error obteniendo detalle de insumo elaborado: {e}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             'success': False,
             'message': f'Error interno: {str(e)}'
@@ -339,18 +345,35 @@ def editar_insumo_elaborado(request, insumo_id):
             unidad_medida_id = request.POST.get('unidad_medida_id')
             if unidad_medida_id:
                 insumo.unidad_medida = UnidadMedida.objects.get(id=unidad_medida_id)
-            
-            # Obtener nuevos componentes
+              # Obtener nuevos componentes
             insumo_ids = request.POST.getlist('componente_insumo[]')
             cantidades = request.POST.getlist('componente_cantidad[]')
             tiempos = request.POST.getlist('componente_tiempo[]')
             instrucciones_list = request.POST.getlist('componente_instrucciones[]')
             
+            # Actualizar campos específicos para insumos elaborados
+            try:
+                cantidad_producida = Decimal(str(request.POST.get('cantidad_producida', '1')))
+                if cantidad_producida <= 0:
+                    cantidad_producida = Decimal('1')
+            except:
+                cantidad_producida = Decimal('1')
+                
+            try:
+                tiempo_preparacion = int(request.POST.get('tiempo_preparacion', '0'))
+                if tiempo_preparacion < 0:
+                    tiempo_preparacion = 0
+            except:
+                tiempo_preparacion = 0
+                
+            insumo.cantidad_producida = cantidad_producida
+            insumo.tiempo_preparacion = tiempo_preparacion
+            
             # Eliminar componentes existentes
-            InsumoElaborado.objects.filter(insumo_elaborado=insumo).delete()
-              # Crear nuevos componentes
+            InsumoCompuesto.objects.filter(insumo_compuesto=insumo).delete()
+            
+            # Crear nuevos componentes
             total_costo = Decimal('0')
-            cantidad_producida = Decimal(str(request.POST.get('cantidad_producida', 1)))
             
             for i, (insumo_id_comp, cantidad) in enumerate(zip(insumo_ids, cantidades)):
                 if not insumo_id_comp or not cantidad:
@@ -362,15 +385,12 @@ def editar_insumo_elaborado(request, insumo_id):
                 )
                 cantidad_decimal = Decimal(str(cantidad))
                 tiempo_prep = int(tiempos[i]) if i < len(tiempos) and tiempos[i] else 0
-                instrucciones = instrucciones_list[i] if i < len(instrucciones_list) else ''
-                
-                InsumoElaborado.objects.create(
-                    insumo_elaborado=insumo,
+                instrucciones = instrucciones_list[i] if i < len(instrucciones_list) else ''                
+                InsumoCompuesto.objects.create(
+                    insumo_compuesto=insumo,
                     insumo_componente=insumo_componente,
                     cantidad=cantidad_decimal,
-                    orden=i + 1,
-                    tiempo_preparacion_minutos=tiempo_prep,
-                    instrucciones=instrucciones
+                    notas=instrucciones
                 )
                 
                 total_costo += cantidad_decimal * insumo_componente.precio_unitario
@@ -409,22 +429,61 @@ def eliminar_insumo_elaborado(request, insumo_id):
             insumo = get_object_or_404(Insumo, id=insumo_id, tipo='elaborado')
             nombre = insumo.nombre
             
-            # Eliminar componentes primero
-            InsumoElaborado.objects.filter(insumo_elaborado=insumo).delete()
+            # Verificar si este insumo es usado como componente en otros insumos
+            usado_en_compuestos = False
+            try:
+                usado_en_compuestos = insumo.usado_en.exists()
+            except:
+                pass
+                
+            # Verificar si este insumo es usado en recetas
+            usado_en_recetas = False
+            try:
+                from restaurant.models import RecetaInsumo
+                usado_en_recetas = RecetaInsumo.objects.filter(insumo=insumo).exists()
+            except ImportError:
+                # Si no podemos importar RecetaInsumo, asumimos que no se usa
+                pass
+                
+            if usado_en_compuestos or usado_en_recetas:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'No se puede eliminar el insumo "{nombre}" porque está siendo utilizado en '
+                              + ('insumos compuestos y ' if usado_en_compuestos else '')
+                              + ('recetas' if usado_en_recetas else ''),
+                    'tipo_error': 'dependencia'
+                })
             
-            # Eliminar el insumo
-            insumo.delete()
+            # Si llegamos aquí, podemos proceder con la eliminación
+            # Primero eliminar componentes (relaciones)
+            InsumoCompuesto.objects.filter(insumo_compuesto=insumo).delete()
             
-            return JsonResponse({
-                'success': True,
-                'message': f'Insumo elaborado "{nombre}" eliminado exitosamente'
-            })
+            # Luego eliminar el insumo
+            try:
+                insumo.delete()
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Insumo elaborado "{nombre}" eliminado exitosamente'
+                })
+            except Exception as delete_error:
+                # Si falla la eliminación por alguna restricción de base de datos no detectada antes
+                print(f"Error al eliminar insumo elaborado: {delete_error}. Marcando como inactivo.")
+                insumo.activo = False
+                insumo.save()
+                return JsonResponse({
+                    'success': True,
+                    'message': f'No se pudo eliminar completamente el insumo "{nombre}" debido a dependencias. Ha sido marcado como inactivo.',
+                    'was_deactivated': True
+                })
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(f"Error eliminando insumo elaborado: {e}")
             return JsonResponse({
                 'success': False,
-                'message': f'Error interno: {str(e)}'
+                'message': f'Error interno: {str(e)}',
+                'tipo_error': 'sistema'
             })
     
     return JsonResponse({

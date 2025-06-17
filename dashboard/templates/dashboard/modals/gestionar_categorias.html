@@ -1,6 +1,6 @@
 <!-- Modal para gestionar categorías -->
 <div class="modal fade" id="nuevaCategoriaModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title">
@@ -8,22 +8,18 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="formNuevaCategoria">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Nombre de la categoría</label>
-                        <input type="text" class="form-control" name="nombre" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Descripción</label>
-                        <textarea class="form-control" name="descripcion" rows="3"></textarea>
+            <div class="modal-body">
+                <!-- Contenido dinámico cargado mediante JavaScript -->
+                <div class="text-center my-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Crear Categoría</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="btnCrearCategoria">Crear Categoría</button>
+            </div>
         </div>
     </div>
 </div>

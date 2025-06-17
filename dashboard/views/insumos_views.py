@@ -196,16 +196,62 @@ def eliminar_insumo(request, insumo_id):
             insumo = get_object_or_404(Insumo, id=insumo_id)
             nombre = insumo.nombre
             
-            # En lugar de eliminar completamente, marcar como inactivo
-            insumo.activo = False
-            insumo.save()
+            # Verificar si este insumo es usado como componente en insumos compuestos
+            usado_en_compuestos = False
+            try:
+                usado_en_compuestos = insumo.usado_en.exists()
+            except:
+                pass
+                
+            # Verificar si este insumo es usado en recetas
+            usado_en_recetas = False
+            try:
+                usado_en_recetas = insumo.usado_en_recetas.exists()
+            except:
+                pass
+                
+            if usado_en_compuestos or usado_en_recetas:
+                # En lugar de intentar eliminarlo, lo marcamos como inactivo
+                insumo.activo = False
+                insumo.save()
+                
+                mensaje = f'El insumo "{nombre}" no puede ser eliminado completamente porque está siendo utilizado en '
+                if usado_en_compuestos and usado_en_recetas:
+                    mensaje += 'insumos compuestos y recetas.'
+                elif usado_en_compuestos:
+                    mensaje += 'insumos compuestos.'
+                else:
+                    mensaje += 'recetas.'
+                    
+                mensaje += ' Ha sido marcado como inactivo en su lugar.'
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': mensaje,
+                    'was_deactivated': True
+                })
             
-            return JsonResponse({
-                'success': True,
-                'message': f'Insumo "{nombre}" eliminado exitosamente'
-            })
+            # Si no tiene dependencias, intentamos eliminarlo completamente
+            try:
+                insumo.delete()
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Insumo "{nombre}" eliminado exitosamente'
+                })
+            except Exception as delete_error:
+                # Si falla la eliminación por alguna restricción de base de datos no detectada antes
+                print(f"Error al eliminar insumo: {delete_error}. Marcando como inactivo.")
+                insumo.activo = False
+                insumo.save()
+                return JsonResponse({
+                    'success': True,
+                    'message': f'No se pudo eliminar completamente el insumo "{nombre}" debido a dependencias. Ha sido marcado como inactivo.',
+                    'was_deactivated': True
+                })
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(f"Error eliminando insumo: {e}")
             return JsonResponse({
                 'success': False,

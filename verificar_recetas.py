@@ -93,51 +93,63 @@ def agregar_ingredientes_prueba():
             abreviacion="un"
         )
         print("  ✓ Unidad 'Unidad' creada")
+      # Obtener o crear la categoría de insumos
+    categoria_insumo, _ = CategoriaInsumo.objects.get_or_create(
+        nombre="Ingredientes Sushi", 
+        defaults={'descripcion': 'Ingredientes para preparar sushi'}
+    )
+    print(f"  - Categoría de insumo: {categoria_insumo.nombre}")
     
     # Crear insumos de prueba si no existen
-    insumo1, created = Insumo.objects.get_or_create(
-        nombre="Arroz para sushi",
-        defaults={
-            'codigo': 'INS001',
-            'descripcion': 'Arroz especial para sushi',
-            'tipo': 'basico',
-            'unidad_medida': unidad_gramos,
-            'precio_unitario': Decimal('0.02'),  # precio por gramo
-            'stock_minimo': 1000,
-            'stock_actual': 5000
-        }
-    )
-    if created:
+    try:
+        insumo1 = Insumo.objects.get(nombre="Arroz para sushi")
+        print(f"  - Insumo ya existe: {insumo1.nombre}")
+    except Insumo.DoesNotExist:
+        insumo1 = Insumo.objects.create(
+            nombre="Arroz para sushi",
+            codigo='INS001',
+            descripcion='Arroz especial para sushi',
+            tipo='basico',
+            unidad_medida=unidad_gramos,
+            precio_unitario=Decimal('0.02'),  # precio por gramo
+            stock_minimo=1000,
+            stock_actual=5000,
+            categoria=categoria_insumo
+        )
         print(f"  ✓ Insumo creado: {insumo1.nombre}")
     
-    insumo2, created = Insumo.objects.get_or_create(
-        nombre="Alga Nori",
-        defaults={
-            'codigo': 'INS002',
-            'descripcion': 'Alga para envolver sushi',
-            'tipo': 'basico',
-            'unidad_medida': unidad_unidades,
-            'precio_unitario': Decimal('0.50'),  # precio por unidad
-            'stock_minimo': 50,
-            'stock_actual': 200
-        }
-    )
-    if created:
+    try:
+        insumo2 = Insumo.objects.get(nombre="Alga Nori")
+        print(f"  - Insumo ya existe: {insumo2.nombre}")
+    except Insumo.DoesNotExist:
+        insumo2 = Insumo.objects.create(
+            nombre="Alga Nori",
+            codigo='INS002',
+            descripcion='Alga para envolver sushi',
+            tipo='basico',
+            unidad_medida=unidad_unidades,
+            precio_unitario=Decimal('0.50'),  # precio por unidad
+            stock_minimo=50,
+            stock_actual=200,
+            categoria=categoria_insumo
+        )
         print(f"  ✓ Insumo creado: {insumo2.nombre}")
     
-    insumo3, created = Insumo.objects.get_or_create(
-        nombre="Salmón fresco",
-        defaults={
-            'codigo': 'INS003',
-            'descripcion': 'Salmón de alta calidad para sushi',
-            'tipo': 'basico',
-            'unidad_medida': unidad_gramos,
-            'precio_unitario': Decimal('0.05'),  # precio por gramo
-            'stock_minimo': 500,
-            'stock_actual': 2000
-        }
-    )
-    if created:
+    try:
+        insumo3 = Insumo.objects.get(nombre="Salmón fresco")
+        print(f"  - Insumo ya existe: {insumo3.nombre}")
+    except Insumo.DoesNotExist:
+        insumo3 = Insumo.objects.create(
+            nombre="Salmón fresco",
+            codigo='INS003',
+            descripcion='Salmón de alta calidad para sushi',
+            tipo='basico',
+            unidad_medida=unidad_gramos,
+            precio_unitario=Decimal('0.05'),  # precio por gramo
+            stock_minimo=500,
+            stock_actual=2000,
+            categoria=categoria_insumo
+        )
         print(f"  ✓ Insumo creado: {insumo3.nombre}")
     
     # Para cada receta, agregar ingredientes si no tiene ninguno
