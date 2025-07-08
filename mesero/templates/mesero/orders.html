@@ -1,0 +1,294 @@
+{% extends 'mesero/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: #f5faff;
+    }
+    .orders-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 4px 24px rgba(30,136,229,0.08);
+    }
+    .orders-title {
+        color: #1e88e5;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    .order-card {
+        border: 1.5px solid #e3f2fd;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        padding: 1.2rem 1.5rem;
+        background: #f7fbff;
+        box-shadow: 0 2px 8px rgba(33,150,243,0.04);
+        transition: box-shadow 0.2s;
+    }
+    .order-card:hover {
+        box-shadow: 0 6px 18px rgba(33,150,243,0.10);
+    }
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.7rem;
+    }
+    .order-id {
+        color: #2196f3;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .order-state {
+        font-size: 0.98rem;
+        padding: 0.2rem 0.7rem;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+    }
+
+    /* Estados de orden */
+    .estado-pendiente { background: #ff9800; }
+    .estado-confirmada { background: #2196f3; }
+    .estado-en_preparacion { background: #9c27b0; }
+    .estado-lista { background: #4caf50; }
+    .estado-entregada { background: #388e3c; }
+    .estado-cancelada { background: #f44336; }
+    .estado-cerrada { background: #607d8b; }
+
+    .order-table {
+        color: #1976d2;
+        font-weight: 500;
+        font-size: 1rem;
+    }
+    .order-time {
+        color: #789;
+        font-size: 0.95rem;
+    }
+    .order-items {
+        margin: 0.7rem 0 0.5rem 0;
+        padding-left: 1.2rem;
+    }
+    .order-items li {
+        color: #333;
+        font-size: 1rem;
+        margin-bottom: 0.2rem;
+    }
+    .order-total {
+        color: #1e88e5;
+        font-weight: 600;
+        font-size: 1.1rem;
+        text-align: right;
+    }
+    .order-notes {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 5px;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        font-style: italic;
+        color: #856404;
+    }
+
+    .order-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-liberar-mesa {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .btn-liberar-mesa:hover {
+        background: #388e3c;
+        transform: translateY(-1px);
+    }
+
+    .btn-cancelar {
+        background: #f44336;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .btn-cancelar:hover {
+        background: #d32f2f;
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 600px) {
+        .orders-container {
+            padding: 1rem 0.3rem;
+        }
+        .order-card {
+            padding: 0.7rem 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="orders-container">
+    <div class="orders-title">Pedidos Actuales</div>
+    {% if pedidos %}
+        {% for pedido in pedidos %}
+            <div class="order-card">
+                <div class="order-header">
+                    <span class="order-id">Pedido #{{ pedido.id }}</span>
+                    <span class="order-state estado-{{ pedido.estado_code }}">{{ pedido.estado }}</span>
+                </div>
+                <div class="order-table">Mesa: {{ pedido.mesa }}</div>
+                <div class="order-time">{{ pedido.fecha }} a las {{ pedido.hora }}</div>
+                <ul class="order-items">
+                    {% for item in pedido.items %}
+                        <li>{{ item.cantidad }} x {{ item.nombre }} - ${{ item.subtotal|floatformat:2 }}</li>
+                    {% endfor %}
+                </ul>
+                {% if pedido.notas %}
+                    <div class="order-notes">Notas: {{ pedido.notas }}</div>
+                {% endif %}
+                <div class="order-total">Total: ${{ pedido.total|floatformat:2 }}</div>
+                
+                <!-- Acciones de la orden -->
+                <div class="order-actions">
+                    {% if pedido.estado_code in 'entregada,lista' %}
+                        <button class="btn-liberar-mesa" onclick="liberarMesa({{ pedido.id }}, '{{ pedido.mesa }}')" 
+                                title="Finalizar servicio y liberar mesa">
+                            <i class="fas fa-check-circle"></i> Finalizar Servicio
+                        </button>
+                    {% endif %}
+                    {% if pedido.estado_code == 'pendiente' %}
+                        <button class="btn-cancelar" onclick="cancelarOrden({{ pedido.id }})" 
+                                title="Cancelar orden">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align:center; color:#789; padding: 3rem 0;">
+            <i class="fas fa-clipboard-list" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+            <br>No hay pedidos activos.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function liberarMesa(ordenId, mesaNumero) {
+    if (!confirm(`¿Finalizar servicio y liberar Mesa ${mesaNumero}?\n\nEsto marcará la orden como cerrada y la mesa como disponible.`)) {
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finalizando...';
+    button.disabled = true;
+    
+    fetch(`/mesero/liberar-mesa/${ordenId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostrar mensaje de éxito
+            alert(`Mesa ${mesaNumero} liberada exitosamente`);
+            
+            // Recargar la página para actualizar el estado
+            window.location.reload();
+        } else {
+            alert(data.message || 'Error al liberar mesa');
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión al liberar mesa');
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+    });
+}
+
+function cancelarOrden(ordenId) {
+    if (!confirm('¿Cancelar esta orden?\n\nEsta acción no se puede deshacer.')) {
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelando...';
+    button.disabled = true;
+    
+    fetch(`/mesero/cancelar-orden/${ordenId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Orden cancelada exitosamente');
+            window.location.reload();
+        } else {
+            alert(data.message || 'Error al cancelar orden');
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión al cancelar orden');
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

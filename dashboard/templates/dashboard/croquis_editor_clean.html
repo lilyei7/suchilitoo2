@@ -1,0 +1,1099 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Editor de Croquis - Sushi Restaurant{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-drafting-compass me-2 text-primary"></i>
+            Editor de Croquis
+        </h1>
+        <p class="text-muted mb-0">Diseña la distribución visual de tu restaurante</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary" onclick="cargarLayout()">
+            <i class="fas fa-folder-open me-1"></i>Cargar Layout
+        </button>
+        <button class="btn btn-success" onclick="guardarLayout()">
+            <i class="fas fa-save me-1"></i>Guardar Layout
+        </button>
+    </div>
+</div>
+
+<!-- Información de la sucursal -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title d-flex align-items-center">
+                    <i class="fas fa-building me-2"></i>{{ sucursal.nombre }}
+                </h6>
+                <p class="text-muted mb-0">{{ sucursal.direccion }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Panel de herramientas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-tools me-2"></i>Herramientas de Diseño
+                </h6>
+            </div>
+            <div class="card-body p-3">
+                <!-- Herramientas básicas -->
+                <div class="row">
+                    <div class="col-lg-12 mb-3">
+                        <div class="btn-group flex-wrap" role="group">
+                            <button type="button" id="tool-seleccionar" class="btn btn-outline-primary tool-active" onclick="seleccionarHerramienta('seleccionar')">
+                                <i class="fas fa-mouse-pointer"></i> Seleccionar
+                            </button>
+                            <button type="button" id="tool-mesa" class="btn btn-outline-primary" onclick="seleccionarHerramienta('mesa')">
+                                <i class="fas fa-table"></i> Mesa
+                            </button>
+                            <button type="button" id="tool-silla" class="btn btn-outline-primary" onclick="seleccionarHerramienta('silla')">
+                                <i class="fas fa-chair"></i> Silla
+                            </button>
+                            <button type="button" id="tool-pared" class="btn btn-outline-primary" onclick="seleccionarHerramienta('pared')">
+                                <i class="fas fa-square"></i> Pared
+                            </button>
+                            <button type="button" id="tool-puerta" class="btn btn-outline-primary" onclick="seleccionarHerramienta('puerta')">
+                                <i class="fas fa-door-open"></i> Puerta
+                            </button>
+                            <button type="button" id="tool-barra" class="btn btn-outline-primary" onclick="seleccionarHerramienta('barra')">
+                                <i class="fas fa-wine-glass"></i> Barra
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="limpiarPiso()">
+                                <i class="fas fa-broom"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Editor Principal -->
+<div class="row">
+    <!-- Canvas del editor -->
+    <div class="col-lg-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-paint-brush me-2"></i>Área de Diseño
+                </h6>
+                <div class="d-flex gap-2">
+                    <small class="text-muted">Zoom:</small>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="zoomOut()">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <span id="zoomLevel" class="text-muted small">100%</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="zoomIn()">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" onclick="ajustarTamaño()">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="centrarVista()">
+                        <i class="fas fa-crosshairs"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="canvasContainer" class="position-relative overflow-hidden" style="height: 700px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                    <canvas id="croquiCanvas" width="1200" height="700" 
+                            style="border: 2px solid #dee2e6; cursor: crosshair; border-radius: 8px;"
+                            class="shadow-sm"></canvas>
+                    
+                    <!-- Indicadores de coordenadas -->
+                    <div class="coordenadas" id="coordenadasDiv" style="position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: 0.8rem;">
+                        X: 0, Y: 0
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Panel lateral -->
+    <div class="col-lg-3">
+        <!-- Propiedades del objeto seleccionado -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-cogs me-2"></i>Propiedades
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="propiedadesPanel">
+                    <p class="text-muted text-center">
+                        <i class="fas fa-hand-pointer fa-2x mb-2 d-block"></i>
+                        Selecciona un objeto para ver sus propiedades
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista de mesas -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Mesas de la Sucursal
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="listaMesas">
+                    <!-- Se cargará dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estilos para el editor de croquis */
+.canvas-container {
+    background-image: 
+        linear-gradient(to right, #e9ecef 1px, transparent 1px),
+        linear-gradient(to bottom, #e9ecef 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.tool-active {
+    background-color: var(--bs-primary) !important;
+    color: white !important;
+    border-color: var(--bs-primary) !important;
+}
+
+.objeto-seleccionado {
+    box-shadow: 0 0 0 2px #007bff;
+}
+
+.mesa-canvas {
+    border: 2px solid #28a745;
+    background: rgba(40, 167, 69, 0.1);
+    border-radius: 8px;
+}
+
+.pared-canvas {
+    background: #6c757d;
+}
+
+.puerta-canvas {
+    border: 2px solid #ffc107;
+    background: rgba(255, 193, 7, 0.2);
+}
+
+.barra-canvas {
+    border: 2px solid #fd7e14;
+    background: rgba(253, 126, 20, 0.1);
+    border-radius: 4px;
+}
+
+/* Panel de propiedades */
+.property-group {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.property-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.property-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+/* Lista de mesas */
+.mesa-item {
+    padding: 0.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mesa-item:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+}
+
+.mesa-item.mesa-ubicada {
+    background: rgba(40, 167, 69, 0.1);
+    border-color: #28a745;
+}
+
+.mesa-item.mesa-ubicada .badge {
+    background: #28a745;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales del editor
+let canvas, ctx;
+let herramientaActual = 'seleccionar';
+let objetoSeleccionado = null;
+let objetos = [];
+let mesasDisponibles = [];
+let isDragging = false;
+let dragOffset = { x: 0, y: 0 };
+let zoom = 1;
+let panOffset = { x: 0, y: 0 };
+let pisoActual = 1;
+let objetosPorPiso = { 1: [], 2: [], 3: [] };
+
+// 🎨 INICIALIZACIÓN DEL CANVAS
+function inicializarCanvas() {
+    console.log('🎨 Inicializando canvas del editor de croquis...');
+    
+    canvas = document.getElementById('croquiCanvas');
+    if (!canvas) {
+        console.error('❌ No se pudo encontrar el elemento canvas con ID "croquiCanvas"');
+        return false;
+    }
+    
+    ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.error('❌ No se pudo obtener el contexto 2D del canvas');
+        return false;
+    }
+    
+    // Configurar eventos del canvas
+    canvas.addEventListener('mousedown', onMouseDown);
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('wheel', onWheel);
+    
+    console.log('✅ Canvas inicializado correctamente');
+    
+    // Dibujar por primera vez
+    redraw();
+    
+    return true;
+}
+
+// 🔧 FUNCIONES PRINCIPALES
+
+// Selección de herramientas
+function seleccionarHerramienta(herramienta) {
+    // Remover clase activa de todos los botones
+    document.querySelectorAll('[id^="tool-"]').forEach(btn => {
+        btn.classList.remove('tool-active');
+    });
+    
+    // Activar herramienta seleccionada
+    const boton = document.getElementById(`tool-${herramienta}`);
+    if (boton) {
+        boton.classList.add('tool-active');
+    }
+    
+    herramientaActual = herramienta;
+    objetoSeleccionado = null;
+    actualizarPanelPropiedades();
+    
+    // Cambiar cursor
+    switch (herramienta) {
+        case 'seleccionar':
+        case 'mover':
+            if (canvas) canvas.style.cursor = 'default';
+            break;
+        default:
+            if (canvas) canvas.style.cursor = 'crosshair';
+    }
+    
+    redraw();
+}
+
+// Guardar layout
+function guardarLayout() {
+    // Guardar objetos del piso actual
+    objetosPorPiso[pisoActual] = [...objetos];
+    
+    const layout = {
+        sucursalId: {{ sucursal.id }},
+        objetos: [],
+        version: '2.0',
+        pisos: objetosPorPiso
+    };
+    
+    // Consolidar todos los objetos de todos los pisos
+    for (const [piso, objetosPiso] of Object.entries(objetosPorPiso)) {
+        objetosPiso.forEach(obj => {
+            layout.objetos.push({
+                ...obj,
+                piso: parseInt(piso)
+            });
+        });
+    }
+    
+    // Obtener CSRF token
+    let csrfToken = '';
+    const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfInput) {
+        csrfToken = csrfInput.value;
+    }
+    
+    console.log('🔑 CSRF Token para guardar:', csrfToken);
+    
+    fetch('/dashboard/api/croquis/guardar/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(layout)
+    })
+    .then(response => {
+        console.log('📡 Respuesta de guardar:', response.status, response.statusText);
+        
+        if (response.status === 401) {
+            throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        }
+        
+        if (response.status === 403) {
+            throw new Error('No tienes permisos para guardar layouts. Se requieren permisos de administrador.');
+        }
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast('💾 Layout guardado exitosamente', 'success');
+        } else {
+            showToast(`❌ Error: ${data.message}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error guardando layout:', error);
+        showToast(`❌ Error de conexión: ${error.message}`, 'error');
+    });
+}
+
+// Cargar layout
+function cargarLayout() {
+    const sucursalId = {{ sucursal.id }};
+    
+    fetch(`/dashboard/api/croquis/cargar/${sucursalId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.layout) {
+                // Limpiar objetos actuales
+                objetosPorPiso = { 1: [], 2: [], 3: [] };
+                
+                // Organizar objetos por piso
+                if (data.layout.objetos) {
+                    data.layout.objetos.forEach(obj => {
+                        const piso = obj.piso || 1;
+                        if (!objetosPorPiso[piso]) {
+                            objetosPorPiso[piso] = [];
+                        }
+                        objetosPorPiso[piso].push(obj);
+                    });
+                }
+                
+                // Cargar objetos del piso actual
+                objetos = objetosPorPiso[pisoActual] || [];
+                objetoSeleccionado = null;
+                
+                actualizarPanelPropiedades();
+                redraw();
+                actualizarListaMesas();
+                
+                showToast('📂 Layout cargado exitosamente', 'success');
+            } else {
+                showToast('⚠️ No hay layout guardado para esta sucursal', 'warning');
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando layout:', error);
+            showToast('❌ Error cargando layout', 'error');
+        });
+}
+
+// Eliminar objeto seleccionado
+function eliminarSeleccionado() {
+    if (objetoSeleccionado) {
+        const index = objetos.indexOf(objetoSeleccionado);
+        if (index > -1) {
+            objetos.splice(index, 1);
+            objetoSeleccionado = null;
+            actualizarPanelPropiedades();
+            redraw();
+            showToast('🗑️ Objeto eliminado', 'success');
+        }
+    } else {
+        showToast('⚠️ Selecciona un objeto para eliminar', 'warning');
+    }
+}
+
+// Duplicar objeto seleccionado
+function duplicarSeleccionado() {
+    if (!objetoSeleccionado) {
+        showToast('⚠️ Selecciona un objeto para duplicar', 'warning');
+        return;
+    }
+    
+    const nuevo = {
+        ...objetoSeleccionado,
+        id: Date.now() + Math.random(),
+        x: objetoSeleccionado.x + 20,
+        y: objetoSeleccionado.y + 20
+    };
+    
+    objetos.push(nuevo);
+    objetoSeleccionado = nuevo;
+    actualizarPanelPropiedades();
+    redraw();
+    
+    showToast('✅ Objeto duplicado', 'success');
+}
+
+// Limpiar piso actual
+function limpiarPiso() {
+    if (objetos.length === 0) {
+        showToast('⚠️ No hay objetos en este piso para limpiar', 'warning');
+        return;
+    }
+    
+    if (confirm(`¿Estás seguro de que deseas limpiar todos los objetos del ${pisoActual === 1 ? 'planta baja' : `piso ${pisoActual}`}?`)) {
+        objetos = [];
+        objetosPorPiso[pisoActual] = [];
+        objetoSeleccionado = null;
+        actualizarPanelPropiedades();
+        redraw();
+        showToast('🧹 Piso limpiado', 'success');
+    }
+}
+
+// Funciones de zoom
+function zoomIn() {
+    zoom *= 1.2;
+    zoom = Math.min(3, zoom);
+    document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+    redraw();
+}
+
+function zoomOut() {
+    zoom *= 0.8;
+    zoom = Math.max(0.3, zoom);
+    document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+    redraw();
+}
+
+// Centrar vista
+function centrarVista() {
+    panOffset.x = 0;
+    panOffset.y = 0;
+    zoom = 1;
+    document.getElementById('zoomLevel').textContent = '100%';
+    redraw();
+    showToast('🎯 Vista centrada', 'info');
+}
+
+// Ajustar vista al contenido
+function ajustarTamaño() {
+    if (objetos.length === 0) {
+        centrarVista();
+        return;
+    }
+    
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    objetos.forEach(obj => {
+        minX = Math.min(minX, obj.x);
+        minY = Math.min(minY, obj.y);
+        maxX = Math.max(maxX, obj.x + obj.width);
+        maxY = Math.max(maxY, obj.y + obj.height);
+    });
+    
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    const padding = 50;
+    
+    const zoomX = (canvas.width - padding * 2) / contentWidth;
+    const zoomY = (canvas.height - padding * 2) / contentHeight;
+    
+    zoom = Math.min(zoomX, zoomY, 2);
+    zoom = Math.max(zoom, 0.3);
+    
+    panOffset.x = (canvas.width - contentWidth * zoom) / 2 - minX * zoom;
+    panOffset.y = (canvas.height - contentHeight * zoom) / 2 - minY * zoom;
+    
+    document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+    redraw();
+    
+    showToast('🔍 Vista ajustada al contenido', 'info');
+}
+
+// Panel de propiedades
+function actualizarPanelPropiedades() {
+    const panel = document.getElementById('propiedadesPanel');
+    
+    if (!objetoSeleccionado) {
+        panel.innerHTML = `
+            <p class="text-muted text-center">
+                <i class="fas fa-hand-pointer fa-2x mb-2 d-block"></i>
+                Selecciona un objeto para ver sus propiedades
+            </p>
+        `;
+        return;
+    }
+    
+    const obj = objetoSeleccionado;
+    
+    let html = `
+        <div class="property-group">
+            <div class="property-label">Tipo de Objeto</div>
+            <input type="text" class="form-control form-control-sm" value="${obj.tipo}" readonly>
+        </div>
+        
+        <div class="property-group">
+            <div class="property-label">Posición</div>
+            <div class="row g-1">
+                <div class="col-6">
+                    <label class="form-label small">X:</label>
+                    <input type="number" class="form-control form-control-sm" value="${Math.round(obj.x)}" 
+                           onchange="actualizarPropiedad('x', parseFloat(this.value))">
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">Y:</label>
+                    <input type="number" class="form-control form-control-sm" value="${Math.round(obj.y)}" 
+                           onchange="actualizarPropiedad('y', parseFloat(this.value))">
+                </div>
+            </div>
+        </div>
+        
+        <div class="property-group">
+            <div class="property-label">Tamaño</div>
+            <div class="row g-1">
+                <div class="col-6">
+                    <label class="form-label small">Ancho:</label>
+                    <input type="number" class="form-control form-control-sm" value="${Math.round(obj.width)}" 
+                           onchange="actualizarPropiedad('width', parseFloat(this.value))">
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">Alto:</label>
+                    <input type="number" class="form-control form-control-sm" value="${Math.round(obj.height)}" 
+                           onchange="actualizarPropiedad('height', parseFloat(this.value))">
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Propiedades específicas para mesas
+    if (obj.tipo === 'mesa') {
+        html += `
+            <div class="property-group">
+                <div class="property-label">Mesa</div>
+                <div class="mb-2">
+                    <label class="form-label small">Número:</label>
+                    <input type="text" class="form-control form-control-sm" 
+                           value="${obj.propiedades?.numero || ''}" 
+                           onchange="actualizarPropiedadEspecifica('numero', this.value)"
+                           placeholder="Ej: 1, A1, VIP1">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Capacidad:</label>
+                    <select class="form-select form-select-sm" 
+                            onchange="actualizarPropiedadEspecifica('capacidad', parseInt(this.value))">
+                        ${[2,4,6,8,10,12].map(cap => 
+                            `<option value="${cap}" ${obj.propiedades?.capacidad === cap ? 'selected' : ''}>${cap} personas</option>`
+                        ).join('')}
+                    </select>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `
+        <div class="property-group">
+            <div class="d-grid gap-2">
+                <button class="btn btn-danger btn-sm" onclick="eliminarSeleccionado()">
+                    <i class="fas fa-trash me-1"></i>Eliminar Objeto
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="duplicarSeleccionado()">
+                    <i class="fas fa-copy me-1"></i>Duplicar Objeto
+                </button>
+            </div>
+        </div>
+    `;
+    
+    panel.innerHTML = html;
+}
+
+// Actualizar propiedades de objeto
+function actualizarPropiedad(propiedad, valor) {
+    if (objetoSeleccionado) {
+        objetoSeleccionado[propiedad] = valor;
+        redraw();
+    }
+}
+
+function actualizarPropiedadEspecifica(propiedad, valor) {
+    if (objetoSeleccionado) {
+        if (!objetoSeleccionado.propiedades) {
+            objetoSeleccionado.propiedades = {};
+        }
+        objetoSeleccionado.propiedades[propiedad] = valor;
+        redraw();
+    }
+}
+
+// Función para mostrar notificaciones
+function showToast(message, type = 'info') {
+    // Crear toast container si no existe
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
+        document.body.appendChild(container);
+    }
+    
+    // Crear toast
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    toast.style.cssText = 'min-width: 250px; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Auto-remove después de 3 segundos
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 3000);
+}
+
+// 🎨 FUNCIONES DE DIBUJO
+
+// Función principal para dibujar un objeto
+function dibujarObjeto(objeto) {
+    if (!ctx || !objeto) return;
+    
+    ctx.save();
+    
+    // Aplicar transformaciones si el objeto está seleccionado
+    if (objeto === objetoSeleccionado) {
+        ctx.strokeStyle = '#007bff';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(objeto.x - 2, objeto.y - 2, objeto.width + 4, objeto.height + 4);
+        ctx.setLineDash([]);
+    }
+    
+    // Dibujar según el tipo de objeto
+    switch (objeto.tipo) {
+        case 'mesa':
+            dibujarMesa(objeto);
+            break;
+        case 'silla':
+            dibujarSilla(objeto);
+            break;
+        case 'pared':
+            dibujarPared(objeto);
+            break;
+        case 'puerta':
+            dibujarPuerta(objeto);
+            break;
+        case 'barra':
+            dibujarBarra(objeto);
+            break;
+        default:
+            dibujarObjetoGenerico(objeto);
+    }
+    
+    ctx.restore();
+}
+
+function dibujarMesa(objeto) {
+    const esVinculada = !!objeto.mesaId;
+    
+    ctx.fillStyle = esVinculada ? 'rgba(40, 167, 69, 0.8)' : 'rgba(108, 117, 125, 0.6)';
+    ctx.strokeStyle = esVinculada ? '#28a745' : '#6c757d';
+    ctx.lineWidth = 2;
+    
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    ctx.strokeRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Texto del número de mesa
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const centerX = objeto.x + objeto.width / 2;
+    const centerY = objeto.y + objeto.height / 2;
+    const numero = objeto.propiedades?.numero || 'M';
+    
+    ctx.fillText(numero, centerX, centerY);
+}
+
+function dibujarSilla(objeto) {
+    ctx.fillStyle = '#8B4513';
+    ctx.strokeStyle = '#654321';
+    ctx.lineWidth = 1;
+    
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    ctx.strokeRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Respaldo (línea superior)
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(objeto.x, objeto.y);
+    ctx.lineTo(objeto.x + objeto.width, objeto.y);
+    ctx.stroke();
+}
+
+function dibujarPared(objeto) {
+    ctx.fillStyle = '#6c757d';
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+}
+
+function dibujarPuerta(objeto) {
+    ctx.fillStyle = '#ffc107';
+    ctx.strokeStyle = '#e0a800';
+    ctx.lineWidth = 2;
+    
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    ctx.strokeRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Manija
+    const manijaX = objeto.x + objeto.width - 8;
+    const manijaY = objeto.y + objeto.height / 2;
+    
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(manijaX, manijaY, 3, 0, 2 * Math.PI);
+    ctx.fill();
+}
+
+function dibujarBarra(objeto) {
+    ctx.fillStyle = '#fd7e14';
+    ctx.strokeStyle = '#dc6802';
+    ctx.lineWidth = 2;
+    
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    ctx.strokeRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Icono
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('🍷', objeto.x + objeto.width / 2, objeto.y + objeto.height / 2);
+}
+
+function dibujarObjetoGenerico(objeto) {
+    ctx.fillStyle = 'rgba(108, 117, 125, 0.5)';
+    ctx.strokeStyle = '#6c757d';
+    ctx.lineWidth = 1;
+    
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    ctx.strokeRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Texto del tipo
+    ctx.fillStyle = '#333';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(objeto.tipo.toUpperCase(), objeto.x + objeto.width / 2, objeto.y + objeto.height / 2);
+}
+
+// Event handlers del mouse
+function onMouseDown(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left - panOffset.x) / zoom;
+    const y = (e.clientY - rect.top - panOffset.y) / zoom;
+    
+    if (herramientaActual === 'seleccionar') {
+        // Buscar objeto en la posición del clic
+        objetoSeleccionado = encontrarObjetoEnPunto(x, y);
+        
+        if (objetoSeleccionado) {
+            isDragging = true;
+            dragOffset.x = x - objetoSeleccionado.x;
+            dragOffset.y = y - objetoSeleccionado.y;
+        }
+    } else {
+        // Crear nuevo objeto
+        crearObjetoEnPosicion(x, y, herramientaActual);
+    }
+    
+    actualizarPanelPropiedades();
+    redraw();
+}
+
+function onMouseMove(e) {
+    if (isDragging && objetoSeleccionado) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - panOffset.x) / zoom;
+        const y = (e.clientY - rect.top - panOffset.y) / zoom;
+        
+        objetoSeleccionado.x = x - dragOffset.x;
+        objetoSeleccionado.y = y - dragOffset.y;
+        
+        redraw();
+    }
+    
+    // Actualizar coordenadas
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.round((e.clientX - rect.left - panOffset.x) / zoom);
+    const y = Math.round((e.clientY - rect.top - panOffset.y) / zoom);
+    
+    const coordDiv = document.getElementById('coordenadasDiv');
+    if (coordDiv) {
+        coordDiv.textContent = `X: ${x}, Y: ${y}`;
+    }
+}
+
+function onMouseUp(e) {
+    isDragging = false;
+}
+
+function onWheel(e) {
+    e.preventDefault();
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    zoom *= zoomFactor;
+    zoom = Math.max(0.3, Math.min(3, zoom));
+    
+    document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+    redraw();
+}
+
+// Encontrar objeto en un punto
+function encontrarObjetoEnPunto(x, y) {
+    // Buscar en orden inverso (últimos objetos primero)
+    for (let i = objetos.length - 1; i >= 0; i--) {
+        const obj = objetos[i];
+        if (x >= obj.x && x <= obj.x + obj.width &&
+            y >= obj.y && y <= obj.y + obj.height) {
+            return obj;
+        }
+    }
+    return null;
+}
+
+// Función para redibujar el canvas
+function redraw() {
+    if (!canvas || !ctx) return;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Dibujar grid de fondo
+    dibujarGrid();
+    
+    ctx.save();
+    ctx.translate(panOffset.x, panOffset.y);
+    ctx.scale(zoom, zoom);
+    
+    // Dibujar objetos del piso actual
+    objetos.forEach(objeto => {
+        dibujarObjeto(objeto);
+    });
+    
+    ctx.restore();
+}
+
+// Dibujar grid de fondo
+function dibujarGrid() {
+    ctx.save();
+    ctx.translate(panOffset.x, panOffset.y);
+    ctx.scale(zoom, zoom);
+    
+    ctx.strokeStyle = 'rgba(0,123,255,0.1)';
+    ctx.lineWidth = 1 / zoom;
+    
+    const gridSize = 20;
+    const width = canvas.width / zoom;
+    const height = canvas.height / zoom;
+    
+    // Líneas verticales
+    for (let x = 0; x <= width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+    }
+    
+    // Líneas horizontales
+    for (let y = 0; y <= height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+}
+
+// Crear objeto en posición específica
+function crearObjetoEnPosicion(x, y, tipo) {
+    const tamanosDefault = {
+        mesa: { width: 80, height: 80 },
+        silla: { width: 30, height: 30 },
+        pared: { width: 20, height: 100 },
+        puerta: { width: 60, height: 20 },
+        barra: { width: 120, height: 40 }
+    };
+    
+    const tamano = tamanosDefault[tipo] || { width: 60, height: 60 };
+    
+    const objeto = {
+        id: Date.now() + Math.random(),
+        tipo: tipo,
+        x: x - tamano.width / 2,
+        y: y - tamano.height / 2,
+        width: tamano.width,
+        height: tamano.height,
+        rotation: 0,
+        propiedades: getPropertiesDefault(tipo),
+        piso: pisoActual
+    };
+    
+    objetos.push(objeto);
+    objetoSeleccionado = objeto;
+    actualizarPanelPropiedades();
+    redraw();
+}
+
+// Propiedades por defecto según tipo
+function getPropertiesDefault(tipo) {
+    const defaults = {
+        mesa: { numero: '', capacidad: 4, forma: 'rectangular' },
+        silla: { tipo: 'standard', color: '#8B4513' }
+    };
+    
+    return defaults[tipo] || {};
+}
+
+// Cargar mesas disponibles
+function cargarMesasDisponibles() {
+    const sucursalId = {{ sucursal.id }};
+    const url = `/dashboard/api/croquis/mesas/${sucursalId}/`;
+    
+    console.log('🔄 Cargando mesas desde:', url);
+    
+    fetch(url)
+        .then(response => {
+            console.log('📡 Respuesta recibida:', response.status, response.statusText);
+            
+            if (response.status === 401) {
+                console.error('❌ Error de autenticación');
+                showToast('⚠️ Sesión expirada. Por favor, inicia sesión nuevamente.', 'warning');
+                setTimeout(() => {
+                    window.location.href = '/login/';
+                }, 3000);
+                return null;
+            }
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return response.json();
+        })
+        .then(data => {
+            if (!data) return; // Si hubo error 401, data será null
+            
+            console.log('📋 Datos de mesas recibidos:', data);
+            if (data.success) {
+                mesasDisponibles = data.mesas;
+                actualizarListaMesas();
+                console.log('✅ Mesas cargadas exitosamente:', data.mesas.length, 'mesas');
+            } else {
+                console.error('❌ Error en respuesta de mesas:', data);
+                showToast('❌ Error cargando mesas: ' + (data.message || 'Error desconocido'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando mesas:', error);
+            showToast('❌ Error cargando mesas: ' + error.message, 'error');
+        });
+}
+
+// Actualizar lista de mesas
+function actualizarListaMesas() {
+    const lista = document.getElementById('listaMesas');
+    
+    if (!lista) {
+        console.error('❌ Elemento listaMesas no encontrado');
+        return;
+    }
+    
+    if (mesasDisponibles.length === 0) {
+        lista.innerHTML = `
+            <div class="text-center p-3">
+                <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                <p class="text-muted mb-2">No hay mesas registradas para esta sucursal</p>
+                <small class="text-muted">
+                    Las mesas deben estar creadas en el sistema para poder vincularlas al croquis.
+                </small>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="mb-3"><h6 class="text-muted small">MESAS REGISTRADAS</h6></div>';
+    
+    mesasDisponibles.forEach(mesa => {
+        const objetoMesaVinculada = objetos.find(obj => obj.tipo === 'mesa' && obj.mesaId === mesa.id);
+        const estaUbicada = !!objetoMesaVinculada;
+        const claseEstado = estaUbicada ? 'mesa-ubicada' : 'mesa-disponible';
+        
+        html += `
+            <div class="mesa-item ${claseEstado} mb-2" data-mesa-id="${mesa.id}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">Mesa ${mesa.numero}</div>
+                        <small class="text-muted">${mesa.capacidad} personas</small>
+                        ${mesa.nombre ? `<small class="d-block text-info">${mesa.nombre}</small>` : ''}
+                    </div>
+                    <div class="text-end">
+                        <span class="badge ${estaUbicada ? 'bg-success' : 'bg-secondary'} mb-1">
+                            ${estaUbicada ? 'Ubicada' : 'Sin ubicar'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    lista.innerHTML = html;
+}
+
+// 🎮 INICIALIZACIÓN DEL EDITOR
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Iniciando editor de croquis mejorado...');
+    inicializarCanvas();
+    cargarMesasDisponibles();
+    cargarLayout();
+    console.log('✅ Editor de croquis inicializado');
+});
+
+</script>
+{% endblock %}

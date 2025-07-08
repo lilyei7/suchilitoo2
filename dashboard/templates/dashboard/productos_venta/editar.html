@@ -1,0 +1,153 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Editar Producto de Venta{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Editar Producto de Venta</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:principal' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:lista_productos_venta' %}">Productos de Venta</a></li>
+        <li class="breadcrumb-item active">Editar Producto</li>
+    </ol>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-utensils me-1"></i> Formulario de Edición: {{ producto.nombre }}
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="codigo" class="form-label">Código *</label>
+                        <input type="text" class="form-control" id="codigo" name="codigo" value="{{ producto.codigo }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="nombre" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" value="{{ producto.nombre }}" required>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="categoria" class="form-label">Categoría *</label>
+                        <select class="form-select" id="categoria" name="categoria" required>
+                            <option value="">-- Seleccione una categoría --</option>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}" {% if categoria.id == producto.categoria.id %}selected{% endif %}>
+                                    {{ categoria.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="precio" class="form-label">Precio de Venta *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="precio" name="precio" step="0.01" min="0" value="{{ producto.precio }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="calorias" class="form-label">Calorías</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="calorias" name="calorias" min="0" value="{{ producto.calorias|default:0 }}">
+                            <span class="input-group-text">cal</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="disponible" class="form-label">Disponibilidad</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="disponible" name="disponible" {% if producto.disponible %}checked{% endif %}>
+                            <label class="form-check-label" for="disponible">Producto disponible para venta</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="descripcion" class="form-label">Descripción</label>
+                    <textarea class="form-control" id="descripcion" name="descripcion" rows="3">{{ producto.descripcion|default:'' }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="recetas" class="form-label">Recetas que componen este producto *</label>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Seleccione una o más recetas que formarán parte de este producto.
+                    </div>
+                    <select class="form-select" id="recetas" name="recetas" multiple size="8" required>
+                        {% for receta in recetas_disponibles %}
+                            <option value="{{ receta.id }}" {% if receta.id in recetas_asociadas %}selected{% endif %}>
+                                {% if receta.producto %}
+                                    {{ receta.producto.nombre }} 
+                                {% else %}
+                                    Receta sin nombre
+                                {% endif %}
+                                ({{ receta.tiempo_preparacion }} min | {{ receta.porciones }} porciones)
+                            </option>
+                        {% empty %}
+                            <option disabled>No hay recetas disponibles</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Mantenga presionada la tecla Ctrl (Windows) o Command (Mac) para seleccionar múltiples recetas.</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Información de Costo</h5>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Costo actual:</strong> ${{ producto.costo }}</p>
+                                <p><strong>Margen de ganancia:</strong> {{ producto.margen|floatformat:2 }}%</p>
+                                <div class="alert alert-warning small">
+                                    <i class="fas fa-info-circle"></i> El costo se calculará automáticamente basado en las recetas seleccionadas.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{% url 'dashboard:lista_productos_venta' %}" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Actualizar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Código adicional para mejorar la experiencia de usuario en el formulario
+        const recetasSelect = document.getElementById('recetas');
+        
+        // Agregar bordes para mostrar selección múltiple
+        recetasSelect.addEventListener('change', function() {
+            const selectedOptions = Array.from(this.selectedOptions);
+            
+            // Resetear todos los estilos
+            Array.from(this.options).forEach(option => {
+                option.classList.remove('bg-primary', 'text-white');
+            });
+            
+            // Aplicar estilo a los seleccionados
+            selectedOptions.forEach(option => {
+                option.classList.add('bg-primary', 'text-white');
+            });
+        });
+        
+        // Inicializar estilos en carga
+        Array.from(recetasSelect.selectedOptions).forEach(option => {
+            option.classList.add('bg-primary', 'text-white');
+        });
+    });
+</script>
+{% endblock %}

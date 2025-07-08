@@ -1,0 +1,287 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Administración de Mesas - {{ block.super }}{% endblock %}
+
+{% block custom_css %}
+<style>
+    .mesa-card {
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .mesa-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .mesa-header {
+        padding: 1rem;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        text-align: center;
+    }
+    
+    .mesa-body {
+        padding: 1rem;
+    }
+    
+    .mesa-numero {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mesa-capacidad {
+        margin-bottom: 0.5rem;
+    }
+    
+    .mesa-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1rem;
+    }
+    
+    .estado-disponible {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+    }
+    
+    .estado-ocupada {
+        background-color: #ffebee;
+        color: #c62828;
+    }
+    
+    .estado-reservada {
+        background-color: #fff8e1;
+        color: #f57f17;
+    }
+    
+    .estado-mantenimiento {
+        background-color: #e0e0e0;
+        color: #424242;
+    }
+    
+    .btn-nueva-mesa {
+        margin-bottom: 2rem;
+    }
+    
+    .badge-mesa {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Administración de Mesas</h2>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#nuevaMesaModal">
+                    <i class="fas fa-plus"></i> Nueva Mesa
+                </button>
+            </div>
+            <p class="text-muted">Administre las mesas de su restaurante para la sucursal {{ sucursal.nombre }}</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% if mesas %}
+            {% for mesa in mesas %}
+                <div class="col-md-4 col-lg-3">
+                    <div class="card mesa-card">
+                        <div class="mesa-header estado-{{ mesa.estado }}">
+                            <h5 class="mb-0">MESA {{ mesa.numero }}</h5>
+                            <span class="badge badge-mesa estado-{{ mesa.estado }}">{{ mesa.get_estado_display }}</span>
+                        </div>
+                        <div class="mesa-body">
+                            {% if mesa.nombre %}
+                                <p class="mesa-nombre">{{ mesa.nombre }}</p>
+                            {% endif %}
+                            <p class="mesa-capacidad">
+                                <i class="fas fa-users"></i> Capacidad: {{ mesa.capacidad }} personas
+                            </p>
+                            <div class="mesa-actions">
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        data-toggle="modal" 
+                                        data-target="#editarMesaModal" 
+                                        data-mesa-id="{{ mesa.id }}"
+                                        data-mesa-numero="{{ mesa.numero }}"
+                                        data-mesa-nombre="{{ mesa.nombre }}"
+                                        data-mesa-capacidad="{{ mesa.capacidad }}"
+                                        data-mesa-estado="{{ mesa.estado }}">
+                                    <i class="fas fa-edit"></i> Editar
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        data-toggle="modal" 
+                                        data-target="#eliminarMesaModal" 
+                                        data-mesa-id="{{ mesa.id }}"
+                                        data-mesa-numero="{{ mesa.numero }}">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No hay mesas registradas para esta sucursal.
+                    <a href="#" data-toggle="modal" data-target="#nuevaMesaModal">Crear primera mesa</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Nueva Mesa -->
+<div class="modal fade" id="nuevaMesaModal" tabindex="-1" role="dialog" aria-labelledby="nuevaMesaModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevaMesaModalLabel">Nueva Mesa</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="crear">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="numero">Número de Mesa *</label>
+                        <input type="text" class="form-control" id="numero" name="numero" required>
+                        <small class="form-text text-muted">Identificador único para la mesa (ej. 1, 2, 3, A1, B2, etc.)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="nombre">Nombre (opcional)</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre">
+                        <small class="form-text text-muted">Nombre descriptivo de la mesa (ej. Terraza, VIP, etc.)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="capacidad">Capacidad *</label>
+                        <input type="number" class="form-control" id="capacidad" name="capacidad" min="1" value="4" required>
+                        <small class="form-text text-muted">Cantidad máxima de personas que pueden sentarse</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Mesa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Mesa -->
+<div class="modal fade" id="editarMesaModal" tabindex="-1" role="dialog" aria-labelledby="editarMesaModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarMesaModalLabel">Editar Mesa</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="editar">
+                <input type="hidden" name="mesa_id" id="edit_mesa_id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="edit_numero">Número de Mesa *</label>
+                        <input type="text" class="form-control" id="edit_numero" name="numero" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_nombre">Nombre (opcional)</label>
+                        <input type="text" class="form-control" id="edit_nombre" name="nombre">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_capacidad">Capacidad *</label>
+                        <input type="number" class="form-control" id="edit_capacidad" name="capacidad" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_estado">Estado *</label>
+                        <select class="form-control" id="edit_estado" name="estado" required>
+                            <option value="disponible">Disponible</option>
+                            <option value="ocupada">Ocupada</option>
+                            <option value="reservada">Reservada</option>
+                            <option value="mantenimiento">En Mantenimiento</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Mesa -->
+<div class="modal fade" id="eliminarMesaModal" tabindex="-1" role="dialog" aria-labelledby="eliminarMesaModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eliminarMesaModalLabel">Eliminar Mesa</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="eliminar">
+                <input type="hidden" name="mesa_id" id="eliminar_mesa_id">
+                <div class="modal-body">
+                    <p>¿Está seguro que desea eliminar la mesa <strong id="eliminar_mesa_numero"></strong>?</p>
+                    <p class="text-danger">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar Mesa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cargar datos en el modal de edición
+        $('#editarMesaModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var mesaId = button.data('mesa-id');
+            var mesaNumero = button.data('mesa-numero');
+            var mesaNombre = button.data('mesa-nombre');
+            var mesaCapacidad = button.data('mesa-capacidad');
+            var mesaEstado = button.data('mesa-estado');
+            
+            var modal = $(this);
+            modal.find('#edit_mesa_id').val(mesaId);
+            modal.find('#edit_numero').val(mesaNumero);
+            modal.find('#edit_nombre').val(mesaNombre);
+            modal.find('#edit_capacidad').val(mesaCapacidad);
+            modal.find('#edit_estado').val(mesaEstado);
+        });
+        
+        // Cargar datos en el modal de eliminación
+        $('#eliminarMesaModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var mesaId = button.data('mesa-id');
+            var mesaNumero = button.data('mesa-numero');
+            
+            var modal = $(this);
+            modal.find('#eliminar_mesa_id').val(mesaId);
+            modal.find('#eliminar_mesa_numero').text(mesaNumero);
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,439 @@
+{% extends 'cajero/base.html' %}
+{% load static %}
+
+{% block title %}Historial de Ventas - Cajero{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'cajero/css/ventas.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="ventas-container">
+    <div class="ventas-header">
+        <h1 class="ventas-title">
+            <i class="fas fa-history me-2"></i>
+            Historial de Ventas
+        </h1>
+        <div class="ventas-header-actions">
+            <button class="btn btn-primary" onclick="exportarVentas()">
+                <i class="fas fa-download me-2"></i>
+                Exportar
+            </button>
+        </div>
+    </div>
+
+    <!-- Estadísticas resumidas -->
+    <div class="ventas-stats">
+        <div class="ventas-stat-card">
+            <div class="ventas-stat-number">{{ stats.total_ventas|default:'0' }}</div>
+            <div class="ventas-stat-label">Total Ventas</div>
+        </div>
+        <div class="ventas-stat-card">
+            <div class="ventas-stat-number">${{ stats.total_ingresos|default:'0.00' }}</div>
+            <div class="ventas-stat-label">Ingresos Totales</div>
+        </div>
+        <div class="ventas-stat-card">
+            <div class="ventas-stat-number">${{ stats.venta_promedio|default:'0.00' }}</div>
+            <div class="ventas-stat-label">Venta Promedio</div>
+        </div>
+        <div class="ventas-stat-card">
+            <div class="ventas-stat-number">{{ stats.ventas_hoy|default:'0' }}</div>
+            <div class="ventas-stat-label">Ventas Hoy</div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="ventas-filters">
+        <form method="GET" id="filtrosForm">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="fecha_desde" class="form-label">Desde:</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="fecha_desde" 
+                           name="fecha_desde" 
+                           value="{{ request.GET.fecha_desde }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_hasta" class="form-label">Hasta:</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="fecha_hasta" 
+                           name="fecha_hasta" 
+                           value="{{ request.GET.fecha_hasta }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="estado" class="form-label">Estado:</label>
+                    <select class="form-control" id="estado" name="estado">
+                        <option value="">Todos</option>
+                        <option value="completada" {% if request.GET.estado == 'completada' %}selected{% endif %}>Completada</option>
+                        <option value="pendiente" {% if request.GET.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="cancelada" {% if request.GET.estado == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>
+                        Filtrar
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" onclick="limpiarFiltros()">
+                        <i class="fas fa-times me-2"></i>
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de ventas -->
+    <div class="ventas-table-container">
+        {% if ventas %}
+            <table class="table ventas-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for venta in ventas %}
+                        <tr onclick="verDetalleVenta({{ venta.id }})">
+                            <td>
+                                <strong>#{{ venta.id|stringformat:"04d" }}</strong>
+                            </td>
+                            <td>
+                                <div>{{ venta.fecha_creacion|date:"d/m/Y" }}</div>
+                                <small class="text-muted">{{ venta.fecha_creacion|time:"H:i" }}</small>
+                            </td>
+                            <td>
+                                {% if venta.cliente %}
+                                    {{ venta.cliente.nombre }}
+                                {% else %}
+                                    <span class="text-muted">Cliente general</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ venta.items.count }} items</span>
+                            </td>
+                            <td>
+                                <div class="venta-total">${{ venta.total }}</div>
+                            </td>
+                            <td>
+                                <span class="venta-status {{ venta.estado }}">
+                                    {{ venta.get_estado_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="venta-actions">
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="event.stopPropagation(); verDetalleVenta({{ venta.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-success" 
+                                            onclick="event.stopPropagation(); imprimirTicket({{ venta.id }})">
+                                        <i class="fas fa-print"></i>
+                                    </button>
+                                    {% if user_permissions.can_cancel_sales and venta.estado == 'pendiente' %}
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="event.stopPropagation(); cancelarVenta({{ venta.id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="ventas-empty">
+                <i class="fas fa-receipt"></i>
+                <h3>No hay ventas registradas</h3>
+                <p>Las ventas realizadas aparecerán aquí</p>
+                <a href="{% url 'cajero:pos' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus me-2"></i>
+                    Realizar Primera Venta
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Paginación -->
+    {% if ventas.has_other_pages %}
+        <div class="ventas-pagination">
+            <nav aria-label="Paginación de ventas">
+                <ul class="pagination">
+                    {% if ventas.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.fecha_desde %}&fecha_desde={{ request.GET.fecha_desde }}{% endif %}{% if request.GET.fecha_hasta %}&fecha_hasta={{ request.GET.fecha_hasta }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ ventas.previous_page_number }}{% if request.GET.fecha_desde %}&fecha_desde={{ request.GET.fecha_desde }}{% endif %}{% if request.GET.fecha_hasta %}&fecha_hasta={{ request.GET.fecha_hasta }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in ventas.paginator.page_range %}
+                        {% if ventas.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > ventas.number|add:'-3' and num < ventas.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if request.GET.fecha_desde %}&fecha_desde={{ request.GET.fecha_desde }}{% endif %}{% if request.GET.fecha_hasta %}&fecha_hasta={{ request.GET.fecha_hasta }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if ventas.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ ventas.next_page_number }}{% if request.GET.fecha_desde %}&fecha_desde={{ request.GET.fecha_desde }}{% endif %}{% if request.GET.fecha_hasta %}&fecha_hasta={{ request.GET.fecha_hasta }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ ventas.paginator.num_pages }}{% if request.GET.fecha_desde %}&fecha_desde={{ request.GET.fecha_desde }}{% endif %}{% if request.GET.fecha_hasta %}&fecha_hasta={{ request.GET.fecha_hasta }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal para detalle de venta -->
+<div class="modal fade venta-modal" id="ventaModal" tabindex="-1" aria-labelledby="ventaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ventaModalLabel">
+                    <i class="fas fa-receipt me-2"></i>
+                    Detalle de Venta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="ventaModalBody">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="imprimirTicketModal()">
+                    <i class="fas fa-print me-2"></i>
+                    Imprimir Ticket
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let ventaSeleccionada = null;
+
+    function verDetalleVenta(ventaId) {
+        ventaSeleccionada = ventaId;
+        
+        // Mostrar spinner
+        document.getElementById('ventaModalBody').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner"></div>
+                Cargando detalle de venta...
+            </div>
+        `;
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('ventaModal'));
+        modal.show();
+        
+        // Cargar datos
+        fetch(`/cajero/api/ventas/${ventaId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarDetalleVenta(data.venta);
+                } else {
+                    mostrarError('Error al cargar el detalle de la venta');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarError('Error al cargar el detalle de la venta');
+            });
+    }
+
+    function mostrarDetalleVenta(venta) {
+        const modalBody = document.getElementById('ventaModalBody');
+        
+        let itemsHtml = '';
+        venta.items.forEach(item => {
+            itemsHtml += `
+                <div class="venta-item">
+                    <div class="venta-item-name">${item.producto_nombre}</div>
+                    <div class="venta-item-details">
+                        <span>Cant: ${item.cantidad}</span>
+                        <span>$${item.precio_unitario}</span>
+                    </div>
+                    <div class="venta-item-total">$${item.subtotal}</div>
+                </div>
+            `;
+        });
+        
+        modalBody.innerHTML = `
+            <div class="venta-detail-row">
+                <strong>ID de Venta:</strong>
+                <span>#${String(venta.id).padStart(4, '0')}</span>
+            </div>
+            <div class="venta-detail-row">
+                <strong>Fecha:</strong>
+                <span>${new Date(venta.fecha_creacion).toLocaleString()}</span>
+            </div>
+            <div class="venta-detail-row">
+                <strong>Cliente:</strong>
+                <span>${venta.cliente || 'Cliente general'}</span>
+            </div>
+            <div class="venta-detail-row">
+                <strong>Estado:</strong>
+                <span class="venta-status ${venta.estado}">${venta.estado_display}</span>
+            </div>
+            <div class="venta-detail-row">
+                <strong>Método de Pago:</strong>
+                <span>${venta.metodo_pago_display || 'No especificado'}</span>
+            </div>
+            
+            <h6 class="mt-4 mb-3">Items de la Venta:</h6>
+            <div class="venta-items">
+                ${itemsHtml}
+            </div>
+            
+            <div class="venta-detail-row">
+                <strong>Subtotal:</strong>
+                <span>$${venta.subtotal}</span>
+            </div>
+            <div class="venta-detail-row">
+                <strong>Impuestos:</strong>
+                <span>$${venta.impuestos}</span>
+            </div>
+            <div class="venta-detail-row">
+                <strong>Total:</strong>
+                <span>$${venta.total}</span>
+            </div>
+        `;
+    }
+
+    function mostrarError(mensaje) {
+        document.getElementById('ventaModalBody').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${mensaje}
+            </div>
+        `;
+    }
+
+    function imprimirTicket(ventaId) {
+        window.open(`/cajero/api/ventas/${ventaId}/ticket/`, '_blank');
+    }
+
+    function imprimirTicketModal() {
+        if (ventaSeleccionada) {
+            imprimirTicket(ventaSeleccionada);
+        }
+    }
+
+    function cancelarVenta(ventaId) {
+        if (confirm('¿Está seguro de que desea cancelar esta venta?')) {
+            fetch(`/cajero/api/ventas/${ventaId}/cancelar/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarMensaje('Venta cancelada exitosamente', 'success');
+                    location.reload();
+                } else {
+                    mostrarMensaje(data.error || 'Error al cancelar la venta', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarMensaje('Error al cancelar la venta', 'error');
+            });
+        }
+    }
+
+    function exportarVentas() {
+        const params = new URLSearchParams(window.location.search);
+        params.append('export', 'true');
+        window.open(`/cajero/ventas/?${params.toString()}`, '_blank');
+    }
+
+    function limpiarFiltros() {
+        document.getElementById('fecha_desde').value = '';
+        document.getElementById('fecha_hasta').value = '';
+        document.getElementById('estado').value = '';
+        document.getElementById('filtrosForm').submit();
+    }
+
+    function mostrarMensaje(mensaje, tipo) {
+        const alertClass = tipo === 'success' ? 'alert-success' : 'alert-danger';
+        const icon = tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert ${alertClass} fade-in`;
+        alertDiv.innerHTML = `
+            <i class="fas ${icon} me-2"></i>
+            ${mensaje}
+        `;
+        
+        document.querySelector('.ventas-container').insertBefore(alertDiv, document.querySelector('.ventas-header'));
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Auto-submit form cuando cambian los filtros de fecha
+    document.getElementById('fecha_desde').addEventListener('change', function() {
+        if (this.value && document.getElementById('fecha_hasta').value) {
+            document.getElementById('filtrosForm').submit();
+        }
+    });
+
+    document.getElementById('fecha_hasta').addEventListener('change', function() {
+        if (this.value && document.getElementById('fecha_desde').value) {
+            document.getElementById('filtrosForm').submit();
+        }
+    });
+</script>
+{% endblock %}

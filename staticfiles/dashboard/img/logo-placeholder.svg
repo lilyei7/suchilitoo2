@@ -1,0 +1,30 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4285f4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3367d6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="55" fill="url(#grad1)" stroke="#2a56c6" stroke-width="2"/>
+  
+  <!-- Sushi/Fish icon -->
+  <g transform="translate(60,60)">
+    <!-- Fish body -->
+    <ellipse cx="0" cy="0" rx="35" ry="15" fill="white" opacity="0.9"/>
+    
+    <!-- Fish tail -->
+    <path d="M-35,0 L-45,-8 L-40,0 L-45,8 Z" fill="white" opacity="0.8"/>
+    
+    <!-- Fish eye -->
+    <circle cx="15" cy="-3" r="4" fill="#2a56c6"/>
+    <circle cx="16" cy="-4" r="1.5" fill="white"/>
+    
+    <!-- Fish fin -->
+    <path d="M5,-15 Q15,-20 25,-15 Q15,-10 5,-15" fill="white" opacity="0.7"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="60" y="100" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">SUSHI</text>
+</svg>

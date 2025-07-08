@@ -1,0 +1,871 @@
+{% extends 'cajero/base.html' %}
+{% load static %}
+
+{% block title %}Punto de Venta - Cajero{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* === POS TABLET-OPTIMIZED STYLES === */
+    body { 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+        background: #f8f9fa;
+    }
+    
+    .pos-header {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        padding: 20px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1020;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .categories-nav {
+        background: #fff;
+        padding: 16px 0;
+        border-bottom: 2px solid #e9ecef;
+        margin-bottom: 20px;
+        overflow-x: auto;
+        white-space: nowrap;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+
+    .categories-nav .nav {
+        gap: 8px;
+        padding: 0 20px;
+    }
+
+    .categories-nav .nav-link {
+        color: #2c3e50;
+        padding: 14px 28px;
+        border-radius: 16px;
+        font-weight: 600;
+        font-size: 16px;
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+        min-width: 140px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .categories-nav .nav-link:hover {
+        background: #e9ecef;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+
+    .categories-nav .nav-link.active {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: #fff;
+        border-color: #3498db;
+        box-shadow: 0 6px 20px rgba(52,152,219,0.3);
+        transform: translateY(-2px);
+    }
+
+    .modern-product-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px;
+    }
+    
+    .modern-product-card {
+        display: flex;
+        align-items: center;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+        padding: 20px 24px;
+        transition: all 0.3s ease;
+        border: 2px solid #f8f9fa;
+        min-height: 120px;
+        cursor: pointer;
+    }
+    
+    .modern-product-card:hover {
+        box-shadow: 0 12px 40px rgba(52,152,219,0.15);
+        transform: translateY(-4px);
+        border-color: #3498db;
+    }
+    
+    .modern-product-card:active {
+        transform: translateY(-2px);
+    }
+    
+    .modern-product-checkbox {
+        width: 28px;
+        height: 28px;
+        accent-color: #3498db;
+        margin-right: 20px;
+        cursor: pointer;
+    }
+    
+    .modern-product-info {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .product-emoji {
+        font-size: 2.5rem;
+        margin-bottom: 8px;
+    }
+    
+    .modern-product-name {
+        font-weight: 600;
+        font-size: 1.3rem;
+        color: #2c3e50;
+        line-height: 1.2;
+    }
+    
+    .modern-product-price {
+        color: #27ae60;
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+    
+    .btn-ingredientes {
+        font-size: 0.9rem;
+        color: #3498db;
+        text-decoration: none;
+        padding: 4px 0;
+        border: none;
+        background: none;
+    }
+    
+    .btn-ingredientes:hover {
+        color: #2980b9;
+        text-decoration: underline;
+    }
+    
+    .modern-qty-group {
+        display: flex;
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 16px;
+        overflow: hidden;
+        margin-left: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: 2px solid #e9ecef;
+    }
+    
+    .modern-qty-btn {
+        background: none;
+        border: none;
+        color: #3498db;
+        font-size: 1.6rem;
+        font-weight: 600;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .modern-qty-btn:hover {
+        background: #e9ecef;
+        color: #2980b9;
+    }
+    
+    .modern-qty-btn:active {
+        background: #dee2e6;
+        transform: scale(0.95);
+    }
+    
+    .modern-qty-input {
+        width: 60px;
+        border: none;
+        background: transparent;
+        text-align: center;
+        font-weight: 600;
+        font-size: 1.2rem;
+        color: #2c3e50;
+        padding: 8px;
+    }
+    
+    .btn-agregar-producto {
+        margin-left: 20px;
+        min-width: 120px;
+        font-weight: 600;
+        padding: 12px 24px;
+        border-radius: 16px;
+        font-size: 16px;
+    }
+
+    /* === ORDER SUMMARY === */
+    .order-list {
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        height: calc(100vh - 200px);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        border: 2px solid #f8f9fa;
+    }
+
+    .order-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+
+    .order-items {
+        flex-grow: 1;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        padding-right: 8px;
+    }
+
+    .order-item {
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid #f8f9fa;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        background: #f8f9fa;
+        transition: all 0.2s ease;
+    }
+
+    .order-item:hover {
+        background: #e9ecef;
+    }
+
+    .item-quantity {
+        display: flex;
+        align-items: center;
+        margin: 0 16px;
+    }
+
+    .quantity-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: #3498db;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .quantity-btn:hover {
+        background: #2980b9;
+        transform: scale(1.1);
+    }
+
+    .quantity-input {
+        width: 50px;
+        text-align: center;
+        border: none;
+        font-weight: 600;
+        margin: 0 8px;
+        background: transparent;
+        font-size: 16px;
+    }
+
+    .order-total {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        padding: 20px;
+        border-radius: 16px;
+        margin-top: auto;
+        border: 2px solid #e9ecef;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-size: 16px;
+    }
+
+    .total-row:last-child {
+        font-size: 20px;
+        font-weight: 700;
+        color: #2c3e50;
+        padding-top: 12px;
+        border-top: 2px solid #dee2e6;
+    }
+
+    .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    .btn-save-order {
+        padding: 16px;
+        border: none;
+        border-radius: 16px;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-save-order:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    /* === PAYMENT MODAL === */
+    .modal-content {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+        border-radius: 20px 20px 0 0;
+        padding: 24px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .modal-footer {
+        padding: 24px;
+        border-top: 2px solid #f8f9fa;
+        border-radius: 0 0 20px 20px;
+    }
+
+    /* === RESPONSIVE TABLET === */
+    @media (min-width: 768px) and (max-width: 1024px) {
+        .modern-product-card {
+            min-height: 140px;
+            padding: 24px 28px;
+        }
+        
+        .modern-product-name {
+            font-size: 1.4rem;
+        }
+        
+        .modern-product-price {
+            font-size: 1.3rem;
+        }
+        
+        .product-emoji {
+            font-size: 3rem;
+        }
+        
+        .modern-qty-btn {
+            width: 52px;
+            height: 52px;
+            font-size: 1.8rem;
+        }
+        
+        .modern-qty-input {
+            width: 70px;
+            font-size: 1.3rem;
+        }
+        
+        .btn-agregar-producto {
+            min-width: 140px;
+            padding: 14px 28px;
+            font-size: 18px;
+        }
+    }
+
+    /* === SWITCHES FOR INGREDIENTS === */
+    .form-switch .form-check-input {
+        width: 3em;
+        height: 1.6em;
+        background-color: #e0e0e0;
+        border-radius: 2em;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .form-switch .form-check-input:checked {
+        background-color: #3498db;
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+    
+    .form-switch .form-check-label {
+        margin-left: 12px;
+        font-weight: 500;
+        color: #2c3e50;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    /* === LOADING ANIMATION === */
+    .loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* === SCROLLBAR STYLING === */
+    .order-items::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .order-items::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .order-items::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+    
+    .order-items::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pos-header">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-1">
+                    <i class="fas fa-cash-register me-3"></i>
+                    Punto de Venta
+                </h1>
+                <p class="mb-0 opacity-75">Sistema moderno de ventas</p>
+            </div>
+            <div>
+                <a href="{% url 'cajero:dashboard' %}" class="btn btn-outline-light me-3">
+                    <i class="fas fa-home me-2"></i>Dashboard
+                </a>
+                <button class="btn btn-light btn-new-order">
+                    <i class="fas fa-plus me-2"></i>Nueva Orden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Productos y Categorías -->
+        <div class="col-lg-8">
+            <!-- Navegación de categorías -->
+            <nav class="categories-nav">
+                <div class="nav nav-pills">
+                    <a class="nav-link active" href="#categoria-bebidas" data-bs-toggle="pill">
+                        <i class="fas fa-coffee me-2"></i>Bebidas
+                    </a>
+                    <a class="nav-link" href="#categoria-sushi" data-bs-toggle="pill">
+                        <i class="fas fa-fish me-2"></i>Sushi
+                    </a>
+                    <a class="nav-link" href="#categoria-ceviches" data-bs-toggle="pill">
+                        <i class="fas fa-shrimp me-2"></i>Ceviches
+                    </a>
+                    <a class="nav-link" href="#categoria-tostadas" data-bs-toggle="pill">
+                        <i class="fas fa-bread-slice me-2"></i>Tostadas
+                    </a>
+                </div>
+            </nav>
+
+            <!-- Contenido de categorías -->
+            <div class="tab-content">
+                <!-- Bebidas -->
+                <div class="tab-pane fade show active" id="categoria-bebidas">
+                    <div class="modern-product-list">
+                        <div class="modern-product-card" data-producto-id="bebida1">
+                            <input class="modern-product-checkbox" type="checkbox" id="bebida1">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">🧋</div>
+                                <div class="modern-product-name">Té Helado</div>
+                                <div class="modern-product-price">$10.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="bebida1">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="bebida1">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                        
+                        <div class="modern-product-card" data-producto-id="bebida2">
+                            <input class="modern-product-checkbox" type="checkbox" id="bebida2">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">🍵</div>
+                                <div class="modern-product-name">Té Caliente</div>
+                                <div class="modern-product-price">$8.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="bebida2">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="bebida2">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                        
+                        <div class="modern-product-card" data-producto-id="bebida3">
+                            <input class="modern-product-checkbox" type="checkbox" id="bebida3">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">☕</div>
+                                <div class="modern-product-name">Café</div>
+                                <div class="modern-product-price">$12.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="bebida3">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="bebida3">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                        
+                        <div class="modern-product-card" data-producto-id="bebida4">
+                            <input class="modern-product-checkbox" type="checkbox" id="bebida4">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">🍋</div>
+                                <div class="modern-product-name">Limonada</div>
+                                <div class="modern-product-price">$9.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="bebida4">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="bebida4">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sushi -->
+                <div class="tab-pane fade" id="categoria-sushi">
+                    <div class="modern-product-list">
+                        <div class="modern-product-card" data-producto-id="sushi1">
+                            <input class="modern-product-checkbox" type="checkbox" id="sushi1">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">🍣</div>
+                                <div class="modern-product-name">Sushi Salmón</div>
+                                <div class="modern-product-price">$45.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="sushi1">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="sushi1">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                        
+                        <div class="modern-product-card" data-producto-id="sushi2">
+                            <input class="modern-product-checkbox" type="checkbox" id="sushi2">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">🍣</div>
+                                <div class="modern-product-name">Sushi Atún</div>
+                                <div class="modern-product-price">$42.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="sushi2">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="sushi2">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ceviches -->
+                <div class="tab-pane fade" id="categoria-ceviches">
+                    <div class="modern-product-list">
+                        <div class="modern-product-card" data-producto-id="ceviche1">
+                            <input class="modern-product-checkbox" type="checkbox" id="ceviche1">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">🦐</div>
+                                <div class="modern-product-name">Ceviche de Camarón</div>
+                                <div class="modern-product-price">$55.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="ceviche1">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="ceviche1">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                        
+                        <div class="modern-product-card" data-producto-id="ceviche2">
+                            <input class="modern-product-checkbox" type="checkbox" id="ceviche2">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">🦐</div>
+                                <div class="modern-product-name">Ceviche Mixto</div>
+                                <div class="modern-product-price">$60.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="ceviche2">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="ceviche2">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tostadas -->
+                <div class="tab-pane fade" id="categoria-tostadas">
+                    <div class="modern-product-list">
+                        <div class="modern-product-card" data-producto-id="tostada1">
+                            <input class="modern-product-checkbox" type="checkbox" id="tostada1">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">🥙</div>
+                                <div class="modern-product-name">Tostada de Atún</div>
+                                <div class="modern-product-price">$38.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="tostada1">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="tostada1">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                        
+                        <div class="modern-product-card" data-producto-id="tostada2">
+                            <input class="modern-product-checkbox" type="checkbox" id="tostada2">
+                            <div class="modern-product-info">
+                                <div class="product-emoji">🥙</div>
+                                <div class="modern-product-name">Tostada de Camarón</div>
+                                <div class="modern-product-price">$40.00</div>
+                                <button class="btn btn-link btn-ingredientes p-0 mt-1" data-producto-id="tostada2">
+                                    <i class="fas fa-cog me-1"></i>Personalizar
+                                </button>
+                            </div>
+                            <div class="modern-qty-group">
+                                <button class="modern-qty-btn" type="button" data-action="decrease">-</button>
+                                <input type="text" class="modern-qty-input" value="1" readonly>
+                                <button class="modern-qty-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-agregar-producto" data-producto-id="tostada2">
+                                <i class="fas fa-plus me-2"></i>Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Orden -->
+        <div class="col-lg-4">
+            <div class="order-list">
+                <div class="order-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        Orden Actual
+                    </h5>
+                    <span class="badge bg-primary">Caja #1</span>
+                </div>
+
+                <div class="order-items">
+                    <!-- Los items se agregarán dinámicamente aquí -->
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-shopping-cart fa-3x mb-3 opacity-50"></i>
+                        <p>No hay productos agregados</p>
+                        <small>Selecciona productos para empezar</small>
+                    </div>
+                </div>
+
+                <div class="order-total">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">$0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Descuento:</span>
+                        <span id="descuento">$0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>IVA (12%):</span>
+                        <span id="iva">$0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <strong>Total:</strong>
+                        <strong id="total">$0.00</strong>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn-save-order">
+                            <i class="fas fa-save me-2"></i>Guardar
+                        </button>
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#pagoModal">
+                            <i class="fas fa-credit-card me-2"></i>Procesar Pago
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Pago -->
+<div class="modal fade" id="pagoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Procesar Pago
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formPago">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Método de Pago</label>
+                        <select class="form-select form-select-lg" id="metodoPago">
+                            <option value="efectivo">💵 Efectivo</option>
+                            <option value="tarjeta">💳 Tarjeta</option>
+                        </select>
+                    </div>
+                    
+                    <div id="montoCobrarBox" class="mb-4" style="display:none;">
+                        <div class="alert alert-info text-center" style="font-size:1.8rem; padding: 24px;">
+                            <i class="fas fa-dollar-sign me-2"></i>
+                            Monto a cobrar: <span id="montoCobrar" class="fw-bold"></span>
+                        </div>
+                    </div>
+                    
+                    <div id="efectivoFields">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Monto Recibido</label>
+                            <input type="number" class="form-control form-control-lg" id="montoRecibido" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cambio</label>
+                            <input type="text" class="form-control form-control-lg" id="cambio" readonly placeholder="0.00">
+                        </div>
+                    </div>
+                    
+                    <div id="tarjetaFields" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Últimos 4 dígitos de la tarjeta</label>
+                            <input type="text" class="form-control form-control-lg" id="ultimos4" maxlength="4" pattern="\d{4}" placeholder="1234">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Referencia/Autorización (opcional)</label>
+                            <input type="text" class="form-control form-control-lg" id="referenciaTarjeta" placeholder="REF123456">
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Instrucciones:</strong><br>
+                            1. Ingresa el monto en la terminal física<br>
+                            2. Espera la aprobación de la transacción<br>
+                            3. Ingresa los últimos 4 dígitos y referencia
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-success btn-lg" onclick="finalizarPago()">
+                    <i class="fas fa-check me-2"></i>Finalizar Pago
+                </button>
+                <button type="button" class="btn btn-outline-dark btn-lg" onclick="imprimirTicket()">
+                    <i class="fas fa-print me-2"></i>Imprimir Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de ingredientes -->
+<div class="modal fade" id="ingredientesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-cog me-2"></i>
+                    Personalizar Ingredientes
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-ingredientes">
+                    <!-- Los switches de ingredientes se llenan dinámicamente -->
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="guardarIngredientes">
+                    <i class="fas fa-save me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'cajero/js/pos.js' %}"></script>
+{% endblock %}

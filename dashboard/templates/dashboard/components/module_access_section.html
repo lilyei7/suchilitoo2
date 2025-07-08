@@ -1,0 +1,27 @@
+{% comment %}
+Componente para mostrar secciones completas basadas en acceso a módulos
+{% endcomment %}
+
+{% if show_section %}
+<div class="module-section" data-module="{{ module_name }}">
+    {% if title %}
+    <div class="module-section-header">
+        <h4 class="module-title">{{ title }}</h4>
+    </div>
+    {% endif %}
+    
+    <div class="module-section-content">
+        {{ content|safe }}
+    </div>
+</div>
+{% else %}
+    {% comment %}
+    Sección no accesible - se puede mostrar un mensaje o simplemente ocultar
+    {% endcomment %}
+    {% if show_access_denied_message %}
+    <div class="alert alert-warning" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        No tienes acceso al módulo {{ module_name }}.
+    </div>
+    {% endif %}
+{% endif %}

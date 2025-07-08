@@ -1,0 +1,1805 @@
+{% extends 'cocina/base.html' %}
+{% load static %}
+
+{% block title %}Gestor de Cocina{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Sistema moderno estilo Kitchen Manager */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #f8f9fa;
+    color: #212529;
+    line-height: 1.5;
+}
+
+/* Container principal */
+.main-container {
+    max-width: 100%;
+    margin: 0;
+    padding: 1rem;
+    overflow-x: hidden;
+}
+
+/* Tabs de navegación */
+.tabs-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.tabs-nav {
+    display: flex;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.tab-button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #5f6368;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-button.active {
+    color: #1a73e8;
+    border-bottom-color: #1a73e8;
+    background: #f8f9fa;
+}
+
+.tab-button:hover:not(.active) {
+    background: #f1f3f4;
+    color: #202124;
+}
+
+.tab-button .badge {
+    background: #ea4335;
+    color: white;
+    border-radius: 12px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+    min-width: 20px;
+    text-align: center;
+}
+
+.tab-button.active .badge {
+    background: #1a73e8;
+}
+
+/* Buscador */
+.search-container {
+    margin-bottom: 1.5rem;
+}
+
+.search-box {
+    width: 100%;
+    max-width: 400px;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 2px solid #f1f3f4;
+    border-radius: 25px;
+    font-size: 1rem;
+    background: white;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.search-box:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-container::before {
+    content: "🔍";
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    z-index: 1;
+}
+
+/* Estadísticas en fila horizontal */
+.stats-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    padding: 0.5rem 0;
+    /* Scroll touch-friendly */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.stats-bar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+/* Cards estilo papel - SCROLL HORIZONTAL */
+.orders-grid {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1rem 0 2rem 0;
+    /* Scroll suave y touch-friendly */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    /* Scrollbar personalizado */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.orders-grid::-webkit-scrollbar {
+    height: 8px;
+}
+
+.orders-grid::-webkit-scrollbar-track {
+    background: #f7fafc;
+    border-radius: 10px;
+}
+
+.orders-grid::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 10px;
+}
+
+.orders-grid::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+.order-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f3f4;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    /* IMPORTANTE: Tamaño fijo para scroll horizontal */
+    min-width: 380px;
+    max-width: 380px;
+    flex-shrink: 0;
+    /* Touch friendly */
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.order-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
+}
+
+/* Touch feedback */
+.order-card:active {
+    transform: translateY(-2px) scale(0.98);
+}
+
+/* Header de la orden */
+.order-header {
+    padding: 1.5rem 1.5rem 0 1.5rem;
+    border-bottom: none;
+}
+
+.order-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #202124;
+    margin-bottom: 0.5rem;
+}
+
+.order-status {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.status-progress {
+    background: #e8f0fe;
+    color: #1a73e8;
+}
+
+.status-delayed {
+    background: #fce8e6;
+    color: #d93025;
+}
+
+.status-normal {
+    background: #e6f4ea;
+    color: #137333;
+}
+
+.status-completed {
+    background: #e8f5e8;
+    color: #2e7d32;
+}
+
+.timer-display.completed {
+    border-color: #2e7d32;
+    background: #f1f8e9;
+}
+
+.timer-main.completed {
+    color: #2e7d32;
+}
+
+.timer-progress.completed {
+    background: #2e7d32;
+}
+
+.completed-badge {
+    width: 100%;
+    background: #2e7d32;
+    color: white;
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-align: center;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.completed-order {
+    opacity: 0.8;
+}
+
+/* Información de la mesa */
+.order-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    color: #5f6368;
+    font-size: 0.875rem;
+}
+
+.order-info i {
+    font-size: 1rem;
+}
+
+/* Sección de items */
+.order-items {
+    padding: 0 1.5rem;
+}
+
+.order-items h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #202124;
+    margin-bottom: 0.75rem;
+}
+
+.item-row {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.item-row:last-child {
+    border-bottom: none;
+}
+
+/* Estilos para ítems expandidos */
+.item-expandido {
+    background: #f8f9fa;
+    border-left: 3px solid #1a73e8;
+    padding-left: 0.75rem;
+    margin: 0.25rem 0;
+    border-radius: 4px;
+}
+
+.item-expandido .item-quantity {
+    background: #e8f0fe;
+    color: #1a73e8;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.item-expandido .item-name {
+    color: #1a73e8;
+    font-weight: 600;
+}
+
+.item-expandido .item-notes {
+    background: #fff;
+    border: 1px solid #e8f0fe;
+    margin-top: 0.5rem;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #e65100;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+/* Sección de tiempo - MEJORADA */
+.order-timing {
+    padding: 1rem 1.5rem;
+    background: #fafbfc;
+    border-top: 1px solid #f1f3f4;
+    position: relative;
+}
+
+.timer-display {
+    background: #fff;
+    border: 2px solid #f1f3f4;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    position: relative;
+}
+
+.timer-display.warning {
+    border-color: #f9ab00;
+    background: #fffbf0;
+}
+
+.timer-display.danger {
+    border-color: #d93025;
+    background: #fef7f0;
+}
+
+.timer-main {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #202124;
+    margin-bottom: 0.25rem;
+}
+
+.timer-main.warning {
+    color: #f9ab00;
+}
+
+.timer-main.danger {
+    color: #d93025;
+}
+
+.timer-label {
+    font-size: 0.875rem;
+    color: #5f6368;
+    font-weight: 500;
+}
+
+.timer-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background: #137333;
+    border-radius: 0 0 12px 12px;
+    transition: all 0.5s ease;
+}
+
+.timer-progress.warning {
+    background: #f9ab00;
+}
+
+.timer-progress.danger {
+    background: #d93025;
+}
+
+/* Timer y tiempo estimado PROMINENTE - NUEVOS ESTILOS */
+.order-timing-prominent {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    margin: 1rem 1.5rem;
+    border: 2px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Timer principal - MÁS GRANDE Y PROMINENTE */
+.timer-display-large {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 3px solid #e9ecef;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.timer-display-large.danger {
+    border-color: #dc3545;
+    background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
+    animation: pulse-danger 2s ease-in-out infinite;
+}
+
+.timer-display-large.warning {
+    border-color: #ffc107;
+    background: linear-gradient(135deg, #fffbf0 0%, #fff 100%);
+    animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+    0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2); }
+    50% { transform: scale(1.02); box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3); }
+}
+
+@keyframes pulse-warning {
+    0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2); }
+    50% { transform: scale(1.02); box-shadow: 0 6px 20px rgba(255, 193, 7, 0.3); }
+}
+
+.timer-main-large {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a73e8;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(26, 115, 232, 0.1);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, monospace;
+    transition: all 0.3s ease;
+}
+
+.timer-main-large.seconds-mode {
+    color: #34a853;
+    font-size: 2.2rem;
+    animation: pulse-seconds 1s ease-in-out infinite;
+}
+
+@keyframes pulse-seconds {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+.timer-main-large.danger {
+    color: #dc3545;
+    text-shadow: 0 2px 4px rgba(220, 53, 69, 0.1);
+}
+
+.timer-main-large.warning {
+    color: #f57c00;
+    text-shadow: 0 2px 4px rgba(245, 124, 0, 0.1);
+}
+
+.timer-label-large {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #5f6368;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.timer-progress-large {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 6px;
+    background: #1a73e8;
+    transition: width 0.5s ease;
+    border-radius: 0 0 12px 12px;
+}
+
+.timer-progress-large.danger {
+    background: #dc3545;
+}
+
+.timer-progress-large.warning {
+    background: #f57c00;
+}
+
+/* Tiempo estimado prominente */
+.estimated-time-display {
+    background: white;
+    border: 2px solid #1a73e8;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.estimated-time-main {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a73e8;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, monospace;
+}
+
+.estimated-time-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #5f6368;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Alertas de tiempo */
+.timing-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.timing-alert.delayed {
+    background: #fff5f5;
+    color: #dc3545;
+    border: 1px solid #f8d7da;
+}
+
+.timing-alert.warning {
+    background: #fffbf0;
+    color: #f57c00;
+    border: 1px solid #ffeaa7;
+}
+
+/* Estilos para órdenes completadas */
+.timer-display-large.completed {
+    border-color: #2e7d32;
+    background: linear-gradient(135deg, #f1f8e9 0%, #fff 100%);
+    animation: none;
+}
+
+.timer-main-large.completed {
+    color: #2e7d32;
+    text-shadow: 0 2px 4px rgba(46, 125, 50, 0.1);
+}
+
+.timer-progress-large.completed {
+    background: #2e7d32;
+}
+
+/* Información de finalización */
+.completion-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.completion-badge {
+    background: #2e7d32;
+    color: white;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.completion-time {
+    text-align: center;
+    color: #5f6368;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.timing-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.timing-row:last-child {
+    margin-bottom: 0;
+}
+
+.timing-label {
+    color: #5f6368;
+}
+
+.timing-value {
+    color: #202124;
+    font-weight: 500;
+}
+
+.timing-value.delayed {
+    color: #d93025;
+}
+
+.timing-value.warning {
+    color: #f9ab00;
+}
+
+/* Sección de notas del cliente */
+.customer-notes {
+    padding: 0 1.5rem 1rem 1.5rem;
+}
+
+.customer-notes h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #202124;
+    margin-bottom: 0.5rem;
+}
+
+.notes-text {
+    color: #5f6368;
+    font-style: italic;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+/* Botón de acción - TOUCH FRIENDLY */
+.order-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+}
+
+.complete-btn {
+    width: 100%;
+    background: #1a73e8;
+    color: white;
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    /* Touch friendly */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 48px; /* Mínimo recomendado para touch */
+}
+
+.complete-btn:hover {
+    background: #1557b0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+}
+
+.complete-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+}
+
+.complete-btn:disabled {
+    background: #9aa0a6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Botón de finalizar servicio */
+.finalize-btn {
+    width: 100%;
+    background: #34a853;
+    color: white;
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 0.5rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.finalize-btn:hover {
+    background: #2d8e47;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 168, 83, 0.3);
+}
+
+.finalize-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3);
+}
+
+.finalize-btn:disabled {
+    background: #9aa0a6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.order-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+}
+
+/* Estadísticas superiores - TOUCH FRIENDLY */
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f3f4;
+    flex: 1;
+    min-width: 160px;
+    text-align: center;
+    /* Touch friendly */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #202124;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    color: #5f6368;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.stat-delayed {
+    border-left: 4px solid #d93025;
+}
+
+.stat-progress {
+    border-left: 4px solid #f9ab00;
+}
+
+.stat-normal {
+    border-left: 4px solid #137333;
+}
+
+/* Responsive MEJORADO para tablets y móviles */
+@media (max-width: 1024px) {
+    .main-container {
+        padding: 0.75rem;
+    }
+    
+    .order-card {
+        min-width: 340px;
+        max-width: 340px;
+    }
+    
+    .stats-bar {
+        gap: 0.75rem;
+    }
+    
+    .stat-card {
+        min-width: 140px;
+        padding: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+    
+    .tab-button {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .search-box {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .order-card {
+        min-width: 300px;
+        max-width: 300px;
+    }
+    
+    .stat-card {
+        min-width: 120px;
+        padding: 0.75rem;
+    }
+    
+    .stat-number {
+        font-size: 1.25rem;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+    }
+    
+    .tabs-nav {
+        flex-direction: column;
+    }
+    
+    .tab-button {
+        border-bottom: 1px solid #f1f3f4;
+        border-right: none;
+    }
+    
+    .tab-button.active {
+        border-bottom-color: #f1f3f4;
+        border-left: 3px solid #1a73e8;
+    }
+    
+    .timer-display {
+        padding: 0.75rem;
+    }
+    
+    .timer-main {
+        font-size: 1.25rem;
+    }
+    
+    /* Responsive para nuevos elementos prominentes */
+    .main-container {
+        padding: 0.5rem;
+    }
+    
+    .order-timing-prominent {
+        margin: 1rem;
+        padding: 1rem;
+        gap: 0.75rem;
+    }
+    
+    .timer-display-large {
+        padding: 1rem;
+    }
+    
+    .timer-main-large {
+        font-size: 2rem;
+    }
+    
+    .estimated-time-main {
+        font-size: 1.25rem;
+    }
+    
+    .estimated-time-display,
+    .timing-alert {
+        padding: 0.75rem;
+    }
+}
+
+/* Scroll hints - Indicadores visuales */
+.orders-grid::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to left, rgba(248, 249, 250, 0.8), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.orders-grid::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to right, rgba(248, 249, 250, 0.8), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    z-index: 9999;
+}
+
+.toast {
+    background: white;
+    border: 1px solid #f1f3f4;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast.success {
+    border-left: 3px solid #137333;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Container principal -->
+<div class="main-container">
+    <!-- Tabs de navegación -->
+    <div class="tabs-container">
+        <div class="tabs-nav">
+            <button class="tab-button active" data-tab="en-proceso" onclick="switchTab('en-proceso')">
+                Órdenes en Proceso
+                <span class="badge" id="badge-en-proceso">{{ total_ordenes }}</span>
+            </button>
+            <button class="tab-button" data-tab="nuevos" onclick="switchTab('nuevos')">
+                Nuevos Pedidos
+                <span class="badge" id="badge-nuevos">0</span>
+            </button>
+            <button class="tab-button" data-tab="completados" onclick="switchTab('completados')">
+                Pedidos Completados
+                <span class="badge" id="badge-completados">{{ total_completadas }}</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Buscador -->
+    <div class="search-container">
+        <input type="text" class="search-box" id="search-input" placeholder="Buscar por número de orden, mesa o producto..." onkeyup="filterOrders()">
+    </div>
+
+    <!-- Estadísticas superiores -->
+    <div class="stats-bar">
+        <div class="stat-card stat-delayed">
+            <div class="stat-number">{{ total_retrasadas }}</div>
+            <div class="stat-label">Órdenes Retrasadas</div>
+        </div>
+        <div class="stat-card stat-progress">
+            <div class="stat-number">{{ total_tolerancia }}</div>
+            <div class="stat-label">En Proceso</div>
+        </div>
+        <div class="stat-card stat-normal">
+            <div class="stat-number">{{ total_normales }}</div>
+            <div class="stat-label">A Tiempo</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ total_ordenes }}</div>
+            <div class="stat-label">Total Activas</div>
+        </div>
+    </div>
+
+    <!-- Grid de órdenes -->
+    {% if ordenes_activas %}
+    <!-- Hint de scroll horizontal -->
+    <div style="text-align: center; margin-bottom: 1rem; opacity: 0.7;">
+        <small style="color: #5f6368; font-size: 0.875rem;">
+            <i class="bi bi-arrow-left-right"></i> Desliza horizontalmente para ver más órdenes
+        </small>
+    </div>
+    
+    <div class="orders-grid" id="orders-container">
+        {% for orden in ordenes_activas %}
+        <div class="order-card" data-orden-id="{{ orden.id }}" data-estado="activa" data-prioridad="{{ orden.prioridad }}">
+            <!-- Header de la orden -->
+            <div class="order-header">
+                <h2 class="order-title">Orden #{{ orden.numero_orden }}</h2>
+                <div class="order-status {% if orden.prioridad == 'retrasada' %}status-delayed{% elif orden.prioridad == 'tolerancia' %}status-progress{% else %}status-normal{% endif %}">
+                    {% if orden.prioridad == 'retrasada' %}
+                        Retrasada
+                    {% elif orden.prioridad == 'tolerancia' %}
+                        En Proceso
+                    {% else %}
+                        A Tiempo
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- TIMER Y TIEMPO ESTIMADO - PROMINENTE Y PRIMERO -->
+            <div class="order-timing-prominent">
+                <!-- Timer principal -->
+                <div class="timer-display-large {% if orden.prioridad == 'retrasada' %}danger{% elif orden.prioridad == 'tolerancia' %}warning{% endif %}" 
+                     data-order-id="{{ orden.id }}" 
+                     data-created-time="{{ orden.fecha_creacion|date:'c' }}" 
+                     data-elapsed-minutes="{{ orden.tiempo_transcurrido }}">
+                    <div class="timer-main-large {% if orden.prioridad == 'retrasada' %}danger{% elif orden.prioridad == 'tolerancia' %}warning{% endif %}" 
+                         id="timer-{{ orden.id }}">
+                        {{ orden.tiempo_transcurrido_str }}
+                    </div>
+                    <div class="timer-label-large">Tiempo Transcurrido</div>
+                    {% if orden.prioridad == 'retrasada' %}
+                        <div class="timer-progress-large danger" style="width: 100%;"></div>
+                    {% elif orden.prioridad == 'tolerancia' %}
+                        <div class="timer-progress-large warning" style="width: 75%;"></div>
+                    {% else %}
+                        <div class="timer-progress-large" style="width: 25%;"></div>
+                    {% endif %}
+                </div>
+                
+                <!-- Tiempo estimado - Prominente -->
+                <div class="estimated-time-display">
+                    <div class="estimated-time-main">{{ orden.tiempo_estimado_str }}</div>
+                    <div class="estimated-time-label">Tiempo Estimado</div>
+                </div>
+                
+                <!-- Detalles adicionales de tiempo -->
+                {% if orden.minutos_retraso > 0 %}
+                <div class="timing-alert delayed">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span>Retrasada por {{ orden.minutos_retraso }} minutos</span>
+                </div>
+                {% elif orden.minutos_tolerancia >= 0 %}
+                <div class="timing-alert warning">
+                    <i class="bi bi-clock"></i>
+                    <span>{{ orden.minutos_tolerancia }} minutos restantes</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Información de mesa y mesero -->
+            <div class="order-info">
+                <span><i class="bi bi-geo-alt"></i> Mesa {{ orden.mesa.numero }}</span>
+                {% if orden.mesero %}
+                <span><i class="bi bi-person"></i> {{ orden.mesero.get_full_name }}</span>
+                {% endif %}
+            </div>
+
+            <!-- Items de la orden -->
+            <div class="order-items">
+                <h4>Productos de la Orden</h4>
+                {% for item in orden.items.all %}
+                <div class="item-row">
+                    <div class="item-info">
+                        <span class="item-name">{{ item.producto.nombre }}</span>
+                        <span class="item-quantity">{{ item.cantidad }}</span>
+                    </div>
+                    {% if item.observaciones %}
+                    <div class="item-notes">
+                        <i class="bi bi-sticky"></i> {{ item.observaciones }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Notas del cliente -->
+            {% if orden.observaciones or orden.notas_cocina %}
+            <div class="customer-notes">
+                <h4>Instrucciones del Cliente</h4>
+                <div class="notes-text">
+                    {% if orden.observaciones %}
+                        {{ orden.observaciones }}
+                    {% elif orden.notas_cocina %}
+                        {{ orden.notas_cocina }}
+                    {% else %}
+                        Entregar en recepción.
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Botón de acción -->
+            <div class="order-actions">
+                <button class="complete-btn" onclick="finalizarOrden({{ orden.id }})">
+                    Marcar como Completada
+                </button>
+                <button class="finalize-btn" onclick="finalizarServicio({{ orden.id }})" title="Completar orden y liberar mesa">
+                    <i class="bi bi-check-circle"></i> Finalizar Servicio
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Órdenes Completadas -->
+        {% for orden in ordenes_completadas %}
+        <div class="order-card completed-order" data-orden-id="{{ orden.id }}" data-estado="completada" data-prioridad="completada" style="display: none;">
+            <!-- Header de la orden completada -->
+            <div class="order-header">
+                <h2 class="order-title">Orden #{{ orden.numero_orden }}</h2>
+                <div class="order-status status-completed">
+                    Completada
+                </div>
+            </div>
+
+            <!-- TIMER COMPLETADO - PROMINENTE -->
+            <div class="order-timing-prominent">
+                <div class="timer-display-large completed">
+                    <div class="timer-main-large completed">
+                        {{ orden.tiempo_total_str }}
+                    </div>
+                    <div class="timer-label-large">Tiempo Total</div>
+                    <div class="timer-progress-large completed" style="width: 100%;"></div>
+                </div>
+                
+                <div class="completion-info">
+                    <div class="completion-badge">
+                        <i class="bi bi-check-circle"></i> Orden Completada
+                    </div>
+                    <div class="completion-time">
+                        Finalizada a las {{ orden.fecha_final|date:"H:i" }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Información de mesa y mesero -->
+            <div class="order-info">
+                <span><i class="bi bi-geo-alt"></i> Mesa {{ orden.mesa.numero }}</span>
+                {% if orden.mesero %}
+                <span><i class="bi bi-person"></i> {{ orden.mesero.get_full_name }}</span>
+                {% endif %}
+                <span><i class="bi bi-clock"></i> {{ orden.fecha_final|date:"H:i" }}</span>
+            </div>
+
+            <!-- Items de la orden -->
+            <div class="order-items">
+                <h4>Productos de la Orden</h4>
+                {% for item in orden.items_expandidos %}
+                <div class="item-row {% if item.es_expandido %}item-expandido{% endif %}">
+                    <div class="item-info">
+                        <span class="item-name">{{ item.producto.nombre }}</span>
+                        {% if item.es_expandido %}
+                            <span class="item-quantity">Unidad {{ item.numero_unidad }}/{{ item.total_unidades }}</span>
+                        {% else %}
+                            <span class="item-quantity">x{{ item.cantidad }}</span>
+                        {% endif %}
+                        <span class="item-price">${{ item.precio_unitario }}</span>
+                    </div>
+                    {% if item.observaciones %}
+                    <div class="item-notes">
+                        <i class="bi bi-sticky"></i> {{ item.observaciones }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Estado completado -->
+            <div class="order-actions">
+                <div class="completed-badge">
+                    <i class="bi bi-check-circle"></i> Orden Completada
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+        <h3 class="mt-3 text-muted">No hay órdenes activas</h3>
+        <p class="text-muted">Todas las órdenes están completadas. ¡Excelente trabajo!</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Función para finalizar orden
+function finalizarOrden(ordenId) {
+    if (!confirm('¿Marcar esta orden como completada y lista para entrega?')) {
+        return;
+    }
+    
+    const button = document.querySelector(`[data-orden-id="${ordenId}"] .complete-btn`);
+    const originalText = button.textContent;
+    button.textContent = 'Procesando...';
+    button.disabled = true;
+    
+    fetch(`/cocina/finalizar-orden/${ordenId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('¡Orden completada exitosamente!', 'success');
+            // Cambiar el estado de la tarjeta
+            const card = document.querySelector(`[data-orden-id="${ordenId}"]`);
+            if (card) {
+                // Cambiar atributos para marcarlo como completado
+                card.setAttribute('data-estado', 'completada');
+                card.setAttribute('data-prioridad', 'completada');
+                
+                // Actualizar el estado visual
+                const statusDiv = card.querySelector('.order-status');
+                statusDiv.className = 'order-status status-completed';
+                statusDiv.textContent = 'Completada';
+                
+                // Cambiar el botón por el badge de completado
+                const actionsDiv = card.querySelector('.order-actions');
+                actionsDiv.innerHTML = `
+                    <div class="completed-badge">
+                        <i class="bi bi-check-circle"></i> Orden Completada
+                    </div>
+                `;
+                
+                // Agregar clase de completado
+                card.classList.add('completed-order');
+                
+                // Actualizar contadores
+                updateBadgeCounts();
+                
+                // Si estamos en el tab de completados, mostrar la tarjeta
+                if (currentTab === 'completados') {
+                    card.style.display = 'block';
+                } else {
+                    // Ocultar de otros tabs
+                    card.style.display = 'none';
+                }
+            }
+        } else {
+            button.textContent = originalText;
+            button.disabled = false;
+            showToast(data.error || 'Error al completar la orden', 'error');
+        }
+    })
+    .catch(error => {
+        button.textContent = originalText;
+        button.disabled = false;
+        console.error('Error:', error);
+        showToast('Error de conexión', 'error');
+    });
+}
+
+// Función para obtener el token CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Función para mostrar toast notifications
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Mostrar toast
+    setTimeout(() => toast.classList.add('show'), 100);
+    
+    // Ocultar y remover toast después de 3 segundos
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => container.removeChild(toast), 300);
+    }, 3000);
+}
+
+// Auto-refresh ELIMINADO - Ahora usaremos WebSockets para tiempo real
+// setInterval(() => {
+//     // Solo refrescar si no hay operaciones en curso
+//     if (!document.querySelector('.complete-btn:disabled')) {
+//         location.reload();
+//     }
+// }, 30000);
+
+// Variables globales
+let currentTab = 'en-proceso';
+let allOrders = [];
+
+// Función para cambiar tabs
+function switchTab(tabName) {
+    currentTab = tabName;
+    
+    // Actualizar botones
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    
+    // Filtrar órdenes según el tab
+    filterOrdersByTab();
+}
+
+// Función para filtrar órdenes por tab
+function filterOrdersByTab() {
+    const cards = document.querySelectorAll('.order-card');
+    
+    cards.forEach(card => {
+        const estado = card.getAttribute('data-estado');
+        const prioridad = card.getAttribute('data-prioridad');
+        let show = false;
+        
+        switch(currentTab) {
+            case 'en-proceso':
+                show = estado === 'activa'; // Mostrar solo órdenes activas
+                break;
+            case 'nuevos':
+                // Mostrar órdenes recientes (a tiempo y en proceso)
+                show = estado === 'activa' && (prioridad === 'normal' || prioridad === 'tolerancia');
+                break;
+            case 'completados':
+                show = estado === 'completada'; // Mostrar solo órdenes completadas
+                break;
+        }
+        
+        card.style.display = show ? 'block' : 'none';
+    });
+    
+    // Actualizar mensaje si no hay órdenes
+    updateEmptyMessage();
+}
+
+// Función para filtrar órdenes por búsqueda
+function filterOrders() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const cards = document.querySelectorAll('.order-card');
+    
+    cards.forEach(card => {
+        const orderNumber = card.querySelector('.order-title').textContent.toLowerCase();
+        const mesa = card.querySelector('.order-info').textContent.toLowerCase();
+        const items = Array.from(card.querySelectorAll('.item-name')).map(item => 
+            item.textContent.toLowerCase()
+        ).join(' ');
+        
+        const matchesSearch = orderNumber.includes(searchTerm) || 
+                            mesa.includes(searchTerm) || 
+                            items.includes(searchTerm);
+        
+        if (searchTerm === '' || matchesSearch) {
+            // Si pasa la búsqueda, aplicar filtro de tab
+            const estado = card.getAttribute('data-estado');
+            const prioridad = card.getAttribute('data-prioridad');
+            let showByTab = false;
+            
+            switch(currentTab) {
+                case 'en-proceso':
+                    showByTab = estado === 'activa';
+                    break;
+                case 'nuevos':
+                    showByTab = estado === 'activa' && (prioridad === 'normal' || prioridad === 'tolerancia');
+                    break;
+                case 'completados':
+                    showByTab = estado === 'completada';
+                    break;
+            }
+            
+            card.style.display = showByTab ? 'block' : 'none';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    updateEmptyMessage();
+}
+
+// Función para actualizar mensaje vacío
+function updateEmptyMessage() {
+    const visibleCards = document.querySelectorAll('.order-card[style*="block"], .order-card:not([style*="none"])').length;
+    const emptyMessage = document.querySelector('.text-center.py-5');
+    const ordersContainer = document.getElementById('orders-container');
+    
+    if (visibleCards === 0 && ordersContainer) {
+        if (!emptyMessage) {
+            const message = document.createElement('div');
+            message.className = 'text-center py-5';
+            message.innerHTML = `
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+                <h3 class="mt-3 text-muted">No hay órdenes en esta sección</h3>
+                <p class="text-muted">Cambia de pestaña o ajusta tu búsqueda.</p>
+            `;
+            ordersContainer.parentNode.appendChild(message);
+        }
+    } else if (emptyMessage && visibleCards > 0) {
+        emptyMessage.remove();
+    }
+}
+
+// Actualización en tiempo real del timer (cada segundo)
+function updateTimers() {
+    const now = new Date();
+    const timerDisplays = document.querySelectorAll('.timer-display-large[data-created-time]');
+    
+    timerDisplays.forEach(display => {
+        const orderId = display.getAttribute('data-order-id');
+        const createdTime = new Date(display.getAttribute('data-created-time'));
+        const timerElement = document.getElementById(`timer-${orderId}`);
+        const card = display.closest('.order-card');
+        
+        if (!timerElement || !card) return;
+        
+        // Calcular tiempo transcurrido en segundos
+        const elapsedSeconds = Math.floor((now - createdTime) / 1000);
+        const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+        const remainingSeconds = elapsedSeconds % 60;
+        
+        // Formato de tiempo: mostrar segundos para minutos, pero no para horas
+        let timeDisplay;
+        let isSecondsMode = false;
+        
+        if (elapsedMinutes === 0) {
+            // Primer minuto: mostrar solo segundos
+            timeDisplay = `${elapsedSeconds}s`;
+            isSecondsMode = true;
+        } else if (elapsedMinutes < 60) {
+            // Menos de una hora: mostrar siempre minutos y segundos
+            timeDisplay = `${elapsedMinutes}m ${remainingSeconds}s`;
+        } else {
+            // Más de una hora: mostrar solo horas y minutos (sin segundos)
+            const hours = Math.floor(elapsedMinutes / 60);
+            const mins = elapsedMinutes % 60;
+            timeDisplay = `${hours}h ${mins}m`;
+        }
+        
+        // Actualizar el display del timer
+        timerElement.textContent = timeDisplay;
+        
+        // Aplicar o remover clase de modo segundos
+        if (isSecondsMode) {
+            timerElement.classList.add('seconds-mode');
+        } else {
+            timerElement.classList.remove('seconds-mode');
+        }
+        
+        // Actualizar clase de prioridad basada en tiempo transcurrido
+        // Tiempo estimado: 15 min base + 1.5 min tolerancia = 16.5 min total
+        const estimatedMinutes = 15;
+        const toleranceMinutes = 1.5;
+        const totalLimitMinutes = estimatedMinutes + toleranceMinutes;
+        
+        // Remover clases anteriores
+        display.classList.remove('danger', 'warning');
+        timerElement.classList.remove('danger', 'warning');
+        card.setAttribute('data-prioridad', 'normal');
+        
+        let newPriority = 'normal';
+        
+        if (elapsedMinutes > totalLimitMinutes) {
+            // Retrasada
+            display.classList.add('danger');
+            timerElement.classList.add('danger');
+            newPriority = 'retrasada';
+            card.setAttribute('data-prioridad', 'retrasada');
+            
+            // Actualizar progress bar
+            const progressBar = display.querySelector('.timer-progress-large');
+            if (progressBar) {
+                progressBar.classList.remove('warning');
+                progressBar.classList.add('danger');
+                progressBar.style.width = '100%';
+            }
+            
+            // Actualizar status badge
+            const statusBadge = card.querySelector('.order-status');
+            if (statusBadge) {
+                statusBadge.className = 'order-status status-delayed';
+                statusBadge.textContent = 'Retrasada';
+            }
+            
+        } else if (elapsedMinutes > estimatedMinutes) {
+            // En tolerancia
+            display.classList.add('warning');
+            timerElement.classList.add('warning');
+            newPriority = 'tolerancia';
+            card.setAttribute('data-prioridad', 'tolerancia');
+            
+            // Actualizar progress bar
+            const progressBar = display.querySelector('.timer-progress-large');
+            if (progressBar) {
+                progressBar.classList.remove('danger');
+                progressBar.classList.add('warning');
+                progressBar.style.width = '75%';
+            }
+            
+            // Actualizar status badge
+            const statusBadge = card.querySelector('.order-status');
+            if (statusBadge) {
+                statusBadge.className = 'order-status status-progress';
+                statusBadge.textContent = 'En Proceso';
+            }
+            
+        } else {
+            // A tiempo
+            newPriority = 'normal';
+            
+            // Actualizar progress bar
+            const progressBar = display.querySelector('.timer-progress-large');
+            if (progressBar) {
+                progressBar.classList.remove('danger', 'warning');
+                const progressPercent = Math.min(25 + (elapsedMinutes / estimatedMinutes) * 50, 75);
+                progressBar.style.width = `${progressPercent}%`;
+            }
+            
+            // Actualizar status badge
+            const statusBadge = card.querySelector('.order-status');
+            if (statusBadge) {
+                statusBadge.className = 'order-status status-normal';
+                statusBadge.textContent = 'A Tiempo';
+            }
+        }
+        
+        // Actualizar información de timing alert
+        const timingAlert = card.querySelector('.timing-alert');
+        if (timingAlert) {
+            if (newPriority === 'retrasada') {
+                const delayMinutes = Math.floor(elapsedMinutes - totalLimitMinutes);
+                timingAlert.className = 'timing-alert delayed';
+                timingAlert.innerHTML = `
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span>Retrasada por ${delayMinutes} minutos</span>
+                `;
+            } else if (newPriority === 'tolerancia') {
+                const remainingMinutes = Math.ceil(totalLimitMinutes - elapsedMinutes);
+                timingAlert.className = 'timing-alert warning';
+                timingAlert.innerHTML = `
+                    <i class="bi bi-clock"></i>
+                    <span>${remainingMinutes} minutos restantes</span>
+                `;
+            } else {
+                // Ocultar alert si está a tiempo
+                timingAlert.style.display = 'none';
+            }
+        }
+    });
+    
+    // Actualizar badges de contadores después de cambios de prioridad
+    updateBadgeCounts();
+    
+    // Re-ordenar las tarjetas por prioridad si es necesario
+    reorderCardsByPriority();
+}
+
+// Función para reordenar tarjetas por prioridad
+function reorderCardsByPriority() {
+    const container = document.getElementById('orders-container');
+    if (!container) return;
+    
+    const cards = Array.from(container.querySelectorAll('.order-card[data-estado="activa"]'));
+    
+    // Ordenar por prioridad: retrasadas primero, luego tolerancia, luego normales
+    cards.sort((a, b) => {
+        const priorityA = a.getAttribute('data-prioridad');
+        const priorityB = b.getAttribute('data-prioridad');
+        
+        const priorityOrder = { 'retrasada': 0, 'tolerancia': 1, 'normal': 2 };
+        
+        const orderA = priorityOrder[priorityA] || 3;
+        const orderB = priorityOrder[priorityB] || 3;
+        
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+        
+        // Si tienen la misma prioridad, ordenar por tiempo de creación (más antiguas primero)
+        const timeA = new Date(a.querySelector('[data-created-time]').getAttribute('data-created-time'));
+        const timeB = new Date(b.querySelector('[data-created-time]').getAttribute('data-created-time'));
+        
+        return timeA - timeB;
+    });
+    
+    // Reordenar en el DOM
+    cards.forEach(card => {
+        container.appendChild(card);
+    });
+}
+
+// Inicializar timer updates
+setInterval(updateTimers, 1000);
+
+// Efectos touch-friendly y scroll horizontal mejorado
+document.addEventListener('DOMContentLoaded', function() {
+    const ordersContainer = document.getElementById('orders-container');
+    const cards = document.querySelectorAll('.order-card');
+    
+    // Inicializar filtros
+    filterOrdersByTab();
+    
+    // Efectos para tarjetas
+    cards.forEach(card => {
+        // Mouse hover (desktop)
+        card.addEventListener('mouseenter', function() {
+            if (!window.matchMedia('(hover: none)').matches) {
+                this.style.transform = 'translateY(-4px)';
+            }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            if (!window.matchMedia('(hover: none)').matches) {
+                this.style.transform = 'translateY(0)';
+            }
+        });
+        
+        // Touch feedback (móviles/tablets)
+        card.addEventListener('touchstart', function(e) {
+            this.style.transform = 'translateY(-2px) scale(0.98)';
+        });
+        
+        card.addEventListener('touchend', function(e) {
+            setTimeout(() => {
+                this.style.transform = 'translateY(0) scale(1)';
+            }, 150);
+        });
+    });
+    
+    // Scroll horizontal con botones (opcional para desktop)
+    if (ordersContainer && window.innerWidth > 768) {
+        // Detectar si hay overflow horizontal
+        const hasOverflow = ordersContainer.scrollWidth > ordersContainer.clientWidth;
+        
+        if (hasOverflow) {
+            // Agregar indicadores de scroll
+            const scrollIndicator = document.createElement('div');
+            scrollIndicator.innerHTML = `
+                <div style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
+                           background: rgba(26, 115, 232, 0.8); color: white; padding: 8px 12px; 
+                           border-radius: 20px; font-size: 12px; z-index: 10; pointer-events: none;">
+                    <i class="bi bi-arrow-right"></i> Deslizar
+                </div>
+            `;
+            ordersContainer.style.position = 'relative';
+            ordersContainer.appendChild(scrollIndicator.firstElementChild);
+            
+            // Ocultar indicador después de 3 segundos
+            setTimeout(() => {
+                const indicator = ordersContainer.querySelector('div[style*="right: 10px"]');
+                if (indicator) {
+                    indicator.style.opacity = '0';
+                    setTimeout(() => indicator.remove(), 300);
+                }
+            }, 3000);
+        }
+    }
+    
+    // Scroll momentum para iOS/Safari
+    if (ordersContainer) {
+        ordersContainer.style.webkitOverflowScrolling = 'touch';
+    }
+    
+    // Auto-scroll to first delayed order
+    const firstDelayedCard = document.querySelector('.order-card .status-delayed');
+    if (firstDelayedCard && ordersContainer) {
+        const card = firstDelayedCard.closest('.order-card');
+        if (card) {
+            setTimeout(() => {
+                card.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    inline: 'center',
+                    block: 'nearest'
+                });
+            }, 500);
+        }
+    }
+    
+    // Inicializar contadores de badges
+    updateBadgeCounts();
+});
+
+// Función para actualizar contadores de badges
+function updateBadgeCounts() {
+    const activasCards = document.querySelectorAll('[data-estado="activa"]').length;
+    const completadasCards = document.querySelectorAll('[data-estado="completada"]').length;
+    
+    // Contar "nuevas" como órdenes a tiempo y en tolerancia
+    const nuevasCards = document.querySelectorAll('[data-estado="activa"][data-prioridad="normal"], [data-estado="activa"][data-prioridad="tolerancia"]').length;
+    
+    // Actualizar badges
+    const badgeEnProceso = document.getElementById('badge-en-proceso');
+    const badgeNuevos = document.getElementById('badge-nuevos');
+    const badgeCompletados = document.getElementById('badge-completados');
+    
+    if (badgeEnProceso) badgeEnProceso.textContent = activasCards;
+    if (badgeNuevos) badgeNuevos.textContent = nuevasCards;
+    if (badgeCompletados) badgeCompletados.textContent = completadasCards;
+    
+    // Actualizar estadísticas superiores
+    const retrasadasCount = document.querySelectorAll('[data-estado="activa"][data-prioridad="retrasada"]').length;
+    const toleranciaCount = document.querySelectorAll('[data-estado="activa"][data-prioridad="tolerancia"]').length;
+    const normalesCount = document.querySelectorAll('[data-estado="activa"][data-prioridad="normal"]').length;
+    
+    const statDelayed = document.querySelector('.stat-delayed .stat-number');
+    const statProgress = document.querySelector('.stat-progress .stat-number');
+    const statNormal = document.querySelector('.stat-normal .stat-number');
+    const statTotal = document.querySelector('.stat-card:last-child .stat-number');
+    
+    if (statDelayed) statDelayed.textContent = retrasadasCount;
+    if (statProgress) statProgress.textContent = toleranciaCount;
+    if (statNormal) statNormal.textContent = normalesCount;
+    if (statTotal) statTotal.textContent = activasCards;
+}
+
+// Función para finalizar servicio completo (liberar mesa)
+function finalizarServicio(ordenId) {
+    if (!confirm('¿Finalizar servicio completo y liberar la mesa?\n\nEsto marcará la orden como entregada y la mesa como disponible.')) {
+        return;
+    }
+    
+    const button = document.querySelector(`[data-orden-id="${ordenId}"] .finalize-btn`);
+    const completeButton = document.querySelector(`[data-orden-id="${ordenId}"] .complete-btn`);
+    
+    const originalText = button.textContent;
+    button.textContent = 'Finalizando...';
+    button.disabled = true;
+    if (completeButton) completeButton.disabled = true;
+    
+    fetch(`/cocina/finalizar-servicio/${ordenId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`¡Servicio finalizado! Mesa ${data.mesa_numero} liberada exitosamente.`, 'success');
+            
+            // Remover la tarjeta de órdenes activas
+            const card = document.querySelector(`[data-orden-id="${ordenId}"]`);
+            if (card) {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(-100%)';
+                
+                setTimeout(() => {
+                    card.remove();
+                    // Actualizar contadores
+                    actualizarContadores();
+                }, 500);
+            }
+        } else {
+            showToast(data.message || 'Error al finalizar servicio', 'error');
+            button.textContent = originalText;
+            button.disabled = false;
+            if (completeButton) completeButton.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error de conexión al finalizar servicio', 'error');
+        button.textContent = originalText;
+        button.disabled = false;
+        if (completeButton) completeButton.disabled = false;
+    });
+}
+</script>
+{% endblock %}

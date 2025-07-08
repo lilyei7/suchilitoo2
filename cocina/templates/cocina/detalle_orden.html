@@ -1,0 +1,380 @@
+{% extends 'cocina/base.html' %}
+{% load static %}
+
+{% block title %}Orden #{{ orden.numero_orden }} - Cocina{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="bi bi-file-earmark-text"></i> Orden #{{ orden.numero_orden }}
+            </h1>
+            <div>
+                <a href="{% url 'cocina:ordenes_pendientes' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Información de la orden -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center
+                        {% if orden.estado == 'pendiente' %}bg-warning text-dark{% elif orden.estado == 'en_preparacion' %}bg-info text-white{% elif orden.estado == 'lista' %}bg-success text-white{% endif %}">
+                <h5 class="mb-0">
+                    Detalles de la Orden
+                    {% if orden.cocina_info.prioridad == 2 %}
+                        <span class="badge bg-danger ms-2">URGENTE</span>
+                    {% elif orden.cocina_info.prioridad == 1 %}
+                        <span class="badge bg-warning ms-2">ALTA</span>
+                    {% endif %}
+                </h5>
+                <span class="badge bg-dark">{{ orden.get_estado_display }}</span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Información General</h6>
+                        <p><strong>Mesa:</strong> {{ orden.mesa.numero }}</p>
+                        <p><strong>Mesero:</strong> {{ orden.mesero.first_name }} {{ orden.mesero.last_name }}</p>
+                        <p><strong>Fecha:</strong> {{ orden.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        <p><strong>Tiempo transcurrido:</strong> 
+                            <span id="tiempo-transcurrido">{{ orden.fecha_creacion|timesince }}</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Información de Cocina</h6>
+                        <p><strong>Cocinero Asignado:</strong> 
+                            {% if orden.cocina_info.cocinero_asignado %}
+                                {{ orden.cocina_info.cocinero_asignado.first_name }} {{ orden.cocina_info.cocinero_asignado.last_name }}
+                            {% else %}
+                                <span class="text-muted">Sin asignar</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Tiempo Estimado:</strong> 
+                            {% if orden.cocina_info.tiempo_estimado_total %}
+                                {{ orden.cocina_info.tiempo_estimado_total }} minutos
+                            {% else %}
+                                <span class="text-muted">No calculado</span>
+                            {% endif %}
+                        </p>
+                        {% if orden.cocina_info.fecha_inicio_preparacion %}
+                        <p><strong>Inicio Preparación:</strong> {{ orden.cocina_info.fecha_inicio_preparacion|date:"H:i" }}</p>
+                        {% endif %}
+                        {% if orden.cocina_info.fecha_finalizacion %}
+                        <p><strong>Finalización:</strong> {{ orden.cocina_info.fecha_finalizacion|date:"H:i" }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if orden.observaciones %}
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> Observaciones:</h6>
+                    <p class="mb-0">{{ orden.observaciones }}</p>
+                </div>
+                {% endif %}
+                
+                {% if orden.cocina_info.notas_cocina %}
+                <div class="alert alert-warning">
+                    <h6><i class="bi bi-sticky"></i> Notas de Cocina:</h6>
+                    <p class="mb-0">{{ orden.cocina_info.notas_cocina }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Items de la orden -->
+                <h6>Items de la Orden</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Personalización</th>
+                                <th>Estado</th>
+                                <th>Tiempo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in orden.items.all %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.producto.nombre }}</strong>
+                                    {% if item.producto.imagen %}
+                                    <br><small class="text-muted">Con imagen</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.cantidad }}</td>
+                                <td>
+                                    {% if item.personalizaciones %}
+                                        <small class="text-info">{{ item.personalizaciones }}</small>
+                                    {% else %}
+                                        <span class="text-muted">Sin personalización</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.cocina_info.estado_cocina == 'recibida' %}
+                                        <span class="badge bg-secondary">Recibida</span>
+                                    {% elif item.cocina_info.estado_cocina == 'en_preparacion' %}
+                                        <span class="badge bg-info">En Preparación</span>
+                                    {% elif item.cocina_info.estado_cocina == 'lista' %}
+                                        <span class="badge bg-success">Lista</span>
+                                    {% elif item.cocina_info.estado_cocina == 'entregada' %}
+                                        <span class="badge bg-primary">Entregada</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.cocina_info.tiempo_inicio and item.cocina_info.tiempo_finalizacion %}
+                                        <small class="text-success">
+                                            {{ item.cocina_info.tiempo_preparacion|floatformat:0 }} min
+                                        </small>
+                                    {% elif item.cocina_info.tiempo_inicio %}
+                                        <small class="text-info">
+                                            En progreso...
+                                        </small>
+                                    {% else %}
+                                        <small class="text-muted">Sin iniciar</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.cocina_info.estado_cocina == 'recibida' %}
+                                    <button class="btn btn-sm btn-info" onclick="cambiarEstadoItem({{ item.id }}, 'en_preparacion')">
+                                        <i class="bi bi-play-circle"></i> Iniciar
+                                    </button>
+                                    {% elif item.cocina_info.estado_cocina == 'en_preparacion' %}
+                                    <button class="btn btn-sm btn-success" onclick="cambiarEstadoItem({{ item.id }}, 'lista')">
+                                        <i class="bi bi-check-circle"></i> Completar
+                                    </button>
+                                    {% elif item.cocina_info.estado_cocina == 'lista' %}
+                                    <button class="btn btn-sm btn-primary" onclick="cambiarEstadoItem({{ item.id }}, 'entregada')">
+                                        <i class="bi bi-check-all"></i> Entregar
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Panel de acciones -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-gear"></i> Acciones
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if orden.estado == 'pendiente' %}
+                <button class="btn btn-info w-100 mb-2" onclick="cambiarEstadoOrden('en_preparacion')">
+                    <i class="bi bi-play-circle"></i> Iniciar Preparación
+                </button>
+                {% elif orden.estado == 'en_preparacion' %}
+                <button class="btn btn-success w-100 mb-2" onclick="cambiarEstadoOrden('lista')">
+                    <i class="bi bi-check-circle"></i> Marcar como Lista
+                </button>
+                {% elif orden.estado == 'lista' %}
+                <button class="btn btn-primary w-100 mb-2" onclick="cambiarEstadoOrden('entregada')">
+                    <i class="bi bi-check-all"></i> Marcar como Entregada
+                </button>
+                {% endif %}
+                
+                <button class="btn btn-outline-warning w-100 mb-2" onclick="asignarCocinero()">
+                    <i class="bi bi-person-plus"></i> Asignar Cocinero
+                </button>
+                
+                <button class="btn btn-outline-info w-100 mb-2" onclick="cambiarPrioridad()">
+                    <i class="bi bi-flag"></i> Cambiar Prioridad
+                </button>
+                
+                <button class="btn btn-outline-secondary w-100" onclick="agregarNotas()">
+                    <i class="bi bi-sticky"></i> Agregar Notas
+                </button>
+            </div>
+        </div>
+        
+        <!-- Cronómetro -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-stopwatch"></i> Cronómetro
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div id="cronometro" class="display-4 text-primary">00:00</div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-success" onclick="iniciarCronometro()">
+                        <i class="bi bi-play"></i> Iniciar
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="detenerCronometro()">
+                        <i class="bi bi-pause"></i> Parar
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="reiniciarCronometro()">
+                        <i class="bi bi-arrow-clockwise"></i> Reiniciar
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actividad -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity"></i> Actividad
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="activity-timeline">
+                    {% for log in orden.logs_cocina.all %}
+                    <div class="activity-item">
+                        <div class="activity-time">{{ log.timestamp|date:"H:i" }}</div>
+                        <div class="activity-content">
+                            <strong>{{ log.get_accion_display }}</strong>
+                            {% if log.usuario %}
+                            <br><small class="text-muted">por {{ log.usuario.first_name }} {{ log.usuario.last_name }}</small>
+                            {% endif %}
+                            {% if log.descripcion %}
+                            <br><small class="text-muted">{{ log.descripcion }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted">
+                        <i class="bi bi-clock-history"></i><br>
+                        No hay actividad registrada
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let cronometroInterval;
+    let tiempoCronometro = 0;
+    
+    function cambiarEstadoOrden(nuevoEstado) {
+        if (confirm('¿Está seguro de cambiar el estado de esta orden?')) {
+            fetch(`/cocina/orden/{{ orden.id }}/cambiar-estado/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    'estado': nuevoEstado
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error al cambiar el estado: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al cambiar el estado');
+            });
+        }
+    }
+    
+    function cambiarEstadoItem(itemId, nuevoEstado) {
+        if (confirm('¿Está seguro de cambiar el estado de este item?')) {
+            fetch(`/cocina/orden/{{ orden.id }}/item/${itemId}/cambiar-estado/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    'estado': nuevoEstado
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error al cambiar el estado: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al cambiar el estado');
+            });
+        }
+    }
+    
+    function asignarCocinero() {
+        // Implementar modal para asignar cocinero
+        alert('Funcionalidad de asignación de cocinero en desarrollo');
+    }
+    
+    function cambiarPrioridad() {
+        // Implementar modal para cambiar prioridad
+        alert('Funcionalidad de cambio de prioridad en desarrollo');
+    }
+    
+    function agregarNotas() {
+        // Implementar modal para agregar notas
+        alert('Funcionalidad de notas en desarrollo');
+    }
+    
+    function iniciarCronometro() {
+        if (!cronometroInterval) {
+            cronometroInterval = setInterval(function() {
+                tiempoCronometro++;
+                actualizarCronometro();
+            }, 1000);
+        }
+    }
+    
+    function detenerCronometro() {
+        if (cronometroInterval) {
+            clearInterval(cronometroInterval);
+            cronometroInterval = null;
+        }
+    }
+    
+    function reiniciarCronometro() {
+        detenerCronometro();
+        tiempoCronometro = 0;
+        actualizarCronometro();
+    }
+    
+    function actualizarCronometro() {
+        const minutos = Math.floor(tiempoCronometro / 60);
+        const segundos = tiempoCronometro % 60;
+        document.getElementById('cronometro').textContent = 
+            `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

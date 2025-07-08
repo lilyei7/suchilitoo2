@@ -33,7 +33,7 @@
                         <i class="fas fa-cubes"></i>
                     </div>
                     <div class="ms-3">
-                        <h3 class="mb-0">{{ insumos.count }}</h3>
+                        <h3 class="mb-0">{{ total_insumos|default:"0" }}</h3>
                         <p class="text-muted mb-0 small">Total Insumos</p>
                     </div>
                 </div>
@@ -48,7 +48,7 @@
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
                     <div class="ms-3">
-                        <h3 class="mb-0">8</h3>
+                        <h3 class="mb-0">{{ insumos_stock_bajo|default:"0" }}</h3>
                         <p class="text-muted mb-0 small">Stock Bajo</p>
                     </div>
                 </div>
@@ -63,7 +63,7 @@
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div class="ms-3">
-                        <h3 class="mb-0">42</h3>
+                        <h3 class="mb-0">{{ insumos_stock_alto|default:"0" }}</h3>
                         <p class="text-muted mb-0 small">Stock Normal</p>
                     </div>
                 </div>
@@ -115,14 +115,22 @@
                         <option value="{{ categoria.id }}" {% if request.GET.categoria == categoria.id|stringformat:"s" %}selected{% endif %}>{{ categoria.nombre  }}</option>
                         {% endfor %}
                     </select>
-                </div>
-                <div class="col-md-2">
+                </div>                <div class="col-md-2">
                     <label class="form-label text-muted small mb-1">Sucursal</label>
-                    <select class="form-select" name="sucursal">
-                        <option value="">Todas</option>
-                        <option value="principal">Principal</option>
-                        <option value="secundaria">Secundaria</option>
-                    </select>
+                    {% if user_sucursal and not es_admin %}
+                        <!-- Usuario con sucursal específica: filtro deshabilitado -->
+                        <select class="form-select" name="sucursal" disabled>
+                            <option value="{{ user_sucursal.id }}" selected>{{ user_sucursal.nombre }}</option>
+                        </select>
+                    {% else %}
+                        <!-- Admin: puede filtrar por todas las sucursales -->
+                        <select class="form-select" name="sucursal">
+                            <option value="todas" {% if not filtro_sucursal or filtro_sucursal == 'todas' %}selected{% endif %}>Todas las sucursales</option>
+                            {% for sucursal in sucursales_disponibles %}
+                            <option value="{{ sucursal.id }}" {% if filtro_sucursal == sucursal.id|stringformat:"s" %}selected{% endif %}>{{ sucursal.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    {% endif %}
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="submit" class="btn btn-outline-primary w-100">
@@ -135,102 +143,303 @@
 </div>
 
 <!-- ===== INICIO TABLA ÚNICA DE INVENTARIOS ===== -->
-{% if insumos %}
+{% if insumos_con_inventario %}
 <div class="card">
     <div class="card-header bg-light">
         <div class="d-flex justify-content-between align-items-center">
             <h6 class="mb-0">
                 <i class="fas fa-list me-2"></i>
-                Lista de Insumos ({{ insumos|length }} elemento{{ insumos|length|pluralize:"s"  }})
+                Lista de Insumos ({{ insumos_con_inventario|length }} elemento{{ insumos_con_inventario|length|pluralize:"s" }})
+                {% if sucursal_seleccionada %}
+                - {{ sucursal_seleccionada.nombre }}
+                {% elif es_admin %}
+                - Todas las sucursales
+                {% endif %}
             </h6>
             <small class="text-muted">Actualizado recientemente</small>
         </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+            <table class="table table-hover mb-0">                <thead class="table-light">
                     <tr>
                         <th style="width: 50px;" class="text-center">
                             <i class="fas fa-circle text-muted"></i>
                         </th>
                         <th>Insumo</th>
                         <th class="text-center">Código</th>
+                        <th class="text-center">Tipo</th>
                         <th class="text-center">Stock Actual</th>
                         <th class="text-center">Stock Mínimo</th>
                         <th class="text-center">Estado</th>
                         <th>Categoría</th>
                         <th class="text-center">Precio</th>
+                        <th class="text-center">Proveedor</th>
+                        <th class="text-center">Perecedero</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>                <tbody>
-                    {% for insumo in insumos %}
-                    <tr class="insumo-row" data-id="{{ insumo.id }}">
+                {% for item in insumos_con_inventario %}
+                    <tr class="insumo-row" data-id="{{ item.insumo.id }}">
                         <!-- Indicador de estado -->
                         <td class="text-center">
-                            {% comment %}
-                            Para el estado general, verificamos si tiene stock bajo en cualquier sucursal
-                            Se puede mejorar con una consulta más específica si es necesario
-                            {% endcomment %}
-                            <i class="fas fa-circle text-secondary" title="Insumo registrado"></i>
+                            {% if item.estado == 'bajo' %}
+                                <i class="fas fa-circle text-danger" title="Stock Bajo"></i>
+                            {% elif item.estado == 'alto' %}
+                                <i class="fas fa-circle text-success" title="Stock Alto"></i>
+                            {% else %}
+                                <i class="fas fa-circle text-warning" title="Stock Normal"></i>
+                            {% endif %}
                         </td>
                         
                         <!-- Información del insumo -->
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="insumo-icon me-3">
-                                    <i class="fas fa-box text-primary"></i>
+                                    {% if item.insumo.tipo == 'basico' %}
+                                        <i class="fas fa-box text-primary" title="Básico"></i>
+                                    {% elif item.insumo.tipo == 'compuesto' %}
+                                        <i class="fas fa-layer-group text-info" title="Compuesto"></i>
+                                    {% elif item.insumo.tipo == 'elaborado' %}
+                                        <i class="fas fa-cogs text-warning" title="Elaborado"></i>
+                                    {% else %}
+                                        <i class="fas fa-box text-secondary"></i>
+                                    {% endif %}
                                 </div>
                                 <div>
-                                    <h6 class="mb-0 fw-bold">{{ insumo.nombre }}</h6>
-                                    <small class="text-muted">{{ insumo.unidad_medida.nombre }}</small>
+                                    <h6 class="mb-0 fw-bold">{{ item.insumo.nombre }}</h6>
+                                    <small class="text-muted">{{ item.insumo.unidad_medida.nombre }}</small>
+                                    {% if item.insumo.descripcion %}
+                                        <div class="text-muted small mt-1" style="max-width: 200px;">
+                                            {{ item.insumo.descripcion|truncatechars:50 }}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </td>
                         
                         <!-- Código -->
                         <td class="text-center">
-                            <span class="badge bg-light text-dark">{{ insumo.codigo }}</span>
+                            <span class="badge bg-light text-dark font-monospace">{{ item.insumo.codigo }}</span>
+                        </td>
+                        
+                        <!-- Tipo -->
+                        <td class="text-center">
+                            {% if item.insumo.tipo == 'basico' %}
+                                <span class="badge bg-primary">Básico</span>
+                            {% elif item.insumo.tipo == 'compuesto' %}
+                                <span class="badge bg-info">Compuesto</span>
+                            {% elif item.insumo.tipo == 'elaborado' %}
+                                <span class="badge bg-warning">Elaborado</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ item.insumo.get_tipo_display }}</span>
+                            {% endif %}
                         </td>
                         
                         <!-- Stock actual -->
                         <td class="text-center">
-                            <span class="text-muted">
-                                <small>Ver por sucursal</small>
+                            <span class="fw-bold {% if item.estado == 'bajo' %}text-danger{% elif item.estado == 'alto' %}text-success{% else %}text-warning{% endif %}">
+                                {{ item.stock_actual|floatformat:2 }}
                             </span>
+                            <small class="text-muted d-block">{{ item.insumo.unidad_medida.abreviacion }}</small>
+                            {% if item.sucursales_con_stock > 1 %}
+                                <small class="text-info d-block">{{ item.sucursales_con_stock }} sucursales</small>
+                            {% endif %}
                         </td>
                         
                         <!-- Stock mínimo -->
                         <td class="text-center">
-                            <span class="text-muted">{{ insumo.stock_minimo }}</span>
-                            <small class="text-muted d-block">{{ insumo.unidad_medida.abreviacion }}</small>
+                            <span class="text-muted">{{ item.insumo.stock_minimo|floatformat:2 }}</span>
+                            <small class="text-muted d-block">{{ item.insumo.unidad_medida.abreviacion }}</small>
                         </td>
                         
                         <!-- Estado visual -->
                         <td class="text-center">
-                            <span class="badge bg-info">Registrado</span>
+                            {% if item.estado == 'bajo' %}
+                                <span class="badge bg-danger">Stock Bajo</span>
+                            {% elif item.estado == 'alto' %}
+                                <span class="badge bg-success">Stock Alto</span>
+                            {% else %}
+                                <span class="badge bg-warning">Stock Normal</span>
+                            {% endif %}
                         </td>
                         
                         <!-- Categoría -->
                         <td>
                             <span class="text-muted">
                                 <i class="fas fa-tag me-1"></i>
-                                {{ insumo.categoria.nombre|default:"Sin categoría" }}
+                                {{ item.insumo.categoria.nombre|default:"Sin categoría" }}
                             </span>
                         </td>
                         
                         <!-- Precio -->
                         <td class="text-center">
-                            <span class="fw-bold text-success">${{ insumo.precio_unitario|floatformat:2 }}</span>
+                            <span class="fw-bold text-success">${{ item.insumo.precio_unitario|floatformat:2 }}</span>
+                            {% if item.insumo.tipo != 'basico' and item.insumo.costo_produccion %}
+                                <small class="text-muted d-block">Costo: ${{ item.insumo.costo_produccion|floatformat:2 }}</small>
+                            {% endif %}
+                        </td>                        <!-- Proveedor -->
+                        <td class="text-center align-middle">
+                            {% if item.proveedores %}
+                                {% if item.proveedores|length == 1 %}
+                                    <!-- Solo un proveedor - Tarjeta estilo moderna -->
+                                    {% for proveedor in item.proveedores %}
+                                        <div class="proveedor-card-single shadow-sm">                                            <div class="proveedor-header">
+                                                <div class="proveedor-avatar">
+                                                    {% if proveedor.tipo == 'principal' %}
+                                                        <i class="fas fa-star"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-handshake"></i>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="proveedor-info">
+                                                    <div class="proveedor-name" title="{{ proveedor.nombre }}">
+                                                        {{ proveedor.nombre|truncatechars:14 }}
+                                                    </div>
+                                                    <div class="proveedor-badge">
+                                                        {% if proveedor.tipo == 'principal' %}
+                                                            <span class="badge badge-primary-custom">
+                                                                <i class="fas fa-crown me-1"></i>Principal
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="badge badge-success-custom">
+                                                                <i class="fas fa-check-circle me-1"></i>Asignado
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="proveedor-details">
+                                                {% if proveedor.contacto %}
+                                                    <div class="detail-item">
+                                                        <i class="fas fa-user-tie detail-icon"></i>
+                                                        <span class="detail-text">{{ proveedor.contacto|truncatechars:12 }}</span>
+                                                    </div>
+                                                {% endif %}
+                                                {% if proveedor.telefono %}
+                                                    <div class="detail-item">
+                                                        <i class="fas fa-phone detail-icon"></i>
+                                                        <span class="detail-text">{{ proveedor.telefono|truncatechars:13 }}</span>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Múltiples proveedores - Dropdown mejorado -->
+                                    <div class="proveedor-multiple-wrapper">
+                                        <div class="dropdown">
+                                            <button class="btn btn-provider-multiple dropdown-toggle" 
+                                                    type="button" 
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false">
+                                                <div class="btn-content">
+                                                    <i class="fas fa-building provider-icon"></i>
+                                                    <span class="provider-count">{{ item.proveedores|length }}</span>
+                                                    <span class="provider-text">Proveedores</span>
+                                                </div>
+                                                <div class="provider-counter">
+                                                    {{ item.proveedores|length }}
+                                                </div>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-providers shadow-lg">
+                                                <li class="dropdown-header-custom">
+                                                    <i class="fas fa-list-ul me-2"></i>
+                                                    <span>Proveedores Asignados</span>
+                                                    <span class="header-count">{{ item.proveedores|length }}</span>
+                                                </li>
+                                                {% for proveedor in item.proveedores %}
+                                                    <li class="provider-dropdown-item">
+                                                        <div class="provider-item-content">                                                            <div class="provider-item-header">
+                                                                <div class="provider-item-avatar">
+                                                                    {% if proveedor.tipo == 'principal' %}
+                                                                        <i class="fas fa-star"></i>
+                                                                    {% else %}
+                                                                        <i class="fas fa-handshake"></i>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="provider-item-info">
+                                                                    <div class="provider-item-name" title="{{ proveedor.nombre }}">
+                                                                        {{ proveedor.nombre|truncatechars:20 }}
+                                                                    </div>
+                                                                    {% if proveedor.tipo == 'principal' %}
+                                                                        <span class="badge badge-primary-small">
+                                                                            <i class="fas fa-crown me-1"></i>Principal
+                                                                        </span>
+                                                                    {% else %}
+                                                                        <span class="badge badge-success-small">
+                                                                            <i class="fas fa-check me-1"></i>Asignado
+                                                                        </span>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                            <div class="provider-item-details">
+                                                                {% if proveedor.contacto %}
+                                                                    <div class="provider-detail">
+                                                                        <i class="fas fa-user-tie"></i>
+                                                                        <span>{{ proveedor.contacto|truncatechars:18 }}</span>
+                                                                    </div>
+                                                                {% endif %}
+                                                                {% if proveedor.telefono %}
+                                                                    <div class="provider-detail">
+                                                                        <i class="fas fa-phone"></i>
+                                                                        <span>{{ proveedor.telefono }}</span>
+                                                                    </div>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                {% endfor %}
+                                                <li class="dropdown-footer-custom">
+                                                    <small class="footer-text">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        Ver detalles para más información
+                                                    </small>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <div class="no-provider-alert">
+                                    <div class="alert-content">
+                                        <i class="fas fa-exclamation-triangle alert-icon"></i>
+                                        <span class="alert-text">Sin proveedor</span>
+                                    </div>
+                                </div>
+                            {% endif %}
                         </td>
                         
-                        <!-- Acciones -->
-                        <td class="text-center">                            <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-editar-insumo" data-id="{{ insumo.id }}" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-insumo" data-id="{{ insumo.id }}" title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <!-- Perecedero -->
+                        <td class="text-center">
+                            {% if item.insumo.perecedero %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {% if item.insumo.dias_vencimiento %}
+                                        {{ item.insumo.dias_vencimiento }}d
+                                    {% else %}
+                                        Sí
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check me-1"></i>No
+                                </span>
+                            {% endif %}
+                        </td>
+                          <!-- Acciones -->
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-editar-insumo" data-id="{{ item.insumo.id }}" title="Editar insumo">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info" title="Ver detalles" data-bs-toggle="modal" data-bs-target="#modalDetalleInsumo" onclick="mostrarDetalleInsumo({{ item.insumo.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-insumo" data-id="{{ item.insumo.id }}" title="Eliminar insumo">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -540,6 +749,30 @@
                 </button>                <button type="button" class="btn btn-primary" id="btnGuardarEdicion" onclick="guardarEdicionInsumo()">
                     <i class="fas fa-save me-1"></i>Guardar Cambios
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle Insumo -->
+<div class="modal fade" id="modalDetalleInsumo" tabindex="-1" aria-labelledby="modalDetalleInsumoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDetalleInsumoLabel">Detalle del Insumo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="detalleInsumoContent">
+                <!-- El contenido se cargará dinámicamente aquí -->
+                <div class="text-center py-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="editarInsumoDesdeDetalle()">Editar Insumo</button>
             </div>
         </div>
     </div>
@@ -936,9 +1169,876 @@ function toggleDiasVencimiento() {
     border-radius: 0 0 12px 12px;
 }
 
-.alert-info {    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+.alert-info {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
     border: 1px solid #93c5fd;
     color: #1e40af;
+}
+
+/* ===== ESTILOS PARA PROVEEDORES MEJORADOS ===== */
+.proveedor-card-mini {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0 !important;
+    transition: all 0.3s ease;
+    min-width: 140px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.proveedor-card-mini:hover {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    border: 1px solid #cbd5e1 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Dropdown de múltiples proveedores */
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.dropdown-menu .dropdown-item-text {
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-menu .dropdown-item-text:hover {
+    background: #f8fafc;
+}
+
+.dropdown-menu .dropdown-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 10px 15px;
+}
+
+/* Badge de contador en dropdown */
+.btn-outline-info {
+    border: 2px solid #06b6d4;
+    color: #0891b2;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-info:hover {
+    background: #06b6d4;
+    border-color: #06b6d4;
+    color: white;
+    transform: scale(1.05);
+}
+
+/* Badges de tipo de proveedor */
+.badge.bg-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.badge.bg-success {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Icono mejorado */
+.fas.fa-truck {
+    margin-right: 6px;
+}
+
+/* Alert mejorado para sin proveedor */
+.alert-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #f59e0b;
+    color: #92400e;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+/* Animación del badge contador */
+.badge.rounded-pill {
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Hover effects para iconos */
+.fa-user:hover, .fa-phone:hover {
+    color: #3b82f6 !important;
+    transition: color 0.2s ease;
+}
+
+/* Mejora del spacing en la tabla */
+td.align-middle {
+    vertical-align: middle !important;
+    padding: 12px 8px;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .proveedor-card-mini {
+        min-width: 120px;
+        font-size: 0.8rem;
+    }
+    
+    .dropdown-menu {
+        min-width: 250px !important;
+    }
+}
+
+/* ===== ESTILOS PARA MODAL DE PROVEEDORES ===== */
+.proveedor-card-modal {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 12px !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.proveedor-card-modal:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.bg-primary-subtle {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+}
+
+.bg-success-subtle {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%) !important;
+}
+
+.proveedores-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.proveedores-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.proveedores-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.proveedores-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.proveedores-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.precio-destacado {
+    min-width: 80px;
+}
+
+.proveedor-info h6 {
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+/* Badges mejorados en modal */
+.badge.bg-info {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
+}
+
+.badge.bg-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: white !important;
+}
+
+/* Iconos animados */
+.fas.fa-truck, .fas.fa-star, .fas.fa-handshake {
+    animation: bounce-icon 2s infinite;
+}
+
+@keyframes bounce-icon {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-3px);
+    }
+    60% {
+        transform: translateY(-1px);
+    }
+}
+
+/* Separadores elegantes */
+.border-top.border-light {
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Mejora en alertas */
+.alert-warning {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+/* ========== ESTILOS MEJORADOS PARA PROVEEDORES ========== */
+
+/* Tarjeta para un solo proveedor */
+.proveedor-card-single {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px;
+    max-width: 200px;
+    margin: 0 auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.proveedor-card-single:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: #3b82f6;
+}
+
+.proveedor-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.proveedor-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.proveedor-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.proveedor-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+
+.proveedor-badge {
+    margin-bottom: 6px;
+}
+
+.badge-primary-custom {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 500;
+    border: none;
+}
+
+.badge-success-custom {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 500;
+    border: none;
+}
+
+.proveedor-details {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+}
+
+.detail-icon {
+    color: #6b7280;
+    width: 12px;
+    flex-shrink: 0;
+}
+
+.detail-text {
+    color: #4b5563;
+    font-weight: 500;
+}
+
+/* Wrapper para múltiples proveedores */
+.proveedor-multiple-wrapper {
+    display: inline-block;
+}
+
+/* Botón para múltiples proveedores */
+.btn-provider-multiple {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 2px solid #0ea5e9;
+    border-radius: 10px;
+    padding: 8px 16px;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 140px;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
+}
+
+.btn-provider-multiple:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3);
+    background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
+    border-color: #0284c7;
+}
+
+.btn-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #0c4a6e;
+}
+
+.provider-icon {
+    font-size: 0.9rem;
+    color: #0ea5e9;
+}
+
+.provider-count {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #0c4a6e;
+}
+
+.provider-text {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #075985;
+}
+
+.provider-counter {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    animation: pulse-counter 2s infinite;
+}
+
+@keyframes pulse-counter {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Dropdown de proveedores */
+.dropdown-menu-providers {
+    min-width: 300px;
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    background: white;
+}
+
+.dropdown-header-custom {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    padding: 12px 16px;
+    margin: 0;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.header-count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.provider-dropdown-item {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.2s ease;
+}
+
+.provider-dropdown-item:hover {
+    background: #f8fafc;
+}
+
+.provider-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.provider-item-content {
+    padding: 12px 16px;
+}
+
+.provider-item-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.provider-item-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.provider-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.provider-item-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+
+.badge-primary-small {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    border: none;
+}
+
+.badge-success-small {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    border: none;
+}
+
+.provider-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.provider-detail {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.provider-detail i {
+    color: #9ca3af;
+    width: 12px;
+    flex-shrink: 0;
+}
+
+.dropdown-footer-custom {
+    background: #f8fafc;
+    padding: 8px 16px;
+    margin: 0;
+    border-top: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.footer-text {
+    color: #6b7280;
+    font-size: 0.7rem;
+    font-style: italic;
+}
+
+/* Alerta para sin proveedor */
+.no-provider-alert {
+    display: inline-block;
+}
+
+.alert-content {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #92400e;
+    font-weight: 500;
+    animation: gentle-pulse 3s infinite;
+}
+
+.alert-icon {
+    color: #d97706;
+    font-size: 0.8rem;
+}
+
+.alert-text {
+    font-weight: 600;
+}
+
+@keyframes gentle-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* Responsividad para proveedores */
+@media (max-width: 768px) {
+    .proveedor-card-single {
+        max-width: 160px;
+        padding: 8px;
+    }
+    
+    .provider-item-content {
+        padding: 10px 12px;
+    }
+    
+    .dropdown-menu-providers {
+        min-width: 280px;
+    }
+}
+
+/* ========== ESTILOS PARA PROVEEDORES EN MODAL ========== */
+
+.proveedores-modal-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.proveedores-modal-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.proveedores-modal-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.proveedores-modal-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.proveedores-modal-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.proveedor-modal-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.proveedor-modal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    border-color: #3b82f6;
+}
+
+.proveedor-modal-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.proveedor-modal-card:hover::before {
+    opacity: 1;
+}
+
+.proveedor-modal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.proveedor-modal-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.proveedor-modal-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.proveedor-modal-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.3;
+    margin-bottom: 6px;
+}
+
+.proveedor-modal-badge {
+    margin-bottom: 8px;
+}
+
+.badge-modal {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: none;
+}
+
+.badge-primary-modal {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.badge-success-modal {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.proveedor-modal-price {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.price-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #059669;
+    line-height: 1.2;
+}
+
+.price-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.proveedor-modal-details {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.details-grid {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.detail-grid-item {
+    display: grid;
+    grid-template-columns: 20px auto 1fr;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.detail-grid-icon {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.detail-grid-label {
+    color: #374151;
+    font-weight: 500;
+}
+
+.detail-grid-value {
+    color: #1f2937;
+    font-weight: 600;
+    text-align: right;
+}
+
+.proveedor-modal-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.info-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: none;
+}
+
+.delivery-badge {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: white;
+    box-shadow: 0 1px 4px rgba(6, 182, 212, 0.3);
+}
+
+.quantity-badge {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    box-shadow: 0 1px 4px rgba(245, 158, 11, 0.3);
+}
+
+.proveedor-modal-notes {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 12px;
+}
+
+.notes-header {
+    display: flex;
+    align-items: center;
+    color: #6b7280;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.notes-content {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #374151;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* Sin proveedores en modal */
+.no-providers-modal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.no-providers-content {
+    text-align: center;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.no-providers-icon {
+    font-size: 1.5rem;
+    color: #d97706;
+    margin-bottom: 8px;
+}
+
+.no-providers-text {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #92400e;
+    margin-bottom: 4px;
+}
+
+.no-providers-subtitle {
+    font-size: 0.75rem;
+    color: #a16207;
+    font-style: italic;
+}
+
+/* Responsividad para modal */
+@media (max-width: 768px) {
+    .proveedor-modal-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .proveedor-modal-price {
+        text-align: center;
+    }
+    
+    .detail-grid-item {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 4px;
+    }
+    
+    .detail-grid-value {
+        text-align: center;
+    }
 }
 </style>
 {% endblock %}
@@ -1264,6 +2364,350 @@ if (typeof eliminarInsumo === 'undefined') {
                 submitButton.innerHTML = '<i class="fas fa-save me-1"></i>Guardar';
             }
         });
+    }
+
+    // Función para mostrar los detalles de un insumo
+    function mostrarDetalleInsumo(insumoId) {
+        console.log('Mostrando detalle del insumo:', insumoId);
+        
+        // Resetear contenido del modal
+        document.getElementById('detalleInsumoContent').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        `;
+        
+        // Cargar datos del insumo
+        fetch(`/dashboard/insumos/${insumoId}/detalle/`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            mostrarDetalleInsumoHTML(data);
+        })
+        .catch(error => {
+            console.error('Error cargando detalle del insumo:', error);
+            document.getElementById('detalleInsumoContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error al cargar los detalles del insumo. Por favor, intente nuevamente.
+                </div>
+            `;
+        });
+    }
+    
+    // Función para mostrar el HTML de los detalles
+    function mostrarDetalleInsumoHTML(insumo) {
+        const content = `
+            <div class="row">
+                <!-- Información básica -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información Básica</h6>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Código:</dt>
+                                <dd class="col-sm-8"><span class="badge bg-light text-dark">${insumo.codigo}</span></dd>
+                                
+                                <dt class="col-sm-4">Nombre:</dt>
+                                <dd class="col-sm-8"><strong>${insumo.nombre}</strong></dd>
+                                
+                                <dt class="col-sm-4">Tipo:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge ${insumo.tipo === 'basico' ? 'bg-primary' : insumo.tipo === 'compuesto' ? 'bg-info' : 'bg-warning'}">
+                                        ${insumo.tipo === 'basico' ? 'Básico' : insumo.tipo === 'compuesto' ? 'Compuesto' : 'Elaborado'}
+                                    </span>
+                                </dd>
+                                
+                                <dt class="col-sm-4">Categoría:</dt>
+                                <dd class="col-sm-8">${insumo.categoria || 'Sin categoría'}</dd>
+                                
+                                <dt class="col-sm-4">Unidad:</dt>
+                                <dd class="col-sm-8">${insumo.unidad_medida} (${insumo.unidad_abreviacion})</dd>
+                                
+                                <dt class="col-sm-4">Descripción:</dt>
+                                <dd class="col-sm-8">${insumo.descripcion || '<em class="text-muted">Sin descripción</em>'}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información de inventario -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0"><i class="fas fa-boxes me-2"></i>Inventario</h6>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">Stock Actual:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="fw-bold text-${insumo.estado_stock === 'bajo' ? 'danger' : insumo.estado_stock === 'alto' ? 'success' : 'warning'}">
+                                        ${parseFloat(insumo.stock_actual).toFixed(2)} ${insumo.unidad_abreviacion}
+                                    </span>
+                                </dd>
+                                
+                                <dt class="col-sm-5">Stock Mínimo:</dt>
+                                <dd class="col-sm-7">${parseFloat(insumo.stock_minimo).toFixed(2)} ${insumo.unidad_abreviacion}</dd>
+                                
+                                <dt class="col-sm-5">Estado:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-${insumo.estado_stock === 'bajo' ? 'danger' : insumo.estado_stock === 'alto' ? 'success' : 'warning'}">
+                                        ${insumo.estado_stock === 'bajo' ? 'Stock Bajo' : insumo.estado_stock === 'alto' ? 'Stock Alto' : 'Stock Normal'}
+                                    </span>
+                                </dd>
+                                
+                                <dt class="col-sm-5">Precio Unitario:</dt>
+                                <dd class="col-sm-7"><strong class="text-success">$${parseFloat(insumo.precio_unitario).toFixed(2)}</strong></dd>
+                                
+                                ${insumo.costo_produccion ? `
+                                <dt class="col-sm-5">Costo Producción:</dt>
+                                <dd class="col-sm-7">$${parseFloat(insumo.costo_produccion).toFixed(2)}</dd>
+                                ` : ''}
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <!-- Características especiales -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-warning text-white">
+                            <h6 class="mb-0"><i class="fas fa-star me-2"></i>Características</h6>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Perecedero:</dt>
+                                <dd class="col-sm-8">
+                                    ${insumo.perecedero ? 
+                                        `<span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Sí</span>` :
+                                        `<span class="badge bg-success"><i class="fas fa-check me-1"></i>No</span>`
+                                    }
+                                </dd>
+                                
+                                ${insumo.perecedero && insumo.dias_vencimiento ? `
+                                <dt class="col-sm-4">Días Vencimiento:</dt>
+                                <dd class="col-sm-8">${insumo.dias_vencimiento} días</dd>
+                                ` : ''}                                <dt class="col-sm-4">Proveedores:</dt>
+                                <dd class="col-sm-8">
+                                    ${insumo.proveedores && insumo.proveedores.length > 0 ?                                        `<div class="proveedores-modal-container">
+                                            ${insumo.proveedores.map(proveedor => {
+                                                const iconType = proveedor.tipo === 'principal' ? 'star' : 'handshake';
+                                                const badgeType = proveedor.tipo === 'principal' ? 'primary' : 'success';
+                                                const badgeText = proveedor.tipo === 'principal' ? 'Proveedor Principal' : 'Proveedor Asignado';
+                                                const badgeIcon = proveedor.tipo === 'principal' ? 'crown' : 'handshake';
+                                                
+                                                return `
+                                                <div class="proveedor-modal-card mb-3">
+                                                    <div class="proveedor-modal-header">
+                                                        <div class="proveedor-modal-avatar">
+                                                            <i class="fas fa-${iconType}"></i>
+                                                        </div>
+                                                        <div class="proveedor-modal-info">
+                                                            <div class="proveedor-modal-name">
+                                                                ${proveedor.nombre}
+                                                            </div>
+                                                            <div class="proveedor-modal-badge">
+                                                                <span class="badge-modal badge-${badgeType}-modal">
+                                                                    <i class="fas fa-${badgeIcon} me-1"></i>${badgeText}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="proveedor-modal-price">
+                                                            <div class="price-value">$${parseFloat(proveedor.precio_unitario || 0).toFixed(2)}</div>
+                                                            <div class="price-label">por unidad</div>                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="proveedor-modal-details">
+                                                        <div class="details-grid">
+                                                            ${proveedor.contacto ? `
+                                                                <div class="detail-grid-item">
+                                                                    <i class="fas fa-user-tie detail-grid-icon"></i>
+                                                                    <span class="detail-grid-label">Contacto:</span>
+                                                                    <span class="detail-grid-value">${proveedor.contacto}</span>
+                                                                </div>
+                                                            ` : ''}
+                                                            
+                                                            ${proveedor.telefono ? `
+                                                                <div class="detail-grid-item">
+                                                                    <i class="fas fa-phone detail-grid-icon"></i>
+                                                                    <span class="detail-grid-label">Teléfono:</span>
+                                                                    <span class="detail-grid-value">${proveedor.telefono}</span>
+                                                                </div>
+                                                            ` : ''}
+                                                            
+                                                            ${proveedor.email ? `
+                                                                <div class="detail-grid-item">
+                                                                    <i class="fas fa-envelope detail-grid-icon"></i>
+                                                                    <span class="detail-grid-label">Email:</span>
+                                                                    <span class="detail-grid-value">${proveedor.email}</span>
+                                                                </div>
+                                                            ` : ''}
+                                                        </div>
+                                                        
+                                                        ${proveedor.tiempo_entrega || (proveedor.cantidad_minima && proveedor.cantidad_minima !== '1') ? `
+                                                            <div class="proveedor-modal-badges">
+                                                                ${proveedor.tiempo_entrega ? `
+                                                                    <span class="info-badge delivery-badge">
+                                                                        <i class="fas fa-clock me-1"></i>
+                                                                        ${proveedor.tiempo_entrega} días entrega
+                                                                    </span>
+                                                                ` : ''}
+                                                                
+                                                                ${proveedor.cantidad_minima && proveedor.cantidad_minima !== '1' ? `
+                                                                    <span class="info-badge quantity-badge">
+                                                                        <i class="fas fa-box me-1"></i>
+                                                                        Mín. ${proveedor.cantidad_minima} unidades
+                                                                    </span>
+                                                                ` : ''}
+                                                            </div>
+                                                        ` : ''}
+                                                        
+                                                        ${proveedor.notas ? `
+                                                            <div class="proveedor-modal-notes">
+                                                                <div class="notes-header">
+                                                                    <i class="fas fa-sticky-note me-1"></i>
+                                                                    <span>Notas adicionales:</span>
+                                                                </div>
+                                                                <div class="notes-content">${proveedor.notas}</div>
+                                                            </div>
+                                                        ` : ''}
+                                                    </div>
+                                                </div>
+                                                `;
+                                            }).join('')}
+                                        </div>`
+                                        : `<div class="no-providers-modal">
+                                            <div class="no-providers-content">
+                                                <i class="fas fa-exclamation-triangle no-providers-icon"></i>
+                                                <span class="no-providers-text">Sin proveedores asignados</span>
+                                                <small class="no-providers-subtitle">Este insumo necesita al menos un proveedor asignado</small>
+                                            </div>
+                                        </div>`
+                                    }
+                                </dd>
+                                
+                                ${insumo.tiempo_preparacion ? `
+                                <dt class="col-sm-4">Tiempo Prep.:</dt>
+                                <dd class="col-sm-8">${insumo.tiempo_preparacion} minutos</dd>
+                                ` : ''}
+                                
+                                <dt class="col-sm-4">Activo:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-${insumo.activo ? 'success' : 'secondary'}">
+                                        ${insumo.activo ? 'Sí' : 'No'}
+                                    </span>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fechas y auditoria -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="fas fa-clock me-2"></i>Auditoría</h6>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">Fecha Creación:</dt>
+                                <dd class="col-sm-7">
+                                    <small class="text-muted">
+                                        ${insumo.fecha_creacion ? new Date(insumo.fecha_creacion).toLocaleString() : 'No disponible'}
+                                    </small>
+                                </dd>
+                                
+                                <dt class="col-sm-5">Última Actualización:</dt>
+                                <dd class="col-sm-7">
+                                    <small class="text-muted">
+                                        ${insumo.fecha_actualizacion ? new Date(insumo.fecha_actualizacion).toLocaleString() : 'No disponible'}
+                                    </small>
+                                </dd>
+                                
+                                ${insumo.inventarios && insumo.inventarios.length > 0 ? `
+                                <dt class="col-sm-5">Sucursales:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-primary">${insumo.inventarios.length} sucursal(es)</span>
+                                </dd>
+                                ` : ''}
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            ${insumo.inventarios && insumo.inventarios.length > 0 ? `
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0"><i class="fas fa-building me-2"></i>Stock por Sucursal</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Sucursal</th>
+                                            <th class="text-center">Stock Actual</th>
+                                            <th class="text-center">Stock Disponible</th>
+                                            <th class="text-center">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${insumo.inventarios.map(inv => `
+                                            <tr>
+                                                <td>${inv.sucursal}</td>
+                                                <td class="text-center">${parseFloat(inv.cantidad_actual).toFixed(2)} ${insumo.unidad_abreviacion}</td>
+                                                <td class="text-center">${parseFloat(inv.cantidad_disponible || 0).toFixed(2)} ${insumo.unidad_abreviacion}</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-${inv.cantidad_actual <= insumo.stock_minimo ? 'danger' : 'success'}">
+                                                        ${inv.cantidad_actual <= insumo.stock_minimo ? 'Bajo' : 'OK'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+        `;
+        
+        document.getElementById('detalleInsumoContent').innerHTML = content;
+    }
+      // Función para editar desde el modal de detalle
+    function editarInsumoDesdeDetalle() {
+        // Cerrar modal de detalle
+        const modalDetalle = bootstrap.Modal.getInstance(document.getElementById('modalDetalleInsumo'));
+        if (modalDetalle) {
+            modalDetalle.hide();
+        }
+        
+        // Obtener ID del insumo desde el botón de editar (puede necesitar ajuste)
+        // Por ahora, mostrar el modal de edición
+        const modalEditar = new bootstrap.Modal(document.getElementById('modalEditarInsumo'));
+        modalEditar.show();
     }
 </script>
 {% endblock %}

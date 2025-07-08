@@ -1,0 +1,455 @@
+{% extends 'cajero/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Cajero - Sushi Restaurant{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 32px 0;
+        margin-bottom: 32px;
+    }
+    
+    .welcome-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .stat-card {
+        border-radius: 20px;
+        border: none;
+        background: white;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        min-height: 140px;
+        cursor: pointer;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+    }
+    
+    .stat-card:active {
+        transform: translateY(-4px);
+    }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        margin-bottom: 16px;
+    }
+    
+    .stat-icon.primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+    }
+    
+    .stat-icon.success {
+        background: linear-gradient(135deg, #27ae60, #229954);
+    }
+    
+    .stat-icon.info {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+    }
+    
+    .stat-icon.warning {
+        background: linear-gradient(135deg, #ffc107, #e0a800);
+    }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #2c3e50;
+        line-height: 1;
+        margin-bottom: 8px;
+    }
+    
+    .stat-label {
+        font-size: 14px;
+        color: #6c757d;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .quick-action-card {
+        border-radius: 20px;
+        border: none;
+        background: white;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        min-height: 160px;
+    }
+    
+    .quick-action-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .quick-action-card:active {
+        transform: translateY(-4px);
+    }
+    
+    .quick-action-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        color: white;
+        margin: 0 auto 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+    
+    .quick-action-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .quick-action-desc {
+        font-size: 14px;
+        color: #6c757d;
+        line-height: 1.4;
+    }
+    
+    .section-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-title i {
+        margin-right: 12px;
+        color: #3498db;
+    }
+    
+    /* Tablet optimizations */
+    @media (min-width: 768px) and (max-width: 1024px) {
+        .stat-card {
+            min-height: 160px;
+        }
+        
+        .stat-icon {
+            width: 70px;
+            height: 70px;
+            font-size: 28px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+        }
+        
+        .quick-action-card {
+            min-height: 180px;
+        }
+        
+        .quick-action-icon {
+            width: 90px;
+            height: 90px;
+            font-size: 40px;
+        }
+        
+        .quick-action-title {
+            font-size: 22px;
+        }
+    }
+    
+    /* Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .stat-card,
+    .quick-action-card {
+        animation: fadeInUp 0.6s ease forwards;
+    }
+    
+    .stat-card:nth-child(1) { animation-delay: 0.1s; }
+    .stat-card:nth-child(2) { animation-delay: 0.2s; }
+    .stat-card:nth-child(3) { animation-delay: 0.3s; }
+    .stat-card:nth-child(4) { animation-delay: 0.4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="container-fluid">
+        <div class="welcome-card">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="display-1 mb-0">
+                        <i class="fas fa-cash-register"></i>
+                    </div>
+                </div>
+                <div class="col">
+                    <h1 class="h2 mb-2">¡Bienvenido, {{ user.first_name|default:user.username }}!</h1>
+                    <p class="mb-0 opacity-75">
+                        <i class="fas fa-calendar-day me-2"></i>
+                        Turno del {{ "now"|date:"d F Y" }}
+                        {% if user_permissions.role_display %}
+                        | <i class="fas fa-user-tag ms-3 me-2"></i>{{ user_permissions.role_display }}
+                        {% endif %}
+                        {% if sucursal %}
+                        | <i class="fas fa-store ms-3 me-2"></i>{{ sucursal.nombre }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Estadísticas del día -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-title">
+                <i class="fas fa-chart-line"></i>
+                Estadísticas de Hoy
+            </h2>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card text-center">
+                <div class="card-body">
+                    <div class="stat-icon primary mx-auto">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-value">${{ ventas_hoy|floatformat:2 }}</div>
+                    <div class="stat-label">Ventas Hoy</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card text-center">
+                <div class="card-body">
+                    <div class="stat-icon success mx-auto">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <div class="stat-value">{{ tickets_hoy }}</div>
+                    <div class="stat-label">Tickets Emitidos</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card text-center">
+                <div class="card-body">
+                    <div class="stat-icon info mx-auto">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="stat-value">${{ promedio_venta|floatformat:2 }}</div>
+                    <div class="stat-label">Venta Promedio</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card text-center">
+                <div class="card-body">
+                    <div class="stat-icon warning mx-auto">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-value" id="currentTime">00:00</div>
+                    <div class="stat-label">Hora Actual</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Accesos rápidos -->
+    <div class="row">
+        <div class="col-12">
+            <h2 class="section-title">
+                <i class="fas fa-bolt"></i>
+                Accesos Rápidos
+            </h2>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <a href="{% url 'cajero:pos' %}" class="quick-action-card">
+                <div class="card-body text-center">
+                    <div class="quick-action-icon primary mx-auto">
+                        <i class="fas fa-cash-register"></i>
+                    </div>
+                    <h3 class="quick-action-title">Punto de Venta</h3>
+                    <p class="quick-action-desc">Iniciar nueva venta y procesar pagos</p>
+                </div>
+            </a>
+        </div>
+        
+        {% if user_permissions.can_view_sales %}
+        <div class="col-lg-3 col-md-6 mb-4">
+            <a href="{% url 'cajero:ventas' %}" class="quick-action-card">
+                <div class="card-body text-center">
+                    <div class="quick-action-icon success mx-auto">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <h3 class="quick-action-title">Historial de Ventas</h3>
+                    <p class="quick-action-desc">Ver ventas realizadas hoy</p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+        
+        {% if user_permissions.can_view_reports %}
+        <div class="col-lg-3 col-md-6 mb-4">
+            <a href="#" class="quick-action-card" onclick="imprimirReporteTurno()">
+                <div class="card-body text-center">
+                    <div class="quick-action-icon info mx-auto">
+                        <i class="fas fa-print"></i>
+                    </div>
+                    <h3 class="quick-action-title">Reporte de Turno</h3>
+                    <p class="quick-action-desc">Imprimir resumen del turno</p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+        
+        {% if user_permissions.is_admin or user_permissions.is_gerente %}
+        <div class="col-lg-3 col-md-6 mb-4">
+            <a href="{% url 'dashboard:principal' %}" class="quick-action-card">
+                <div class="card-body text-center">
+                    <div class="quick-action-icon danger mx-auto">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3 class="quick-action-title">Administración</h3>
+                    <p class="quick-action-desc">Panel de administrador</p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <a href="{% url 'cajero:logout' %}" class="quick-action-card" onclick="return confirm('¿Seguro que deseas cerrar sesión?')">
+                <div class="card-body text-center">
+                    <div class="quick-action-icon warning mx-auto">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                    <h3 class="quick-action-title">Cerrar Turno</h3>
+                    <p class="quick-action-desc">Finalizar sesión de trabajo</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Actualizar hora en tiempo real
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        document.getElementById('currentTime').textContent = timeString;
+    }
+    
+    // Actualizar cada segundo
+    updateTime();
+    setInterval(updateTime, 1000);
+    
+    // Efecto de conteo animado para las estadísticas
+    function animateCounter(element, target) {
+        const start = 0;
+        const increment = target / 60;
+        let current = start;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+            
+            if (element.textContent.includes('$')) {
+                element.textContent = '$' + current.toFixed(2);
+            } else {
+                element.textContent = Math.floor(current);
+            }
+        }, 16);
+    }
+    
+    // Animar contadores al cargar
+    setTimeout(() => {
+        const statValues = document.querySelectorAll('.stat-value');
+        statValues.forEach(stat => {
+            const text = stat.textContent.replace('$', '');
+            const value = parseFloat(text);
+            if (!isNaN(value) && !stat.id) { // No animar el reloj
+                animateCounter(stat, value);
+            }
+        });
+    }, 500);
+    
+    // Haptic feedback para dispositivos compatibles
+    function hapticFeedback() {
+        if ('vibrate' in navigator) {
+            navigator.vibrate(50);
+        }
+    }
+    
+    // Agregar feedback táctil a cards
+    document.querySelectorAll('.stat-card, .quick-action-card').forEach(card => {
+        card.addEventListener('touchstart', hapticFeedback);
+    });
+});
+
+// Función para imprimir reporte de turno
+function imprimirReporteTurno() {
+    const reporte = `
+=== REPORTE DE TURNO ===
+Fecha: ${new Date().toLocaleDateString('es-ES')}
+Cajero: {{ user.first_name|default:user.username }}
+{% if sucursal %}Sucursal: {{ sucursal.nombre }}{% endif %}
+
+RESUMEN:
+- Ventas del día: ${{ ventas_hoy|floatformat:2 }}
+- Tickets emitidos: {{ tickets_hoy }}
+- Venta promedio: ${{ promedio_venta|floatformat:2 }}
+
+Hora de cierre: ${new Date().toLocaleTimeString('es-ES')}
+========================
+`;
+    
+    const win = window.open('', '', 'width=400,height=600');
+    win.document.write('<pre style="font-family: monospace; font-size: 14px; padding: 20px;">' + reporte + '</pre>');
+    win.print();
+    win.close();
+}
+</script>
+{% endblock %}

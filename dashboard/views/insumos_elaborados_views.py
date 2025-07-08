@@ -10,8 +10,10 @@ from restaurant.models import (
     Insumo, CategoriaInsumo, UnidadMedida, InsumoCompuesto
 )
 from dashboard.views import get_sidebar_context, is_admin_or_manager
+from dashboard.utils.permissions import require_submodule_access
 
 @login_required
+@require_submodule_access('inventario', 'elaborados')
 def insumos_elaborados_view(request):
     """Vista principal de insumos elaborados con funcionalidad completa"""    # Filtrar insumos elaborados con sus componentes
     insumos_elaborados = Insumo.objects.filter(
@@ -38,6 +40,8 @@ def insumos_elaborados_view(request):
 
 @login_required
 @user_passes_test(is_admin_or_manager)
+@login_required
+@require_submodule_access('inventario', 'elaborados')
 def crear_insumo_elaborado(request):
     """Vista para crear un nuevo insumo elaborado"""
     if request.method == 'POST':
@@ -197,6 +201,8 @@ def crear_insumo_elaborado(request):
     })
 
 @login_required
+@login_required
+@require_submodule_access('inventario', 'elaborados')
 def obtener_insumos_para_elaborados(request):
     """Vista para obtener insumos disponibles para elaborados"""
     try:
@@ -244,6 +250,7 @@ def obtener_insumos_para_elaborados(request):
         })
 
 @login_required
+@require_submodule_access('inventario', 'elaborados')
 def detalle_insumo_elaborado(request, insumo_id):
     """Vista para ver detalles de un insumo elaborado"""
     try:
@@ -327,7 +334,7 @@ def detalle_insumo_elaborado(request, insumo_id):
         })
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_submodule_access('inventario', 'elaborados')
 def editar_insumo_elaborado(request, insumo_id):
     """Vista para editar un insumo elaborado"""
     if request.method == 'POST':
@@ -421,7 +428,7 @@ def editar_insumo_elaborado(request, insumo_id):
         })
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_submodule_access('inventario', 'elaborados')
 def eliminar_insumo_elaborado(request, insumo_id):
     """Vista para eliminar un insumo elaborado"""
     if request.method == 'POST':

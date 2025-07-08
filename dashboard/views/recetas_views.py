@@ -11,10 +11,12 @@ from restaurant.models import Receta, CategoriaProducto, ProductoVenta, RecetaIn
 from django.db.models import Avg, Count, Sum
 from decimal import Decimal
 import logging
+from dashboard.utils.permissions import require_module_access
 
 logger = logging.getLogger(__name__)
 
 @login_required
+@require_module_access('recetas')
 def recetas_view(request):
     """Vista principal para mostrar las recetas"""
     try:
@@ -311,6 +313,7 @@ def crear_categoria_receta(request):
         })
 
 @login_required
+@require_module_access('recetas')
 @require_POST
 def crear_receta(request):
     """Crear nueva receta"""
@@ -503,6 +506,8 @@ def crear_receta(request):
         })
 
 @login_required
+@login_required
+@require_module_access('recetas')
 def detalle_receta(request, receta_id):
     """Obtener detalle de una receta"""
     logger.info(f"Obteniendo detalle de receta {receta_id}")
@@ -727,6 +732,8 @@ def detalle_receta(request, receta_id):
         })
 
 @login_required
+@login_required
+@require_module_access('recetas')
 @require_POST
 def editar_receta(request, receta_id):
     """Editar receta existente"""
@@ -955,6 +962,7 @@ def editar_receta(request, receta_id):
         })
 
 @login_required
+@require_module_access('recetas')
 @require_POST
 def eliminar_receta(request, receta_id):
     """Eliminar receta"""
@@ -1027,6 +1035,7 @@ def eliminar_receta(request, receta_id):
         }, status=500)
 
 @login_required
+@require_module_access('recetas')
 @require_POST
 def duplicar_receta(request, receta_id):
     """Duplicar receta usando Django ORM para evitar problemas de cursor"""

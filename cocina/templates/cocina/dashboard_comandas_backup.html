@@ -1,0 +1,999 @@
+{% extends 'cocina/base.html' %}
+{% load static %}
+
+{% block title %}Kitchen Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Sistema moderno estilo Kitchen Manager */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #f8f9fa;
+    color: #212529;
+    line-height: 1.5;
+}
+
+/* Header moderno */
+.kitchen-header {
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.kitchen-brand {
+    display: flex;
+    align-items: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.kitchen-brand::before {
+    content: "🍳";
+    margin-right: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    overflow: hidden;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Container principal */
+.main-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Cards estilo papel */
+.orders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.order-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f3f4;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.order-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+/* Header de la orden */
+.order-header {
+    padding: 1.5rem 1.5rem 0 1.5rem;
+    border-bottom: none;
+}
+
+.order-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #202124;
+    margin-bottom: 0.5rem;
+}
+
+.order-status {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.status-progress {
+    background: #e8f0fe;
+    color: #1a73e8;
+}
+
+.status-delayed {
+    background: #fce8e6;
+    color: #d93025;
+}
+
+.status-normal {
+    background: #e6f4ea;
+    color: #137333;
+}
+
+/* Información de la mesa */
+.order-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    color: #5f6368;
+    font-size: 0.875rem;
+}
+
+.order-info i {
+    font-size: 1rem;
+}
+
+/* Sección de items */
+.order-items {
+    padding: 0 1.5rem;
+}
+
+.order-items h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #202124;
+    margin-bottom: 0.75rem;
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.item-row:last-child {
+    border-bottom: none;
+}
+
+.item-name {
+    color: #202124;
+    font-weight: 500;
+}
+
+.item-quantity {
+    background: #f8f9fa;
+    color: #5f6368;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    min-width: 24px;
+    text-align: center;
+}
+
+/* Sección de tiempo */
+.order-timing {
+    padding: 1rem 1.5rem;
+    background: #fafbfc;
+    border-top: 1px solid #f1f3f4;
+}
+
+.timing-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.timing-row:last-child {
+    margin-bottom: 0;
+}
+
+.timing-label {
+    color: #5f6368;
+}
+
+.timing-value {
+    color: #202124;
+    font-weight: 500;
+}
+
+.timing-value.delayed {
+    color: #d93025;
+}
+
+.timing-value.warning {
+    color: #f9ab00;
+}
+
+/* Sección de notas del cliente */
+.customer-notes {
+    padding: 0 1.5rem 1rem 1.5rem;
+}
+
+.customer-notes h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #202124;
+    margin-bottom: 0.5rem;
+}
+
+.notes-text {
+    color: #5f6368;
+    font-style: italic;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+/* Botón de acción */
+.order-actions {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #f1f3f4;
+}
+
+.complete-btn {
+    width: 100%;
+    background: #1a73e8;
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.complete-btn:hover {
+    background: #1557b0;
+    transform: translateY(-1px);
+}
+
+/* Estadísticas superiores */
+.stats-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.stat-card {
+    background: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f3f4;
+    flex: 1;
+    min-width: 200px;
+}
+
+.stat-number {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #202124;
+}
+
+.stat-label {
+    color: #5f6368;
+    font-size: 0.875rem;
+}
+
+.stat-delayed {
+    border-left: 3px solid #d93025;
+}
+
+.stat-progress {
+    border-left: 3px solid #f9ab00;
+}
+
+.stat-normal {
+    border-left: 3px solid #137333;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-container {
+        padding: 1rem;
+    }
+    
+    .kitchen-header {
+        padding: 1rem;
+    }
+    
+    .orders-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-bar {
+        flex-direction: column;
+    }
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    z-index: 9999;
+}
+
+.toast {
+    background: white;
+    border: 1px solid #f1f3f4;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast.success {
+    border-left: 3px solid #137333;
+}
+</style>
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Prioridades de comandas */
+.comanda-retrasada {
+    border-color: #dc3545;
+    background: linear-gradient(135deg, #fff5f5 0%, #fee 100%);
+}
+
+.comanda-tolerancia {
+    border-color: #ffc107;
+    background: linear-gradient(135deg, #fffbf0 0%, #fff3cd 100%);
+}
+
+.comanda-normal {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #f8fff8 0%, #d4edda 100%);
+}
+
+.comanda-header {
+    padding: 15px 20px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.orden-numero {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0;
+    color: #333;
+}
+
+.mesa-info {
+    font-size: 1rem;
+    color: #666;
+    margin: 5px 0 0 0;
+}
+
+.tiempo-info {
+    padding: 15px 20px;
+    text-align: center;
+}
+
+.tiempo-transcurrido {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.tiempo-estimado {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 5px 0 0 0;
+}
+
+.prioridad-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: white;
+}
+
+.badge-retrasada {
+    background-color: #dc3545;
+    animation: pulseRed 2s infinite;
+}
+
+.badge-tolerancia {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.badge-normal {
+    background-color: #28a745;
+}
+
+@keyframes pulseRed {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.productos-lista {
+    padding: 15px 20px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.producto-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.producto-item:last-child {
+    border-bottom: none;
+}
+
+.producto-nombre {
+    font-weight: 500;
+    color: #333;
+    flex: 1;
+}
+
+.producto-cantidad {
+    background-color: #007bff;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    min-width: 30px;
+    text-align: center;
+}
+
+.btn-finalizar {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 0 0 12px 12px;
+    background-color: #007bff;
+    color: white;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-finalizar:hover {
+    background-color: #0056b3;
+    transform: scale(1.02);
+}
+
+.btn-finalizar:active {
+    transform: scale(0.98);
+}
+
+/* Header dashboard */
+.dashboard-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin: 5px 0 0 0;
+}
+
+/* Responsive para tablets */
+@media (max-width: 1024px) and (min-width: 768px) {
+    .comanda-card {
+        min-width: 280px;
+        max-width: 320px;
+    }
+    
+    .comandas-grid {
+        padding: 0 15px;
+    }
+}
+
+/* Responsive para móviles */
+@media (max-width: 767px) {
+    .comandas-grid {
+        flex-direction: column;
+        padding: 0 15px;
+    }
+    
+    .comanda-card {
+        min-width: auto;
+        max-width: none;
+        width: 100%;
+    }
+    
+    .comandas-container {
+        overflow-x: visible;
+    }
+}
+
+/* Estados de carga */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.spinner-border-custom {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.3em;
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header moderno -->
+<header class="kitchen-header">
+    <div class="kitchen-brand">
+        Kitchen Manager
+    </div>
+    <div class="user-profile">
+        <div class="user-avatar">
+            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Profile">
+        </div>
+        <button class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-three-dots"></i>
+        </button>
+    </div>
+</header>
+
+<!-- Container principal -->
+<div class="main-container">
+    <!-- Estadísticas superiores -->
+    <div class="stats-bar">
+        <div class="stat-card stat-delayed">
+            <div class="stat-number">{{ total_retrasadas }}</div>
+            <div class="stat-label">Delayed Orders</div>
+        </div>
+        <div class="stat-card stat-progress">
+            <div class="stat-number">{{ total_tolerancia }}</div>
+            <div class="stat-label">In Progress</div>
+        </div>
+        <div class="stat-card stat-normal">
+            <div class="stat-number">{{ total_normales }}</div>
+            <div class="stat-label">On Time</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ total_ordenes }}</div>
+            <div class="stat-label">Total Active</div>
+        </div>
+    </div>
+
+    <!-- Grid de órdenes -->
+    {% if ordenes_activas %}
+    <div class="orders-grid">
+        {% for orden in ordenes_activas %}
+        <div class="order-card" data-orden-id="{{ orden.id }}">
+            <!-- Header de la orden -->
+            <div class="order-header">
+                <h2 class="order-title">Order #{{ orden.numero_orden }}</h2>
+                <div class="order-status {% if orden.prioridad == 'retrasada' %}status-delayed{% elif orden.prioridad == 'tolerancia' %}status-progress{% else %}status-normal{% endif %}">
+                    {% if orden.prioridad == 'retrasada' %}
+                        Delayed
+                    {% elif orden.prioridad == 'tolerancia' %}
+                        In Progress
+                    {% else %}
+                        On Time
+                    {% endif %}
+                </div>
+                
+                <div class="order-info">
+                    <span><i class="bi bi-geo-alt"></i> Table {{ orden.mesa.numero }}</span>
+                    {% if orden.mesero %}
+                    <span><i class="bi bi-person"></i> {{ orden.mesero.get_full_name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Items de la orden -->
+            <div class="order-items">
+                <h4>Order Items</h4>
+                {% for item in orden.items.all %}
+                <div class="item-row">
+                    <span class="item-name">{{ item.producto.nombre }}</span>
+                    <span class="item-quantity">{{ item.cantidad }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Información de tiempo -->
+            <div class="order-timing">
+                <div class="timing-row">
+                    <span class="timing-label">Estimated Prep Time</span>
+                    <span class="timing-value">{{ orden.tiempo_estimado_str }}</span>
+                </div>
+                <div class="timing-row">
+                    <span class="timing-label">Time Since Order</span>
+                    <span class="timing-value {% if orden.prioridad == 'retrasada' %}delayed{% elif orden.prioridad == 'tolerancia' %}warning{% endif %}">{{ orden.tiempo_transcurrido_str }}</span>
+                </div>
+                {% if orden.minutos_retraso > 0 %}
+                <div class="timing-row">
+                    <span class="timing-label">Overdue by</span>
+                    <span class="timing-value delayed">{{ orden.minutos_retraso }} minutes</span>
+                </div>
+                {% elif orden.minutos_tolerancia >= 0 %}
+                <div class="timing-row">
+                    <span class="timing-label">Time remaining</span>
+                    <span class="timing-value">{{ orden.minutos_tolerancia }} minutes</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Notas del cliente -->
+            {% if orden.observaciones or orden.notas_cocina %}
+            <div class="customer-notes">
+                <h4>Customer Instructions</h4>
+                <div class="notes-text">
+                    {% if orden.observaciones %}
+                        {{ orden.observaciones }}
+                    {% elif orden.notas_cocina %}
+                        {{ orden.notas_cocina }}
+                    {% else %}
+                        Please deliver to the front desk.
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Botón de acción -->
+            <div class="order-actions">
+                <button class="complete-btn" onclick="finalizarOrden({{ orden.id }})">
+                    Mark as Complete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+        <h3 class="mt-3 text-muted">No active orders</h3>
+        <p class="text-muted">All orders are completed. Great job!</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+            </div>
+            
+            <!-- Header de la comanda -->
+            <div class="comanda-header">
+                <h2 class="orden-numero">Orden #{{ orden.numero_orden }}</h2>
+                <p class="mesa-info">
+                    <i class="bi bi-geo-alt"></i> Mesa {{ orden.mesa.numero }}
+                    {% if orden.mesero %}
+                        | {{ orden.mesero.get_full_name }}
+                    {% endif %}
+                </p>
+            </div>
+            
+            <!-- Información de tiempo -->
+            <div class="tiempo-info">
+                <p class="tiempo-transcurrido 
+                   {% if orden.prioridad == 'retrasada' %}text-danger
+                   {% elif orden.prioridad == 'tolerancia' %}text-warning
+                   {% else %}text-success{% endif %}">
+                    <i class="bi bi-stopwatch"></i> {{ orden.tiempo_transcurrido_str }}
+                </p>
+                <p class="tiempo-estimado">
+                    Estimado: {{ orden.tiempo_estimado_str }} 
+                    {% if orden.minutos_retraso > 0 %}
+                        <span class="text-danger">(+{{ orden.minutos_retraso }} min)</span>
+                    {% elif orden.minutos_tolerancia >= 0 %}
+                        <span class="text-warning">({{ orden.minutos_tolerancia }} min restantes)</span>
+                    {% endif %}
+                </p>
+            </div>
+            
+            <!-- Lista de productos -->
+            <div class="productos-lista">
+                {% for item in orden.items.all %}
+                <div class="producto-item">
+                    <span class="producto-nombre">{{ item.producto.nombre }}</span>
+                    <span class="producto-cantidad">{{ item.cantidad }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Botón para finalizar -->
+            <button class="btn-finalizar" onclick="finalizarOrden({{ orden.id }})">
+                <i class="bi bi-check-lg"></i> Confirmar Finalizada
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<!-- Estado vacío -->
+<div class="text-center py-5">
+    <div class="card border-0" style="max-width: 500px; margin: 0 auto;">
+        <div class="card-body p-5">
+            <i class="bi bi-emoji-smile fs-1 text-success mb-3"></i>
+            <h3 class="text-muted">¡Todo al día!</h3>
+            <p class="text-muted mb-4">No hay órdenes activas en este momento.</p>
+            <button class="btn btn-primary" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise"></i> Verificar nuevas órdenes
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Loading overlay -->
+<div class="loading-overlay d-none" id="loadingOverlay">
+    <div class="spinner-border spinner-border-custom text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Función para finalizar orden
+function finalizarOrden(ordenId) {
+    if (!confirm('Mark this order as complete and ready for delivery?')) {
+        return;
+    }
+    
+    const button = document.querySelector(`[data-orden-id="${ordenId}"] .complete-btn`);
+    const originalText = button.textContent;
+    button.textContent = 'Processing...';
+    button.disabled = true;
+    
+    fetch(`/cocina/finalizar-orden/${ordenId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Order completed successfully!', 'success');
+            // Remover la tarjeta con animación
+            const card = document.querySelector(`[data-orden-id="${ordenId}"]`);
+            if (card) {
+                card.style.transition = 'all 0.5s ease';
+                card.style.transform = 'scale(0.8) translateY(-20px)';
+                card.style.opacity = '0';
+                setTimeout(() => {
+                    card.remove();
+                    // Si no quedan más órdenes, mostrar mensaje
+                    if (document.querySelectorAll('.order-card').length === 0) {
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                }, 500);
+            }
+        } else {
+            button.textContent = originalText;
+            button.disabled = false;
+            showToast(data.error || 'Error completing order', 'error');
+        }
+    })
+    .catch(error => {
+        button.textContent = originalText;
+        button.disabled = false;
+        console.error('Error:', error);
+        showToast('Connection error', 'error');
+    });
+}
+
+// Función para obtener el token CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Función para mostrar toast notifications
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Mostrar toast
+    setTimeout(() => toast.classList.add('show'), 100);
+    
+    // Ocultar y remover toast después de 3 segundos
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => container.removeChild(toast), 300);
+    }, 3000);
+}
+
+// Auto-refresh cada 30 segundos para mantener los datos actualizados
+setInterval(() => {
+    // Solo refrescar si no hay operaciones en curso
+    if (!document.querySelector('.complete-btn:disabled')) {
+        location.reload();
+    }
+}, 30000);
+
+// Efecto hover mejorado para las tarjetas
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.order-card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}
+    document.getElementById('loadingOverlay').classList.remove('d-none');
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('d-none');
+}
+
+// Función para mostrar toasts
+function showToast(message, type = 'info') {
+    const toastContainer = document.querySelector('.toast-container');
+    const toastId = 'toast-' + Date.now();
+    
+    const toastColors = {
+        success: 'text-bg-success',
+        error: 'text-bg-danger',
+        warning: 'text-bg-warning',
+        info: 'text-bg-primary'
+    };
+    
+    const toastHtml = `
+        <div class="toast ${toastColors[type] || toastColors.info}" role="alert" id="${toastId}">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+    toast.show();
+    
+    // Limpiar el toast después de que se oculte
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
+}
+
+// Auto-actualización cada 30 segundos
+function autoRefresh() {
+    setInterval(() => {
+        location.reload();
+    }, 30000); // 30 segundos
+}
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    updateClock();
+    setInterval(updateClock, 1000);
+    autoRefresh();
+    
+    // Mejorar experiencia táctil en tablets
+    if (window.innerWidth >= 768 && window.innerWidth <= 1024) {
+        const container = document.querySelector('.comandas-container');
+        if (container) {
+            // Hacer scroll horizontal más fácil en tablets
+            container.addEventListener('wheel', function(e) {
+                if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
+                    e.preventDefault();
+                    container.scrollLeft += e.deltaY;
+                }
+            });
+        }
+    }
+});
+
+// Actualización cuando se hace visible la ventana
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        updateClock();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Apertura de Caja - {{ block.super }}{% endblock %}
+
+{% block custom_css %}
+<style>
+    .apertura-caja-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background-color: #fff;
+    }
+    
+    .apertura-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .apertura-header i {
+        font-size: 3rem;
+        color: #4CAF50;
+        margin-bottom: 1rem;
+        display: block;
+    }
+    
+    .apertura-form .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .apertura-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="apertura-caja-container">
+                <div class="apertura-header">
+                    <i class="fas fa-cash-register"></i>
+                    <h3>Apertura de Caja</h3>
+                    <p class="text-muted">{{ sucursal.nombre }} - {{ cajero.get_full_name }}</p>
+                    <p class="text-muted">{{ now|date:"d/m/Y H:i" }}</p>
+                </div>
+                
+                <form method="post" class="apertura-form">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="monto_inicial">Monto Inicial en Caja (Q.)</label>
+                        <input type="number" id="monto_inicial" name="monto_inicial" class="form-control" step="0.01" min="0" required>
+                        <small class="form-text text-muted">Ingrese el monto con el que inicia su caja hoy.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notas">Notas (opcional)</label>
+                        <textarea id="notas" name="notas" class="form-control" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="apertura-actions">
+                        <a href="{% url 'dashboard:cajero_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-unlock"></i> Abrir Caja
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Focus en el campo de monto inicial
+        document.getElementById('monto_inicial').focus();
+    });
+</script>
+{% endblock %}

@@ -1,83 +1,130 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permission_tags %}
 
 {% block title %}Ventas - Sushi Restaurant{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1 class="h3 mb-1">
             <i class="fas fa-cash-register me-2 text-primary"></i>
             Ventas
         </h1>
-        <p class="text-muted mb-0">Reportes y estadísticas de ventas</p>
-    </div>
-    <div>
-        <button class="btn btn-success me-2">
-            <i class="fas fa-file-excel me-2"></i>Exportar
-        </button>
-        <button class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Nueva Venta
-        </button>
+        <p class="text-muted mb-0">Gestión de ventas con descontado automático de inventario</p>
     </div>
 </div>
 
-<!-- Módulo en desarrollo -->
+<!-- Nueva funcionalidad de ventas -->
 <div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body text-center py-5">
-                <i class="fas fa-tools fa-4x text-muted mb-4"></i>
-                <h3 class="text-muted mb-3">Módulo de Ventas en Desarrollo</h3>
-                <p class="text-muted mb-4">Esta funcionalidad estará disponible próximamente. Incluirá:</p>
-                
-                <div class="row">
-                    <div class="col-md-6 offset-md-3">
-                        <div class="list-group list-group-flush">
-                            <div class="list-group-item border-0">
-                                <i class="fas fa-chart-line me-2 text-primary"></i>
-                                Reportes de ventas diarias, semanales y mensuales
-                            </div>
-                            <div class="list-group-item border-0">
-                                <i class="fas fa-receipt me-2 text-success"></i>
-                                Sistema de facturación y tickets
-                            </div>
-                            <div class="list-group-item border-0">
-                                <i class="fas fa-users me-2 text-info"></i>
-                                Gestión de clientes y mesas
-                            </div>
-                            <div class="list-group-item border-0">
-                                <i class="fas fa-chart-pie me-2 text-warning"></i>
-                                Análisis de productos más vendidos
-                            </div>
-                            <div class="list-group-item border-0">
-                                <i class="fas fa-dollar-sign me-2 text-danger"></i>
-                                Control de ingresos y comisiones
-                            </div>
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-cash-register me-2"></i>Registrar Venta
+                </h6>
+            </div>
+            <div class="card-body">
+                <form id="formVenta">
+                    <!-- Sucursal -->
+                    <div class="mb-3">
+                        <label for="sucursal" class="form-label">Sucursal</label>
+                        <select class="form-select" id="sucursal" required>
+                            <option value="">Seleccione sucursal</option>
+                            {% for sucursal in sucursales %}
+                                <option value="{{ sucursal.id }}" {% if sucursal_filtro and sucursal.id == sucursal_filtro.id %}selected{% endif %}>
+                                    {{ sucursal.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Producto -->
+                    <div class="mb-3">
+                        <label for="producto" class="form-label">Producto</label>
+                        <select class="form-select" id="producto" required>
+                            <option value="">Seleccione producto</option>
+                            {% for producto in productos_con_receta %}
+                                <option value="{{ producto.id }}" 
+                                    data-precio="{{ producto.precio }}"
+                                    data-descripcion="{{ producto.descripcion|default:'' }}">
+                                    {{ producto.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Info del producto seleccionado -->
+                    <div id="infoProducto" class="mb-3">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                    
+                    <!-- Cantidad -->
+                    <div class="mb-3">
+                        <label for="cantidad" class="form-label">Cantidad</label>
+                        <input type="number" class="form-control" id="cantidad" min="1" value="1" required>
+                    </div>
+                    
+                    <!-- Método de costeo -->
+                    <div class="mb-3">
+                        <label for="metodoCosteo" class="form-label">Método de Costeo</label>
+                        <select class="form-select" id="metodoCosteo">
+                            <option value="peps" selected>PEPS (Primero en Entrar, Primero en Salir)</option>
+                            <option value="promedio">Costo Promedio</option>
+                        </select>
+                        <div class="form-text">
+                            El método PEPS utiliza los insumos más antiguos primero. El costo promedio usa un precio promedio ponderado.
                         </div>
                     </div>
-                </div>
-                
-                <div class="mt-4">
-                    <p class="text-muted">Mientras tanto, puedes gestionar el inventario y productos desde los otros módulos.</p>
-                    <div class="btn-group" role="group">
-                        <a href="{% url 'dashboard:productos_venta' %}" class="btn btn-outline-primary">
-                            <i class="fas fa-shopping-cart me-1"></i>Ver Productos
-                        </a>
-                        <a href="{% url 'dashboard:inventario' %}" class="btn btn-outline-success">
-                            <i class="fas fa-boxes me-1"></i>Ver Inventario
-                        </a>
-                        <a href="/admin/" class="btn btn-outline-info">
-                            <i class="fas fa-cog me-1"></i>Panel Admin
-                        </a>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" id="btnSimularCosto" class="btn btn-outline-primary">
+                            <i class="fas fa-calculator me-2"></i>Simular Costo
+                        </button>
+                        <button type="button" id="btnConfirmarVenta" class="btn btn-success">
+                            <i class="fas fa-check-circle me-2"></i>Confirmar Venta
+                        </button>
                     </div>
-                </div>
+                </form>
             </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <!-- Alerta de stock insuficiente -->
+        <div id="alertaStock">
+            <!-- Se llenará dinámicamente -->
+        </div>
+        
+        <!-- Resultado de simulación -->
+        <div id="resultadoSimulacion">
+            <!-- Se llenará dinámicamente -->
+        </div>
+        
+        <!-- Resultado de venta -->
+        <div id="resultadoVenta">
+            <!-- Se llenará dinámicamente -->
         </div>
     </div>
 </div>
 
-<!-- Placeholders para futuras funcionalidades -->
+<!-- Historial de ventas recientes -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-history me-2"></i>Ventas Recientes
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            El historial de ventas estará disponible próximamente. 
+            Por ahora, puede consultar los movimientos de inventario en la sección "Entradas y Salidas".
+        </div>
+    </div>
+</div>
+
+<!-- Próximas funcionalidades -->
 <div class="row mt-4">
     <div class="col-md-3">
         <div class="card">
@@ -116,4 +163,42 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-header {
+        background-color: #f8f9fc;
+    }
+    
+    .btn-group-toggle .btn {
+        margin-right: 5px;
+    }
+    
+    .table th {
+        font-size: 0.85rem;
+    }
+    
+    .alert-info {
+        background-color: #e3f2fd;
+        border-color: #d0e5f5;
+        color: #0c5460;
+    }
+    
+    .alert-warning {
+        background-color: #fff8e1;
+        border-color: #ffe0b2;
+        color: #856404;
+    }
+    
+    .alert-success {
+        background-color: #e8f5e9;
+        border-color: #c8e6c9;
+        color: #155724;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'dashboard/js/ventas_funciones.js' %}"></script>
 {% endblock %}

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AJAX Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow: auto; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px; margin: 5px; cursor: pointer; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        .box { border: 1px solid #ddd; padding: 15px; margin: 15px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>AJAX Debug Tool</h1>
+    
+    <div class="box">
+        <h2>1. Configure Test</h2>
+        <p>Enter the URL and form data for your AJAX call:</p>
+        
+        <label for="url">URL:</label>
+        <input type="text" id="url" value="/dashboard/proveedor/1/asignar-insumo/" style="width: 80%;">
+        
+        <div>
+            <label for="data">Form Data (JSON format):</label>
+            <textarea id="data">{
+    "insumo_id": 1,
+    "precio_unitario": 150.00,
+    "cantidad_minima": 10,
+    "tiempo_entrega_dias": 5,
+    "observaciones": "Prueba AJAX"
+}</textarea>
+        </div>
+    </div>
+    
+    <div class="box">
+        <h2>2. Run Test</h2>
+        <button id="runFetch">Run with Fetch API</button>
+        <button id="runXhr">Run with XMLHttpRequest</button>
+        <button id="runJQuery" disabled>Run with jQuery (Not Available)</button>
+    </div>
+    
+    <div class="box">
+        <h2>3. Results</h2>
+        
+        <div>
+            <h3>Response Status:</h3>
+            <pre id="status">Not run yet</pre>
+        </div>
+        
+        <div>
+            <h3>Raw Response Text:</h3>
+            <pre id="rawResponse">Not run yet</pre>
+        </div>
+        
+        <div>
+            <h3>Parsed JSON Response:</h3>
+            <pre id="jsonResponse">Not run yet</pre>
+        </div>
+        
+        <div>
+            <h3>Console Output:</h3>
+            <pre id="console">Not run yet</pre>
+        </div>
+    </div>
+    
+    <script>
+        // Helper functions
+        function appendToConsole(message, isError = false) {
+            const consoleElem = document.getElementById('console');
+            consoleElem.innerHTML += `<div class="${isError ? 'error' : ''}">${message}</div>`;
+        }
+        
+        function updateStatus(message, isSuccess = true) {
+            const statusElem = document.getElementById('status');
+            statusElem.innerHTML = `<span class="${isSuccess ? 'success' : 'error'}">${message}</span>`;
+        }
+        
+        function showRawResponse(text) {
+            const rawElem = document.getElementById('rawResponse');
+            // Escape HTML to prevent XSS
+            const escaped = text.replace(/&/g, '&amp;')
+                               .replace(/</g, '&lt;')
+                               .replace(/>/g, '&gt;')
+                               .replace(/"/g, '&quot;')
+                               .replace(/'/g, '&#039;');
+            rawElem.textContent = escaped;
+        }
+        
+        function analyzeResponse(text) {
+            try {
+                const json = JSON.parse(text);
+                const jsonElem = document.getElementById('jsonResponse');
+                jsonElem.innerHTML = `<span class="success">Valid JSON:</span><br>` + 
+                                     JSON.stringify(json, null, 2);
+                appendToConsole('✓ JSON successfully parsed');
+                return json;
+            } catch (e) {
+                const jsonElem = document.getElementById('jsonResponse');
+                jsonElem.innerHTML = `<span class="error">Invalid JSON: ${e.message}</span>`;
+                appendToConsole(`✗ JSON parse error: ${e.message}`, true);
+                
+                // Analyze the error
+                if (text.trim().startsWith('{') && text.trim().endsWith('}')) {
+                    appendToConsole('! Response starts with { and ends with }, but isn\'t valid JSON.', true);
+                }
+                
+                // Check for BOM or whitespace
+                const firstFewChars = text.substring(0, 20);
+                appendToConsole(`! First few characters: ${Array.from(firstFewChars).map(c => c.charCodeAt(0)).join(', ')}`, true);
+                
+                // Check for line breaks
+                if (text.includes('\n')) {
+                    const lines = text.split('\n');
+                    appendToConsole(`! Response contains ${lines.length} lines. First line: "${lines[0]}"`, true);
+                }
+                
+                return null;
+            }
+        }
+        
+        // Test runners
+        document.getElementById('runFetch').addEventListener('click', function() {
+            const url = document.getElementById('url').value;
+            let data;
+            
+            try {
+                data = JSON.parse(document.getElementById('data').value);
+            } catch (e) {
+                updateStatus(`Invalid JSON data: ${e.message}`, false);
+                return;
+            }
+            
+            // Reset outputs
+            document.getElementById('console').innerHTML = '';
+            document.getElementById('rawResponse').innerHTML = '';
+            document.getElementById('jsonResponse').innerHTML = '';
+            
+            appendToConsole(`Running Fetch API test for ${url}`);
+            
+            const formData = new FormData();
+            for (const key in data) {
+                formData.append(key, data[key]);
+            }
+            
+            // Get CSRF token from cookies
+            const csrftoken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+                
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrftoken || ''
+                }
+            })
+            .then(response => {
+                updateStatus(`Response received: ${response.status} ${response.statusText}`, response.ok);
+                appendToConsole(`Response status: ${response.status} ${response.statusText}`);
+                
+                // Get response as text first, to inspect the raw response
+                return response.text();
+            })
+            .then(text => {
+                appendToConsole(`Raw response length: ${text.length} bytes`);
+                showRawResponse(text);
+                
+                // Analyze as JSON if possible
+                analyzeResponse(text);
+            })
+            .catch(error => {
+                updateStatus(`Error: ${error.message}`, false);
+                appendToConsole(`Error: ${error.message}`, true);
+            });
+        });
+        
+        document.getElementById('runXhr').addEventListener('click', function() {
+            const url = document.getElementById('url').value;
+            let data;
+            
+            try {
+                data = JSON.parse(document.getElementById('data').value);
+            } catch (e) {
+                updateStatus(`Invalid JSON data: ${e.message}`, false);
+                return;
+            }
+            
+            // Reset outputs
+            document.getElementById('console').innerHTML = '';
+            document.getElementById('rawResponse').innerHTML = '';
+            document.getElementById('jsonResponse').innerHTML = '';
+            
+            appendToConsole(`Running XMLHttpRequest test for ${url}`);
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', url, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            
+            // Get CSRF token
+            const csrftoken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+                
+            if (csrftoken) {
+                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+            }
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    updateStatus(`Response received: ${xhr.status}`, xhr.status >= 200 && xhr.status < 300);
+                    appendToConsole(`Response status: ${xhr.status}`);
+                    appendToConsole(`Raw response length: ${xhr.responseText.length} bytes`);
+                    
+                    showRawResponse(xhr.responseText);
+                    
+                    // Inspect response byte by byte
+                    const bytes = [];
+                    for (let i = 0; i < Math.min(xhr.responseText.length, 50); i++) {
+                        bytes.push(xhr.responseText.charCodeAt(i));
+                    }
+                    appendToConsole(`First ${bytes.length} bytes: ${bytes.join(', ')}`);
+                    
+                    // Analyze as JSON if possible
+                    analyzeResponse(xhr.responseText);
+                }
+            };
+            
+            const formData = new FormData();
+            for (const key in data) {
+                formData.append(key, data[key]);
+            }
+            
+            xhr.send(formData);
+        });
+    </script>
+</body>
+</html>

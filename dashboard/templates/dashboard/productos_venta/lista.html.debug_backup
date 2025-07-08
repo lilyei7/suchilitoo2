@@ -1,0 +1,1129 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Productos de Venta{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="fas fa-utensils me-2 text-primary"></i>
+                Productos de Venta
+            </h1>
+            <p class="text-muted mb-0">
+                Catálogo de productos para venta 
+                <small class="text-muted ms-2">
+                    (Total: {{ total_productos }} - 
+                    <span class="text-success">Activos: {{ total_activos }}</span>, 
+                    <span class="text-danger">Inactivos: {{ total_inactivos }}</span>)
+                </small>
+            </p>
+        </div>
+        <a href="{% url 'dashboard:crear_producto_venta' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nuevo Producto
+        </a>
+    </div>
+
+    <!-- CSRF token para uso directo -->
+    <form id="csrf-form" style="display:none">
+        {% csrf_token %}
+    </form>
+
+    <!-- Barra de búsqueda y filtros -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form method="get" class="d-flex">
+                <input type="text" name="q" class="form-control me-2" placeholder="Buscar producto..." value="{{ query|default:'' }}">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <form method="get" class="d-flex justify-content-end">
+                <select name="categoria" class="form-select" style="max-width: 250px;" onchange="this.form.submit()">
+                    <option value="">Todas las categorías</option>
+                    {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoria.id|stringformat:"s" == categoria_seleccionada %}selected{% endif %}>
+                            {{ categoria.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- Grid de productos en tarjetas -->
+    {% if productos %}
+    <div class="row">
+        {% for producto in productos %}
+        <!-- Product Card -->
+        <div class="col-12 col-sm-6 col-lg-4 mb-4" id="producto-card-{{ producto.id }}">
+            <div class="card h-100 product-card" data-product-id="{{ producto.id }}">
+                {% if producto.imagen %}
+                <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}" style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="fas fa-utensils fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ producto.nombre }}</h5>
+                        {% if producto.disponible %}
+                            <span class="badge status-badge badge-active shadow" style="background-color: #28a745 !important; color: #ffffff !important; border: 2px solid #1e7e34 !important;">
+                                <i class="fas fa-check-circle me-1"></i> ACTIVO
+                            </span>
+                        {% else %}
+                            <span class="badge status-badge badge-inactive shadow" style="background-color: #dc3545 !important; color: #ffffff !important; border: 2px solid #bd2130 !important;">
+                                <i class="fas fa-pause-circle me-1"></i> INACTIVO
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <small class="text-muted mb-2">{{ producto.codigo }}</small>
+                    
+                    {% if producto.categoria %}
+                    <span class="badge bg-light text-dark mb-2">{{ producto.categoria.nombre }}</span>
+                    {% endif %}
+                    
+                    <p class="card-text flex-grow-1">{{ producto.descripcion|truncatewords:15|default:"Sin descripción" }}</p>
+                    
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="h5 text-success mb-0">${{ producto.precio|floatformat:2 }}</span>
+                            {% if producto.calorias %}
+                            <small class="text-muted">{{ producto.calorias }} cal</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="btn-group w-100" role="group">
+                            <a href="{% url 'dashboard:ver_detalle_producto' producto.id %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'dashboard:editar_producto_venta' producto.id %}" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deleteModal"
+                                    data-id="{{ producto.id }}"
+                                    data-nombre="{{ producto.nombre }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No hay productos registrados</h5>
+        <p class="text-muted">Comienza agregando tu primer producto al catálogo.</p>
+        <a href="{% url 'dashboard:crear_producto_venta' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Crear Primer Producto
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Estadísticas de productos -->
+    <div class="row mt-5">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-shopping-cart fa-2x text-primary mb-3"></i>
+                    <h5>Total Productos</h5>
+                    <h3 class="text-primary">{{ total_productos }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-2x text-success mb-3"></i>
+                    <h5>Disponibles</h5>
+                    <h3 class="text-success">{{ total_activos }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-pause-circle fa-2x text-danger mb-3"></i>
+                    <h5>En Promoción</h5>
+                    <h3 class="text-danger">{{ total_inactivos }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-dollar-sign fa-2x text-warning mb-3"></i>
+                    <h5>Precio Promedio</h5>
+                    <h3 class="text-warning">$0</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar el producto <strong id="productoNombre"></strong>?</p>
+                <p class="text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteForm" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" id="producto_id_input" name="producto_id" value="">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block styles %}
+<style>
+    .product-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border: 1px solid #e3e6f0;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .status-badge {
+        font-size: 0.85rem !important;
+        padding: 0.5rem 0.75rem !important;
+        border-radius: 0.5rem !important;
+        font-weight: 700 !important;
+        transition: all 0.3s ease !important;
+        border: 2px solid !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        display: inline-block !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    .status-badge:hover {
+        transform: scale(1.08) !important;
+        box-shadow: 0 0.4rem 0.8rem rgba(0, 0, 0, 0.25) !important;
+    }
+    
+    .status-badge i {
+        font-size: 1rem !important;
+        margin-right: 0.25rem !important;
+    }
+    
+    .badge-active {
+        background-color: #28a745 !important;
+        color: #ffffff !important;
+        border-color: #1e7e34 !important;
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3) !important;
+    }
+    
+    .badge-active:hover {
+        background-color: #218838 !important;
+        color: #ffffff !important;
+        border-color: #1c7430 !important;
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.5) !important;
+    }
+    
+    .badge-inactive {
+        background-color: #dc3545 !important;
+        color: #ffffff !important;
+        border-color: #bd2130 !important;
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3) !important;
+    }
+    
+    .badge-inactive:hover {
+        background-color: #c82333 !important;
+        color: #ffffff !important;
+        border-color: #a71e2a !important;
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.5) !important;
+    }
+    
+    /* Sobrescribir cualquier estilo de Bootstrap que pueda interferir */
+    .badge.status-badge.badge-active {
+        background-color: #28a745 !important;
+        color: #ffffff !important;
+        border: 2px solid #1e7e34 !important;
+    }
+    
+    .badge.status-badge.badge-inactive {
+        background-color: #dc3545 !important;
+        color: #ffffff !important;
+        border: 2px solid #bd2130 !important;
+    }
+    
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .btn-group .btn {
+        border-radius: 0.375rem !important;
+        margin: 0 2px;
+    }
+    
+    .search-container .search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        z-index: 10;
+    }
+    
+    .search-container input {
+        padding-left: 45px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 [PRODUCTOS] Página cargada, inicializando funcionalidad de eliminación...');
+        console.log('🕐 [TIME] Timestamp inicio:', new Date().toISOString());
+        console.log('🌐 [URL] URL actual:', window.location.href);
+        console.log('👤 [USER] User agent:', navigator.userAgent);
+        
+        // Manejo del modal de eliminar
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteForm = document.getElementById('deleteForm');
+        
+        if (deleteModal) {
+            console.log('✅ [MODAL] Modal de eliminación encontrado');
+            
+            // Evento cuando se abre el modal
+            deleteModal.addEventListener('show.bs.modal', function (event) {
+                console.log('📖 [MODAL] Modal de eliminación abriéndose...');
+                console.log('🕐 [TIME] Timestamp modal opening:', new Date().toISOString());
+                
+                const button = event.relatedTarget;
+                const productoId = button.getAttribute('data-id');
+                const productoNombre = button.getAttribute('data-nombre');
+                
+                console.log(`🎯 [MODAL] Producto seleccionado para eliminar:`, {
+                    id: productoId,
+                    nombre: productoNombre,
+                    button: button,
+                    buttonTagName: button.tagName,
+                    buttonClasses: button.className
+                });
+                
+                document.getElementById('productoNombre').textContent = productoNombre;
+                document.getElementById('producto_id_input').value = productoId;
+                const actionUrl = "{% url 'dashboard:eliminar_producto_venta' 0 %}".replace('0', productoId);
+                document.getElementById('deleteForm').action = actionUrl;
+                
+                console.log(`🔗 [MODAL] URL de eliminación configurada: ${actionUrl}`);
+                console.log(`📋 [FORM] Formulario action actualizado a: ${document.getElementById('deleteForm').action}`);
+            });
+            
+            // Evento cuando se confirma el modal
+            deleteModal.addEventListener('shown.bs.modal', function (event) {
+                console.log('✅ [MODAL] Modal completamente visible');
+                console.log('🕐 [TIME] Timestamp modal shown:', new Date().toISOString());
+            });
+            
+            // Evento cuando se oculta el modal
+            deleteModal.addEventListener('hide.bs.modal', function (event) {
+                console.log('❌ [MODAL] Modal cerrándose...');
+                console.log('🕐 [TIME] Timestamp modal hiding:', new Date().toISOString());
+            });
+            
+            // Evento cuando el modal se ha ocultado completamente
+            deleteModal.addEventListener('hidden.bs.modal', function (event) {
+                console.log('🔒 [MODAL] Modal completamente cerrado');
+                console.log('🕐 [TIME] Timestamp modal hidden:', new Date().toISOString());
+            });
+        } else {
+            console.error('❌ [ERROR] Modal de eliminación NO encontrado');
+        }
+        
+        // Manejo del formulario de eliminación
+        if (deleteForm) {
+            console.log('✅ [FORM] Formulario de eliminación encontrado');
+            console.log('📋 [FORM] Action inicial del formulario:', deleteForm.action);
+            console.log('📋 [FORM] Método del formulario:', deleteForm.method);
+            
+            deleteForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                console.log('🚀 [FORM] ¡¡¡FORMULARIO DE ELIMINACIÓN ENVIADO!!!');
+                console.log('🕐 [TIME] Timestamp form submit:', new Date().toISOString());
+                console.log('📋 [FORM] Datos del formulario al enviar:', {
+                    action: this.action,
+                    method: this.method,
+                    elements: this.elements.length,
+                    formData: new FormData(this)
+                });
+                
+                // PREVENIR EL ENVÍO NORMAL DEL FORMULARIO
+                event.preventDefault();
+                console.log('🛑 [FORM] Envío normal PREVENIDO - usando AJAX...');
+                
+                // Obtener CSRF token
+                const csrfToken = this.querySelector('[name=csrfmiddlewaretoken]');
+                console.log('🔐 [CSRF] Token encontrado:', csrfToken ? 'SÍ' : 'NO');
+                if (csrfToken) {
+                    console.log('🔐 [CSRF] Valor del token:', csrfToken.value.substring(0, 10) + '...');
+                }
+                
+                // Log de todos los datos del formulario
+                
+                // Verificar producto_id
+                const productoIdInput = this.querySelector('input[name="producto_id"]');
+                const productoId = productoIdInput ? productoIdInput.value : null;
+                console.log(`🔑 [FORM] ID del producto a eliminar: ${productoId || 'NO ENCONTRADO'}`);
+                
+                if (!productoId) {
+                    console.error('❌ [ERROR] ¡No se encontró el ID del producto! Agregando manualmente...');
+                    // Extraer el ID de la URL
+                    const actionUrl = this.action;
+                    const urlParts = actionUrl.split('/');
+                    const extractedId = urlParts[urlParts.length - 2];
+                    console.log(`🔍 [RECUPERACIÓN] ID extraído de la URL: ${extractedId}`);
+                    
+                    // Crear input si no existe
+                    if (!productoIdInput) {
+                        const newInput = document.createElement('input');
+                        newInput.type = 'hidden';
+                        newInput.name = 'producto_id';
+                        newInput.value = extractedId;
+                        this.appendChild(newInput);
+                        console.log(`✅ [RECUPERACIÓN] Input creado con ID: ${extractedId}`);
+                    } else {
+                        productoIdInput.value = extractedId;
+                        console.log(`✅ [RECUPERACIÓN] Input actualizado con ID: ${extractedId}`);
+                    }
+                }
+                const formData = new FormData(this);
+                console.log('📊 [FORM] Todos los datos del formulario:');
+                for (let [key, value] of formData.entries()) {
+                    console.log(`   ${key}
+                
+                // Asegurar que el producto_id está en el FormData
+                if (!formData.has('producto_id')) {
+                    const actionUrl = this.action;
+                    const urlParts = actionUrl.split('/');
+                    const extractedId = urlParts[urlParts.length - 2];
+                    formData.append('producto_id', extractedId);
+                    console.log(`✅ [RECUPERACIÓN] Agregado producto_id=${extractedId} al FormData`);
+                }
+                : ${value}`);
+                }
+                
+                // Log antes de enviar AJAX
+                console.log('⏳ [AJAX] ¡¡¡ENVIANDO PETICIÓN AJAX DE ELIMINACIÓN AHORA!!!');
+                console.log('🎯 [AJAX] URL destino:', this.action);
+                console.log('📡 [AJAX] Método HTTP:', this.method.toUpperCase());
+                
+                // Deshabilitar el botón de eliminar mientras se procesa
+                const submitButton = this.querySelector('button[type="submit"]');
+                const originalText = submitButton.textContent;
+                submitButton.disabled = true;
+                submitButton.textContent = 'Eliminando...';
+                
+                // Obtener información del producto antes de enviar
+                const productoId = this.action.split('/').filter(Boolean).pop();
+                const productoNombre = document.getElementById('productoNombre').textContent;
+                const productoCard = document.querySelector(`[data-product-id="${productoId}"]`);
+                const productoInfo = {
+                    id: productoId,
+                    nombre: productoNombre,
+                    card: productoCard ? true : false,
+                    precio: productoCard ? productoCard.querySelector('.text-success').textContent : 'N/A',
+                    categoria: productoCard ? productoCard.querySelector('.badge.bg-light') ? 
+                                productoCard.querySelector('.badge.bg-light').textContent : 'Sin categoría' : 'N/A'
+                };
+                
+                console.log(`🔍 [DEBUG] Información pre-eliminación:`, productoInfo);
+                console.log(`🔍 [DEBUG] URL acción: ${this.action}`);
+                console.log(`🔍 [DEBUG] Método HTTP: ${this.method.toUpperCase()}`);
+                console.log(`🔍 [DEBUG] Timestamp: ${new Date().toISOString()}`);
+
+                // Preparar FormData con información adicional para debugging
+                const formData = new FormData(this);
+                formData.append('debug_timestamp', new Date().toISOString());
+                formData.append('debug_browser', navigator.userAgent);
+                formData.append('debug_producto_info', JSON.stringify(productoInfo));
+
+                // Log detallado del FormData
+                let formDataDetails = {};
+                for (let [key, value] of formData.entries()) {
+                    formDataDetails[key] = value;
+                    console.log(`📤 [FORM-DATA] Campo: ${key}, Valor: ${value}`);
+                }
+                
+                // Enviar via AJAX con más instrumentación
+                console.log(`🚀 [AJAX] Iniciando fetch a ${this.action}...`);
+                
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-Debug-Delete': 'true',
+                        'X-Debug-Timestamp': new Date().toISOString()
+                    
+                        'X-Producto-ID': formData.get('producto_id'),},
+                    credentials: 'same-origin' // Asegura envío de cookies
+                })
+                .then(response => {
+                    // Log extremadamente detallado de la respuesta
+                    console.log(`📥 [AJAX] Respuesta recibida para producto ${productoId} (${productoNombre})`);
+                    console.log('📊 [AJAX] Status:', response.status);
+                    console.log('📊 [AJAX] Status Text:', response.statusText);
+                    console.log('📊 [AJAX] OK:', response.ok);
+                    console.log('📊 [AJAX] Type:', response.type);
+                    console.log('📊 [AJAX] URL final:', response.url);
+                    console.log('📊 [AJAX] Redirected:', response.redirected);
+                    
+                    // Log de todos los headers
+                    console.log('� [AJAX] Headers recibidos:');
+                    const headersObj = {};
+                    response.headers.forEach((value, key) => {
+                        console.log(`   ${key}: ${value}`);
+                        headersObj[key] = value;
+                    });
+                    console.log('📨 [AJAX] Headers como objeto:', headersObj);
+                    
+                    // Intentar determinar el tipo de respuesta
+                    const contentType = response.headers.get('content-type');
+                    console.log('📄 [AJAX] Content-Type:', contentType);
+                    
+                    // Verificar si la respuesta es ok
+                    if (response.ok) {
+                        if (contentType && contentType.includes('application/json')) {
+                            console.log('📋 [AJAX] Procesando respuesta JSON...');
+                            return response.json()
+                                .then(data => {
+                                    console.log('🔍 [AJAX] Datos JSON parseados correctamente:', data);
+                                    return data;
+                                })
+                                .catch(jsonError => {
+                                    console.error('⚠️ [AJAX] Error al parsear JSON:', jsonError);
+                                    // Intentar obtener el texto de la respuesta
+                                    return response.text().then(text => {
+                                        console.log('📜 [AJAX] Respuesta como texto:', text.substring(0, 200) + '...');
+                                        throw new Error(`Error al parsear JSON: ${jsonError.message}`);
+                                    });
+                                });
+                        } else {
+                            // Si no es JSON, intentar leer el texto de la respuesta
+                            console.log('📜 [AJAX] Respuesta no es JSON, leyendo como texto...');
+                            return response.text()
+                                .then(text => {
+                                    console.log('📜 [AJAX] Respuesta como texto (primeros 200 chars):', 
+                                              text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+                                    
+                                    // Verificar si el texto contiene indicaciones de éxito
+                                    const lowercaseText = text.toLowerCase();
+                                    const containsSuccess = lowercaseText.includes('success') || 
+                                                         lowercaseText.includes('éxito') ||
+                                                         lowercaseText.includes('eliminado');
+                                    
+                                    // Verificar si hubo redirect a la lista de productos
+                                    const isRedirectToList = response.url.includes('productos-venta') && 
+                                                            !response.url.includes('eliminar');
+                                    
+                                    if (containsSuccess || isRedirectToList) {
+                                        console.log('✅ [AJAX] Detección de éxito en respuesta de texto');
+                                        return { 
+                                            success: true, 
+                                            message: 'Producto eliminado correctamente',
+                                            responseType: 'text',
+                                            isRedirect: isRedirectToList
+                                        };
+                                    } else {
+                                        // Buscar mensaje de error en el HTML
+                                        const errorMatch = text.match(/<div class="alert alert-danger"[^>]*>([\s\S]*?)<\/div>/i);
+                                        const errorMessage = errorMatch ? 
+                                            errorMatch[1].replace(/<[^>]*>/g, '').trim() : 
+                                            'Respuesta HTML sin mensaje de error claro';
+                                        
+                                        console.warn('⚠️ [AJAX] No se detectó éxito en la respuesta');
+                                        return { 
+                                            success: false, 
+                                            message: errorMessage,
+                                            responseType: 'text',
+                                            htmlResponse: true
+                                        };
+                                    }
+                                })
+                                .catch(textError => {
+                                    console.error('⚠️ [AJAX] Error al leer respuesta como texto:', textError);
+                                    return { 
+                                        success: true, 
+                                        message: 'Se recibió respuesta pero no se pudo leer el contenido',
+                                        responseType: 'unknown'
+                                    };
+                                });
+                        }
+                    } else {
+                        // Respuesta no OK
+                        console.error(`❌ [AJAX] Error HTTP: ${response.status} ${response.statusText}`);
+                        return response.text()
+                            .then(text => {
+                                console.error('📜 [AJAX] Texto de error:', text.substring(0, 200) + '...');
+                                throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+                            })
+                            .catch(textError => {
+                                throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+                            });
+                    }
+                })
+                .then(data => {
+                    console.log('✅ [AJAX] Datos de respuesta procesados:', data);
+                    
+                    // Extraer ID del producto del URL para verificación
+                    const urlParts = this.action.split('/');
+                    const productoId = urlParts[urlParts.length - 2];
+                    const productoNombre = document.getElementById('productoNombre').textContent;
+                    
+                    console.log(`🔄 [VERIFICACIÓN] Verificando eliminación del producto ID: ${productoId} (${productoNombre})`);
+                    console.log(`🕐 [VERIFICACIÓN] Timestamp inicio verificación: ${new Date().toISOString()}`);
+                    console.log(`🌐 [VERIFICACIÓN] URL de verificación: /dashboard/api/verificar-producto/${productoId}/`);
+                    
+                    // Verificar en el DOM si el elemento ya no está visible
+                    const cardElement = document.querySelector(`[data-product-id="${productoId}"]`);
+                    const cardContainer = document.getElementById(`producto-card-${productoId}`);
+                    console.log(`🔍 [VERIFICACIÓN-DOM] Card element: ${cardElement ? 'EXISTE' : 'NO EXISTE'}`);
+                    console.log(`🔍 [VERIFICACIÓN-DOM] Card container: ${cardContainer ? 'EXISTE' : 'NO EXISTE'}`);
+                    
+                    // Si existe, ocultarlo visualmente mientras verificamos con el backend
+                    if (cardContainer) {
+                        cardContainer.style.opacity = '0.5';
+                        cardContainer.style.transform = 'scale(0.95)';
+                        cardContainer.style.transition = 'all 0.5s ease';
+                    }
+                    
+                    // Hacer 3 intentos de verificación con intervalo de 500ms entre cada uno
+                    function verificarProducto(intento = 1, maxIntentos = 3) {
+                        console.log(`🔍 [VERIFICACIÓN] Intento #${intento} de ${maxIntentos}`);
+                        
+                        return fetch(`/dashboard/api/verificar-producto/${productoId}/`, {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-Verification': 'true',
+                                'X-Verification-Attempt': intento,
+                                'X-Verification-Max': maxIntentos
+                            }
+                        })
+                        .then(verifyResponse => {
+                            console.log(`📥 [VERIFICACIÓN] Respuesta HTTP: ${verifyResponse.status} ${verifyResponse.statusText}`);
+                            return verifyResponse.json();
+                        })
+                        .then(verifyData => {
+                            console.log(`🔍 [VERIFICACIÓN] Datos: `, verifyData);
+                            
+                            if (verifyData.exists === false) {
+                                console.log(`✅ [VERIFICACIÓN] ÉXITO: Producto ID ${productoId} eliminado de la base de datos`);
+                                return verifyData;
+                            } else if (intento < maxIntentos) {
+                                console.log(`⏳ [VERIFICACIÓN] Producto todavía existe. Esperando 500ms para reintentar...`);
+                                return new Promise(resolve => setTimeout(() => {
+                                    resolve(verificarProducto(intento + 1, maxIntentos));
+                                }, 500));
+                            } else {
+                                console.error(`❌ [VERIFICACIÓN] FALLO: Producto todavía existe después de ${maxIntentos} intentos`);
+                                return verifyData;
+                            }
+                        });
+                    }
+                    
+                    // Comenzar el proceso de verificación
+                    verificarProducto()
+                        .then(verifyData => {
+                            if (verifyData.exists === false) {
+                                // Producto eliminado con éxito
+                                console.log('✅ [VERIFICACIÓN] Producto eliminado confirmado en base de datos');
+                                procesoExitoso();
+                            } else {
+                                // Producto todavía existe, ofrecer eliminación forzada
+                                console.error('⚠️ [VERIFICACIÓN] Producto todavía existe en la base de datos');
+                                
+                                // Verificar dependencias del producto
+                                if (verifyData.dependencias && verifyData.dependencias.length > 0) {
+                                    console.warn(`⚠️ [DEPENDENCIAS] Producto tiene ${verifyData.dependencias.length} dependencias`);
+                                    console.warn(`⚠️ [DEPENDENCIAS] Detalles:`, verifyData.dependencias);
+                                }
+                                
+                                // Mostrar alerta al usuario
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed';
+                                alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                                alertDiv.innerHTML = `
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Advertencia:</strong> No se pudo eliminar el producto completamente.<br>
+                                    <small class="d-block mt-1">El producto sigue existiendo en la base de datos.</small>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                `;
+                                document.body.appendChild(alertDiv);
+                                
+                                // Añadir botón de eliminación forzada
+                                const forzarDiv = document.createElement('div');
+                                forzarDiv.className = 'position-fixed';
+                                forzarDiv.style.cssText = 'bottom: 20px; right: 20px; z-index: 9999;';
+                                forzarDiv.innerHTML = `
+                                    <button class="btn btn-danger" id="btnEliminarForzado">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Forzar eliminación de "${productoNombre}"
+                                    </button>
+                                `;
+                                document.body.appendChild(forzarDiv);
+                                
+                                // Cerrar el modal
+                                const modal = bootstrap.Modal.getInstance(deleteModal);
+                                if (modal) {
+                                    modal.hide();
+                                }
+                                
+                                // Manejar clic en botón de eliminación forzada
+                                document.getElementById('btnEliminarForzado').addEventListener('click', function() {
+                                    this.disabled = true;
+                                    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Forzando eliminación...';
+                                    
+                                    console.log(`🔥 [FORZAR] Iniciando eliminación forzada para producto ID ${productoId}`);
+                                    
+                                    // Obtener token CSRF del formulario original
+                                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                                    
+                                    fetch(`/dashboard/productos-venta/${productoId}/eliminar-forzado/`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                            'X-Force-Delete': 'true',
+                                            'Content-Type': 'application/json',
+                                            'X-CSRFToken': csrfToken
+                                        },
+                                        body: JSON.stringify({
+                                            force: true,
+                                            csrftoken: csrfToken,
+                                            timestamp: new Date().toISOString(),
+                                            usuario: 'user-interface'
+                                        })
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        console.log(`📥 [FORZAR] Respuesta:`, data);
+                                        
+                                        if (data.success) {
+                                            console.log(`✅ [FORZAR] Eliminación forzada exitosa`);
+                                            
+                                            // Mostrar mensaje de éxito
+                                            const successAlert = document.createElement('div');
+                                            successAlert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                                            successAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                                            successAlert.innerHTML = `
+                                                <i class="fas fa-check-circle me-2"></i>
+                                                <strong>¡Éxito!</strong> ${data.message || 'Producto eliminado correctamente mediante eliminación forzada'}
+                                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                            `;
+                                            document.body.appendChild(successAlert);
+                                            
+                                            // Recargar página después de mostrar el mensaje
+                                            setTimeout(() => {
+                                                console.log('🔄 [FORZAR] Recargando página ahora...');
+                                                window.location.reload();
+                                            }, 1500);
+                                        } else {
+                                            console.error(`❌ [FORZAR] Error en eliminación forzada:`, data.message);
+                                            this.disabled = false;
+                                            this.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Intentar nuevamente';
+                                            
+                                            // Mostrar mensaje de error
+                                            const errorAlert = document.createElement('div');
+                                            errorAlert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+                                            errorAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                                            errorAlert.innerHTML = `
+                                                <i class="fas fa-exclamation-circle me-2"></i>
+                                                <strong>Error:</strong> ${data.message || 'Error en eliminación forzada'}
+                                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                            `;
+                                            document.body.appendChild(errorAlert);
+                                        }
+                                    })
+                                    .catch(e => {
+                                        console.error(`💥 [FORZAR] Error:`, e);
+                                        this.disabled = false;
+                                        this.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Intentar nuevamente';
+                                        
+                                        // Mostrar mensaje de error
+                                        const errorAlert = document.createElement('div');
+                                        errorAlert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+                                        errorAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                                        errorAlert.innerHTML = `
+                                            <i class="fas fa-exclamation-circle me-2"></i>
+                                            <strong>Error:</strong> ${e.message || 'Error de conexión en eliminación forzada'}
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                        `;
+                                        document.body.appendChild(errorAlert);
+                                    });
+                                });
+                            }
+                        })
+                        .catch(verifyError => {
+                            console.error('💥 [VERIFICACIÓN] Error:', verifyError);
+                            
+                            // Si falla la verificación pero el backend reportó éxito, consideramos que fue exitoso
+                            if (data.success !== false) {
+                                console.log('🎯 [VERIFICACIÓN] Asumiendo éxito basado en la respuesta original');
+                                procesoExitoso();
+                            } else {
+                                procesarError(`Error de verificación: ${verifyError.message}`);
+                            }
+                        });
+                    
+                    // Función para procesar éxito
+                    function procesoExitoso() {
+                        // Restaurar botón
+                        submitButton.disabled = false;
+                        submitButton.textContent = originalText;
+                        
+                        // Cerrar el modal
+                        const modal = bootstrap.Modal.getInstance(deleteModal);
+                        if (modal) {
+                            modal.hide();
+                            console.log('🔒 [MODAL] Modal cerrado tras eliminación exitosa');
+                        }
+                        
+                        console.log('🎉 [AJAX] Eliminación exitosa confirmada, mostrando mensaje...');
+                        
+                        // Mostrar mensaje de éxito con mejor UI
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                        alertDiv.innerHTML = `
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>¡Éxito!</strong> ${data.message || 'Producto eliminado correctamente'}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.body.appendChild(alertDiv);
+                        
+                        // Ocultar la tarjeta del producto eliminado antes del reload
+                        try {
+                            const cardElement = document.querySelector(`[data-product-id="${productoId}"]`);
+                            if (cardElement) {
+                                cardElement.style.opacity = '0.5';
+                                cardElement.style.transform = 'scale(0.95)';
+                                cardElement.style.transition = 'all 0.5s ease';
+                            }
+                        } catch (e) {
+                            console.error('Error ocultando producto:', e);
+                        }
+                        
+                        // Recargar página después de mostrar el mensaje
+                        setTimeout(() => {
+                            console.log('🔄 [AJAX] Recargando página ahora...');
+                            window.location.reload();
+                        }, 1500);
+                    }
+                    
+                    // Función para procesar error
+                    function procesarError(mensaje) {
+                        // Restaurar botón
+                        submitButton.disabled = false;
+                        submitButton.textContent = originalText;
+                        
+                        // Mostrar error
+                        console.error('❌ [AJAX] Error en eliminación:', mensaje);
+                        
+                        // Mostrar mensaje de error con mejor UI
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+                        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                        alertDiv.innerHTML = `
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error:</strong> ${mensaje}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.body.appendChild(alertDiv);
+                    }
+                })
+                .catch(error => {
+                    console.error('💥 [AJAX] Error en petición:', error);
+                    console.error('Stack trace:', error.stack);
+                    
+                    // Restaurar botón
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalText;
+                    
+                    // Extraer ID del producto del URL para verificación
+                    const urlParts = this.action.split('/');
+                    const productoId = urlParts[urlParts.length - 2];
+                    
+                    console.log(`🔄 [ERROR-VERIFICATION] Verificando estado del producto ID: ${productoId} tras error`);
+                    
+                    // A pesar del error, verificar si el producto fue eliminado
+                    fetch(`/dashboard/api/verificar-producto/${productoId}/`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-Error-Verification': 'true'
+                        }
+                    })
+                    .then(verifyResponse => verifyResponse.json())
+                    .then(verifyData => {
+                        console.log('🔍 [ERROR-VERIFICATION] Respuesta:', verifyData);
+                        
+                        if (verifyData.exists === false) {
+                            // El producto fue eliminado a pesar del error en la respuesta
+                            console.log('✅ [ERROR-VERIFICATION] Producto eliminado confirmado a pesar del error');
+                            
+                            // Mostrar mensaje de éxito
+                            const alertDiv = document.createElement('div');
+                            alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                            alertDiv.innerHTML = `
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>¡Éxito!</strong> Producto eliminado correctamente (a pesar de errores de comunicación)
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            `;
+                            document.body.appendChild(alertDiv);
+                            
+                            // Cerrar el modal
+                            const modal = bootstrap.Modal.getInstance(deleteModal);
+                            if (modal) {
+                                modal.hide();
+                            }
+                            
+                            // Recargar página después de mostrar el mensaje
+                            setTimeout(() => {
+                                console.log('🔄 [AJAX] Recargando página ahora...');
+                                window.location.reload();
+                            }, 1800);
+                        } else {
+                            // El producto sigue existiendo, hubo un error real
+                            console.error('⚠️ [ERROR-VERIFICATION] Error confirmado, producto todavía existe');
+                            
+                            // Detalles adicionales para diagnóstico
+                            const errorDetails = {
+                                errorType: error.name,
+                                errorMessage: error.message,
+                                productId: productoId,
+                                formAction: this.action,
+                                timestamp: new Date().toISOString(),
+                                verificacionResultado: verifyData
+                            };
+                            
+                            console.error('📊 [ERROR-DETAILS] Detalles completos del error:', errorDetails);
+                            
+                            // Mostrar mensaje de error con detalles
+                            const alertDiv = document.createElement('div');
+                            alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+                            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                            alertDiv.innerHTML = `
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>Error:</strong> ${error.message || 'Error de conexión al eliminar el producto'}<br>
+                                <small class="d-block mt-1">ID: ${productoId} | Hora: ${new Date().toLocaleTimeString()}</small>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            `;
+                            document.body.appendChild(alertDiv);
+                            
+                            // Auto-cerrar alert después de 8 segundos
+                            setTimeout(() => {
+                                if (alertDiv.parentNode) {
+                                    alertDiv.remove();
+                                }
+                            }, 8000);
+                            
+                            // Añadir botón de eliminación forzada
+                            const forzarDiv = document.createElement('div');
+                            forzarDiv.className = 'position-fixed';
+                            forzarDiv.style.cssText = 'bottom: 20px; right: 20px; z-index: 9999;';
+                            forzarDiv.innerHTML = `
+                                <button class="btn btn-danger" id="btnEliminarForzado">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Intentar eliminación forzada
+                                </button>
+                            `;
+                            document.body.appendChild(forzarDiv);
+                            
+                            // Manejar clic en botón de eliminación forzada
+                            document.getElementById('btnEliminarForzado').addEventListener('click', function() {
+                                this.disabled = true;
+                                this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Forzando eliminación...';
+                                
+                                fetch(`/dashboard/api/eliminar-forzado/${productoId}/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        'X-Force-Delete': 'true',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        force: true,
+                                        csrftoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        window.location.reload();
+                                    } else {
+                                        alert('Error en eliminación forzada: ' + data.message);
+                                        this.disabled = false;
+                                        this.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Intentar eliminación forzada';
+                                    }
+                                })
+                                .catch(e => {
+                                    alert('Error en eliminación forzada');
+                                    this.disabled = false;
+                                    this.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Intentar eliminación forzada';
+                                });
+                            });
+                        }
+                    })
+                    .catch(verifyError => {
+                        // Error en la verificación
+                        console.error('💥 [ERROR-VERIFICATION] Error al verificar:', verifyError);
+                        
+                        // Mostrar mensaje de error estándar
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+                        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                        alertDiv.innerHTML = `
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error:</strong> ${error.message || 'Error de conexión al eliminar el producto'}<br>
+                            <small class="d-block mt-1">No se pudo verificar el estado del producto.</small>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.body.appendChild(alertDiv);
+                        
+                        // Auto-cerrar alert después de 5 segundos
+                        setTimeout(() => {
+                            if (alertDiv.parentNode) {
+                                alertDiv.remove();
+                            }
+                        }, 5000);
+                    });
+                });
+            });
+            
+            // Evento antes de enviar el formulario (captura adicional)
+            deleteForm.addEventListener('beforesubmit', function(event) {
+                console.log('⚡ [FORM] Evento beforesubmit capturado');
+            });
+            
+        } else {
+            console.error('❌ [ERROR] Formulario de eliminación NO encontrado');
+        }
+        
+        // Logs para botones de eliminar
+        const deleteButtons = document.querySelectorAll('button[data-bs-toggle="modal"][data-bs-target="#deleteModal"]');
+        console.log(`🔍 [BUTTONS] Encontrados ${deleteButtons.length} botones de eliminar`);
+        
+        deleteButtons.forEach((button, index) => {
+            const productId = button.getAttribute('data-id');
+            const productName = button.getAttribute('data-nombre');
+            console.log(`🔘 [BUTTON-${index}] ID: ${productId}, Nombre: ${productName}`);
+            
+            button.addEventListener('click', function() {
+                console.log(`👆 [CLICK] Botón de eliminar clickeado para producto: ${productName} (ID: ${productId})`);
+                console.log('🕐 [TIME] Timestamp click:', new Date().toISOString());
+                console.log('🎯 [CLICK] Datos del botón:', {
+                    id: productId,
+                    nombre: productName,
+                    target: button.getAttribute('data-bs-target'),
+                    toggle: button.getAttribute('data-bs-toggle')
+                });
+            });
+        });
+        
+        console.log('🎊 [PRODUCTOS] Inicialización completada');
+        console.log('🕐 [TIME] Timestamp fin inicialización:', new Date().toISOString());
+    });
+    
+    // Log adicional para el evento de descarga de la página
+    window.addEventListener('beforeunload', function(event) {
+        console.log('🔄 [PAGE] Página a punto de recargarse/cerrarse');
+        console.log('🕐 [TIME] Timestamp beforeunload:', new Date().toISOString());
+        console.log('💭 [PAGE] Posible causa: envío de formulario o navegación');
+    });
+    
+    // Log cuando la página se está descargando
+    window.addEventListener('unload', function(event) {
+        console.log('🚪 [PAGE] Página descargándose ahora');
+        console.log('🕐 [TIME] Timestamp unload:', new Date().toISOString());
+    });
+    
+    // Log para capturar envíos de formularios a nivel global
+    document.addEventListener('submit', function(event) {
+        console.log('📝 [GLOBAL] Formulario enviado globalmente:', {
+            form: event.target,
+            action: event.target.action,
+            method: event.target.method,
+            timestamp: new Date().toISOString()
+        });
+    });
+    
+    // Log para capturar cambios en la URL (navegación)
+    let currentUrl = window.location.href;
+    setInterval(function() {
+        if (window.location.href !== currentUrl) {
+            console.log('🔄 [NAV] URL cambió de:', currentUrl);
+            console.log('🔄 [NAV] URL cambió a:', window.location.href);
+            currentUrl = window.location.href;
+        }
+    }, 100);
+    
+    // Log para errores JavaScript
+    window.addEventListener('error', function(event) {
+        console.error('� [JS-ERROR] Error JavaScript:', {
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            error: event.error,
+            timestamp: new Date().toISOString()
+        });
+    });
+    
+    // Log para errores de promesas no capturadas
+    window.addEventListener('unhandledrejection', function(event) {
+        console.error('💥 [PROMISE-ERROR] Error de promesa no capturada:', {
+            reason: event.reason,
+            promise: event.promise,
+            timestamp: new Date().toISOString()
+        });
+    });
+    
+    // Log para clicks globales (debugging)
+    document.addEventListener('click', function(event) {
+        if (event.target.matches('button, a, [data-bs-toggle]')) {
+            console.log('👆 [GLOBAL-CLICK] Click en elemento interactivo:', {
+                element: event.target.tagName,
+                classes: event.target.className,
+                id: event.target.id,
+                text: event.target.textContent?.trim().substring(0, 50),
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+</script>
+{% endblock %}

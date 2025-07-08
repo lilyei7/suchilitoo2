@@ -218,6 +218,7 @@ class ProductoVenta(models.Model):
     es_promocion = models.BooleanField(default=False)  # Campo añadido
     destacado = models.BooleanField(default=False)
     categoria = models.ForeignKey(CategoriaProducto, on_delete=models.SET_NULL, null=True, blank=True, related_name='productos_venta')  # Cambiado related_name
+    calorias = models.IntegerField(default=0, blank=True, null=True, help_text="Calorías por porción")
     fecha_creacion = models.DateTimeField(auto_now_add=True, null=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True, null=True)
     
@@ -229,6 +230,29 @@ class ProductoVenta(models.Model):
         if self.costo and self.costo > 0:
             return ((self.precio - self.costo) / self.costo) * 100
         return 0
+    
+    def calcular_costo_desde_recetas(self):
+        """Calcula el costo del producto basado en las recetas asociadas"""
+        from decimal import Decimal
+        
+        costo_total = Decimal('0.00')
+        recetas_asociadas = self.recetas_asociadas.all()
+        
+        if recetas_asociadas.exists():
+            for producto_receta in recetas_asociadas:
+                receta = producto_receta.receta
+                # Si la receta tiene un producto asociado, usamos su costo
+                if receta.producto and receta.producto.costo > 0:
+                    costo_total += receta.producto.costo
+                else:
+                    # Si no, calculamos el costo de la receta basado en sus insumos
+                    for insumo_receta in receta.insumos.all():
+                        costo_insumo = insumo_receta.insumo.precio_unitario * insumo_receta.cantidad
+                        costo_total += costo_insumo
+        
+        self.costo = costo_total
+        self.margen = self.calcular_margen()
+        self.save()
     
     class Meta:
         verbose_name = "Producto de venta"
@@ -252,7 +276,7 @@ class ProductoCategoria(models.Model):
 
 class Receta(models.Model):
     """Modelo para recetas de los productos"""
-    producto = models.OneToOneField(ProductoVenta, on_delete=models.CASCADE, related_name='receta', null=True)
+    producto = models.OneToOneField(ProductoVenta, on_delete=models.SET_NULL, related_name='receta', null=True)
     tiempo_preparacion = models.IntegerField(default=0, help_text="Tiempo en minutos")
     porciones = models.IntegerField(default=1)
     instrucciones = models.TextField(blank=True, null=True)
@@ -279,7 +303,8 @@ class RecetaInsumo(models.Model):
     notas = models.TextField(blank=True, null=True)
     
     def __str__(self):
-        return f"{self.insumo.nombre} en {self.receta.producto.nombre}"
+        receta_nombre = "Sin producto" if not self.receta.producto else self.receta.producto.nombre
+        return f"{self.insumo.nombre} en {receta_nombre}"
     
     class Meta:
         verbose_name = "Insumo de receta"
@@ -350,3 +375,6 @@ class InsumoElaborado(models.Model):
     class Meta:
         verbose_name = "Insumo elaborado"
         verbose_name_plural = "Insumos elaborados"
+
+# Importar el modelo ProductoReceta
+from .models_producto_receta import ProductoReceta

@@ -134,12 +134,12 @@
                         <div class="stat-label">Empleados</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value text-success">{{ sucursal.inventario_set.count }}</div>
-                        <div class="stat-label">Inventario</div>
+                        <div class="stat-value text-success">{{ sucursal.mesas.count }}</div>
+                        <div class="stat-label">Mesas</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value text-info">0</div>
-                        <div class="stat-label">Ventas Hoy</div>
+                        <div class="stat-value text-info">{{ sucursal.mesas_disponibles_count|default:0 }}</div>
+                        <div class="stat-label">Disponibles</div>
                     </div>
                 </div>
 
@@ -173,6 +173,15 @@
                             <li><a class="dropdown-item" href="#" onclick="toggleEstadoSucursal({{ sucursal.id }}, '{{ sucursal.nombre }}', {{ sucursal.activa|yesno:'true,false' }})">
                                 <i class="fas fa-{% if sucursal.activa %}pause{% else %}play{% endif %} me-2"></i>
                                 {% if sucursal.activa %}Desactivar{% else %}Activar{% endif %}
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="gestionarMesas({{ sucursal.id }}, '{{ sucursal.nombre }}')">
+                                <i class="fas fa-th-large me-2"></i>Gestionar Mesas
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'dashboard:croquis_editor' sucursal.id %}">
+                                <i class="fas fa-drafting-compass me-2"></i>Diseñar Croquis
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'dashboard:croquis_preview' sucursal.id %}" target="_blank">
+                                <i class="fas fa-eye me-2"></i>Ver Croquis
                             </a></li>
                             <li><a class="dropdown-item" href="#"><i class="fas fa-boxes me-2"></i>Inventario</a></li>
                             <li><a class="dropdown-item" href="#"><i class="fas fa-users me-2"></i>Personal</a></li>
@@ -382,6 +391,158 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Gestionar Mesas -->
+<div class="modal fade" id="modalGestionarMesas" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-th-large me-2"></i>
+                    Gestionar Mesas - <span id="sucursalNombreMesas"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Botón para agregar mesa -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="mb-0">Mesas de la sucursal</h6>
+                    <button class="btn btn-success btn-sm" onclick="mostrarFormularioNuevaMesa()">
+                        <i class="fas fa-plus me-1"></i>Nueva Mesa
+                    </button>
+                </div>
+
+                <!-- Formulario para nueva mesa (oculto inicialmente) -->
+                <div id="formNuevaMesa" class="card border-success mb-4" style="display: none;">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-plus me-2"></i>Agregar Nueva Mesa
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="formularioNuevaMesa">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Número *</label>
+                                    <input type="text" id="numeroMesa" class="form-control" placeholder="Ej: 01, A1, T1" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Capacidad *</label>
+                                    <select id="capacidadMesa" class="form-select" required>
+                                        <option value="">Seleccionar</option>
+                                        <option value="2">2 personas</option>
+                                        <option value="4">4 personas</option>
+                                        <option value="6">6 personas</option>
+                                        <option value="8">8 personas</option>
+                                        <option value="10">10 personas</option>
+                                        <option value="12">12 personas</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Ubicación</label>
+                                    <input type="text" id="ubicacionMesa" class="form-control" placeholder="Ej: Terraza, VIP">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Estado</label>
+                                    <select id="estadoMesa" class="form-select">
+                                        <option value="disponible">Disponible</option>
+                                        <option value="mantenimiento">Mantenimiento</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Notas adicionales</label>
+                                    <textarea id="notasMesa" class="form-control" rows="2" placeholder="Observaciones especiales..."></textarea>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 mt-3">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-1"></i>Guardar Mesa
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="cancelarNuevaMesa()">
+                                    <i class="fas fa-times me-1"></i>Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Grid de mesas -->
+                <div id="gridMesas" class="row">
+                    <!-- Las mesas se cargarán aquí dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Mesa -->
+<div class="modal fade" id="modalEditarMesa" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    Editar Mesa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formularioEditarMesa">
+                    <input type="hidden" id="mesaIdEditar">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Número *</label>
+                            <input type="text" id="numeroMesaEditar" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Capacidad *</label>
+                            <select id="capacidadMesaEditar" class="form-select" required>
+                                <option value="2">2 personas</option>
+                                <option value="4">4 personas</option>
+                                <option value="6">6 personas</option>
+                                <option value="8">8 personas</option>
+                                <option value="10">10 personas</option>
+                                <option value="12">12 personas</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Ubicación</label>
+                            <input type="text" id="ubicacionMesaEditar" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Estado</label>
+                            <select id="estadoMesaEditar" class="form-select">
+                                <option value="disponible">Disponible</option>
+                                <option value="ocupada">Ocupada</option>
+                                <option value="reservada">Reservada</option>
+                                <option value="mantenimiento">Mantenimiento</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Activa</label>
+                        <div class="form-check">
+                            <input type="checkbox" id="activaMesaEditar" class="form-check-input">
+                            <label class="form-check-label" for="activaMesaEditar">
+                                Mesa activa para uso
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarCambiosMesa()">
+                    <i class="fas fa-save me-1"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -476,6 +637,27 @@
     padding: 0.375rem 0.75rem;
     border-radius: 20px;
     font-weight: 500;
+}
+
+/* Estilos para mesas */
+.mesa-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.mesa-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.mesa-info {
+    background: rgba(248, 250, 252, 0.5);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
 }
 
 /* Iconos de información */
@@ -630,6 +812,46 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         actualizarSucursal();
     });
+    
+    // Evento para formulario de nueva mesa
+    const formularioNuevaMesa = document.getElementById('formularioNuevaMesa');
+    if (formularioNuevaMesa) {
+        formularioNuevaMesa.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                numero: document.getElementById('numeroMesa').value,
+                capacidad: document.getElementById('capacidadMesa').value,
+                ubicacion: document.getElementById('ubicacionMesa').value,
+                estado: document.getElementById('estadoMesa').value,
+                notas: document.getElementById('notasMesa').value,
+                sucursal_id: sucursalActualMesas
+            };
+            
+            fetch('/dashboard/api/mesas/crear/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('✅ Mesa creada exitosamente', 'success');
+                    cancelarNuevaMesa();
+                    cargarMesasSucursal(sucursalActualMesas);
+                } else {
+                    showToast('❌ ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('❌ Error de conexión', 'error');
+            });
+        });
+    }
 });
 
 // Función para abrir modal de crear sucursal
@@ -1036,6 +1258,255 @@ function showToast(message, type) {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 500);
     }, 5000);
+}
+
+// Gestión de Mesas
+let sucursalActualMesas = null;
+
+function gestionarMesas(sucursalId, sucursalNombre) {
+    sucursalActualMesas = sucursalId;
+    document.getElementById('sucursalNombreMesas').textContent = sucursalNombre;
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('modalGestionarMesas'));
+    modal.show();
+    
+    // Cargar mesas
+    cargarMesasSucursal(sucursalId);
+}
+
+function cargarMesasSucursal(sucursalId) {
+    fetch(`/dashboard/api/sucursales/${sucursalId}/mesas/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarMesas(data.mesas);
+            } else {
+                showToast('❌ Error al cargar mesas', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión', 'error');
+        });
+}
+
+function mostrarMesas(mesas) {
+    const grid = document.getElementById('gridMesas');
+    
+    if (mesas.length === 0) {
+        grid.innerHTML = `
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-th-large text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <h6 class="text-muted mt-3">No hay mesas registradas</h6>
+                    <p class="text-muted small">Agrega mesas para comenzar a gestionar el restaurante</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = mesas.map(mesa => `
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card mesa-card h-100 ${!mesa.activo ? 'border-secondary' : ''}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="mb-1">Mesa ${mesa.numero}</h6>
+                            <small class="text-muted">${mesa.ubicacion || 'Sin ubicación'}</small>
+                        </div>
+                        <span class="badge ${getEstadoBadgeClass(mesa.estado)}">
+                            ${getEstadoText(mesa.estado)}
+                        </span>
+                    </div>
+                    
+                    <div class="mesa-info">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-users text-muted me-2"></i>
+                            <span class="small">Capacidad: ${mesa.capacidad} personas</span>
+                        </div>
+                        ${mesa.codigo_qr ? `
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-qrcode text-muted me-2"></i>
+                                <span class="small">QR disponible</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-sm btn-outline-primary flex-fill" onclick="editarMesa(${mesa.id})">
+                            <i class="fas fa-edit me-1"></i>Editar
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="cambiarEstadoMesa(${mesa.id}, 'disponible')">
+                                    <i class="fas fa-check text-success me-2"></i>Marcar Disponible
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="cambiarEstadoMesa(${mesa.id}, 'mantenimiento')">
+                                    <i class="fas fa-tools text-warning me-2"></i>Mantenimiento
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="eliminarMesa(${mesa.id}, '${mesa.numero}')">
+                                    <i class="fas fa-trash me-2"></i>Eliminar
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                ${!mesa.activo ? '<div class="card-footer bg-light"><small class="text-muted"><i class="fas fa-pause me-1"></i>Mesa inactiva</small></div>' : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function getEstadoBadgeClass(estado) {
+    const classes = {
+        'disponible': 'bg-success',
+        'ocupada': 'bg-danger',
+        'reservada': 'bg-warning',
+        'mantenimiento': 'bg-secondary'
+    };
+    return classes[estado] || 'bg-secondary';
+}
+
+function getEstadoText(estado) {
+    const texts = {
+        'disponible': 'Disponible',
+        'ocupada': 'Ocupada',
+        'reservada': 'Reservada',
+        'mantenimiento': 'Mantenimiento'
+    };
+    return texts[estado] || estado;
+}
+
+function mostrarFormularioNuevaMesa() {
+    document.getElementById('formNuevaMesa').style.display = 'block';
+    document.getElementById('numeroMesa').focus();
+}
+
+function cancelarNuevaMesa() {
+    document.getElementById('formNuevaMesa').style.display = 'none';
+    document.getElementById('formularioNuevaMesa').reset();
+}
+
+function editarMesa(mesaId) {
+    fetch(`/dashboard/api/mesas/${mesaId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const mesa = data.mesa;
+                
+                // Llenar formulario
+                document.getElementById('mesaIdEditar').value = mesa.id;
+                document.getElementById('numeroMesaEditar').value = mesa.numero;
+                document.getElementById('capacidadMesaEditar').value = mesa.capacidad;
+                document.getElementById('ubicacionMesaEditar').value = mesa.ubicacion || '';
+                document.getElementById('estadoMesaEditar').value = mesa.estado;
+                document.getElementById('activaMesaEditar').checked = mesa.activo;
+                
+                // Mostrar modal
+                const modal = new bootstrap.Modal(document.getElementById('modalEditarMesa'));
+                modal.show();
+            } else {
+                showToast('❌ Error al cargar datos de la mesa', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión', 'error');
+        });
+}
+
+function guardarCambiosMesa() {
+    const mesaId = document.getElementById('mesaIdEditar').value;
+    const formData = {
+        numero: document.getElementById('numeroMesaEditar').value,
+        capacidad: document.getElementById('capacidadMesaEditar').value,
+        ubicacion: document.getElementById('ubicacionMesaEditar').value,
+        estado: document.getElementById('estadoMesaEditar').value,
+        activo: document.getElementById('activaMesaEditar').checked
+    };
+    
+    fetch(`/dashboard/api/mesas/${mesaId}/editar/`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Mesa actualizada exitosamente', 'success');
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarMesa'));
+            modal.hide();
+            
+            // Recargar mesas
+            cargarMesasSucursal(sucursalActualMesas);
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+    });
+}
+
+function cambiarEstadoMesa(mesaId, nuevoEstado) {
+    fetch(`/dashboard/api/mesas/${mesaId}/estado/`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({estado: nuevoEstado})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Estado de mesa actualizado', 'success');
+            cargarMesasSucursal(sucursalActualMesas);
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+    });
+}
+
+function eliminarMesa(mesaId, numeroMesa) {
+    if (confirm(`¿Estás seguro de que deseas eliminar la Mesa ${numeroMesa}?`)) {
+        fetch(`/dashboard/api/mesas/${mesaId}/eliminar/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ Mesa eliminada exitosamente', 'success');
+                cargarMesasSucursal(sucursalActualMesas);
+            } else {
+                showToast('❌ ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ Error de conexión', 'error');
+        });
+    }
 }
 
 // Crear contenedor para toasts si no existe

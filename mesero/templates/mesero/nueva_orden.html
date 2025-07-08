@@ -1,0 +1,1159 @@
+{% extends 'mesero/base.html' %}
+{% load static %}
+
+{% block title %}Nueva Orden - Mesa {{ mesa_id }} - SushiLitoo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .nueva-orden-container {
+        padding: 1rem 0;
+    }
+    
+    .orden-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e3f2fd;
+    }
+    
+    .orden-title {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .orden-title h1 {
+        color: #1e88e5;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.2rem;
+    }
+    
+    .orden-title p {
+        color: #78909c;
+    }
+    
+    .orden-summary {
+        background: #f7fbff;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #e3f2fd;
+    }
+    
+    .summary-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #1e88e5;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-items {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+    }
+    
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e3f2fd;
+    }
+    
+    .summary-total {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 600;
+        padding-top: 0.5rem;
+        font-size: 1.1rem;
+    }
+    
+    .orden-form {
+        display: flex;
+        gap: 2rem;
+    }
+    
+    .orden-menu {
+        flex: 1;
+    }
+    
+    .orden-cart {
+        width: 300px;
+    }
+    
+    .categorias-tabs {
+        display: flex;
+        overflow-x: auto;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e3f2fd;
+    }
+    
+    .categoria-tab {
+        padding: 0.7rem 1.2rem;
+        background: white;
+        border: 1px solid #e3f2fd;
+        border-radius: 6px;
+        margin-right: 0.8rem;
+        white-space: nowrap;
+        cursor: pointer;
+        font-weight: 500;
+        color: #455a64;
+        transition: all 0.2s;
+    }
+    
+    .categoria-tab:hover, .categoria-tab.active {
+        background: #1e88e5;
+        color: white;
+        border-color: #1e88e5;
+    }
+    
+    .productos-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .producto-card {
+        background: white;
+        border: 1px solid #e3f2fd;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        position: relative;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    
+    .producto-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(30, 136, 229, 0.15);
+        border-color: #bbdefb;
+    }
+    
+    .producto-card.selected {
+        border: 2px solid #1e88e5;
+        box-shadow: 0 8px 25px rgba(30, 136, 229, 0.25);
+    }
+    
+    .producto-img {
+        height: 140px;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 8px 8px 0 0;
+        position: relative;
+    }
+    
+    .producto-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    
+    .producto-img:hover img {
+        transform: scale(1.05);
+    }
+    
+    .producto-img::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(30, 136, 229, 0.1);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .producto-card:hover .producto-img::after {
+        opacity: 1;
+    }
+    
+    .producto-img svg {
+        color: #bdbdbd;
+        width: 40px;
+        height: 40px;
+        z-index: 1;
+    }
+    
+    .producto-info {
+        padding: 0.8rem;
+    }
+    
+    .producto-nombre {
+        font-weight: 600;
+        margin-bottom: 0.2rem;
+        color: #455a64;
+    }
+    
+    .producto-precio {
+        color: #1e88e5;
+        font-weight: 600;
+    }
+    
+    .btn-submit {
+        display: block;
+        width: 100%;
+        padding: 1rem;
+        background: #1e88e5;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        margin-top: 1rem;
+    }
+    
+    .btn-submit:hover {
+        background: #1976d2;
+    }
+    
+    .cantidad-control {
+        display: flex;
+        align-items: center;
+        margin-top: 0.5rem;
+    }
+    
+    .cantidad-btn {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f5f5;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .cantidad-input {
+        width: 40px;
+        height: 30px;
+        text-align: center;
+        border: 1px solid #e0e0e0;
+        margin: 0 0.5rem;
+        border-radius: 4px;
+    }
+    
+    /* Estilos para personalización */
+    .personalizacion-control {
+        margin-top: 0.5rem;
+    }
+    
+    .btn-personalizar {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        background: #f8f9fa;
+        border: 1px solid #e3f2fd;
+        border-radius: 4px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+        color: #1e88e5;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .btn-personalizar:hover {
+        background: #e3f2fd;
+        border-color: #1e88e5;
+    }
+    
+    .btn-personalizar svg {
+        width: 12px;
+        height: 12px;
+    }
+    
+    .personalizaciones-aplicadas {
+        margin-top: 0.3rem;
+        font-size: 0.7rem;
+        color: #666;
+        padding: 0.2rem 0.4rem;
+        background: #f0f8ff;
+        border-radius: 3px;
+        border-left: 3px solid #1e88e5;
+    }
+    
+    /* Estilos para el modal de personalización */
+    .modal-personalizacion {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    
+    .modal-content-personalizacion {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+    }
+    
+    .modal-header-personalizacion {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e3f2fd;
+        background: #f8f9fa;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .modal-title-personalizacion {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1e88e5;
+        margin: 0;
+    }
+    
+    .modal-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #666;
+    }
+    
+    .modal-body-personalizacion {
+        padding: 1.5rem;
+    }
+    
+    .personalizacion-grupo {
+        margin-bottom: 1.5rem;
+    }
+    
+    .personalizacion-grupo-titulo {
+        font-weight: 600;
+        color: #455a64;
+        margin-bottom: 0.8rem;
+        padding-bottom: 0.3rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .personalizacion-opcion {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+    
+    .personalizacion-opcion:last-child {
+        border-bottom: none;
+    }
+    
+    .opcion-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .opcion-precio {
+        color: #1e88e5;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .nota-especial-input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+        resize: vertical;
+        min-height: 60px;
+    }
+    
+    .modal-footer-personalizacion {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e3f2fd;
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+    
+    .btn-modal {
+        padding: 0.6rem 1.2rem;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-cancelar {
+        background: #f5f5f5;
+        color: #666;
+    }
+    
+    .btn-cancelar:hover {
+        background: #e0e0e0;
+    }
+    
+    .btn-aplicar {
+        background: #1e88e5;
+        color: white;
+    }
+    
+    .btn-aplicar:hover {
+        background: #1976d2;
+    }
+    
+    @media (max-width: 992px) {
+        .orden-form {
+            flex-direction: column;
+        }
+        
+        .orden-cart {
+            width: 100%;
+            margin-top: 2rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .productos-list {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar el estado del botón de crear orden
+        const crearOrdenBtn = document.getElementById('crear-orden-btn');
+        crearOrdenBtn.disabled = true;
+        crearOrdenBtn.style.opacity = '0.6';
+        crearOrdenBtn.style.cursor = 'not-allowed';
+        
+        // Activar primera categoría por defecto
+        const firstTab = document.querySelector('.categoria-tab');
+        if (firstTab) {
+            firstTab.classList.add('active');
+            
+            // Mostrar sólo productos de la primera categoría
+            const firstCat = firstTab.dataset.categoria;
+            document.querySelectorAll('.categoria-productos').forEach(cat => {
+                if (cat.id === `categoria-${firstCat}`) {
+                    cat.style.display = 'grid';
+                } else {
+                    cat.style.display = 'none';
+                }
+            });
+        }
+        
+        // Manejar clics en las pestañas de categorías
+        document.querySelectorAll('.categoria-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Desactivar todas las pestañas
+                document.querySelectorAll('.categoria-tab').forEach(t => {
+                    t.classList.remove('active');
+                });
+                
+                // Activar esta pestaña
+                this.classList.add('active');
+                
+                // Mostrar productos de esta categoría
+                const categoria = this.dataset.categoria;
+                document.querySelectorAll('.categoria-productos').forEach(cat => {
+                    if (cat.id === `categoria-${categoria}`) {
+                        cat.style.display = 'grid';
+                    } else {
+                        cat.style.display = 'none';
+                    }
+                });
+            });
+        });
+        
+        // Función para actualizar el resumen de la orden
+        function actualizarResumen() {
+            const productos = document.querySelectorAll('.producto-card input[type="checkbox"]:checked');
+            const summaryContent = document.getElementById('summary-content');
+            const crearOrdenBtn = document.getElementById('crear-orden-btn');
+            
+            if (productos.length === 0) {
+                summaryContent.innerHTML = 'Selecciona productos para crear la orden';
+                crearOrdenBtn.disabled = true;
+                crearOrdenBtn.style.opacity = '0.6';
+                crearOrdenBtn.style.cursor = 'not-allowed';
+                return;
+            }
+            
+            // Habilitar botón
+            crearOrdenBtn.disabled = false;
+            crearOrdenBtn.style.opacity = '1';
+            crearOrdenBtn.style.cursor = 'pointer';
+            
+            let html = '<div class="summary-items">';
+            let total = 0;
+            
+            productos.forEach(prod => {
+                const card = prod.closest('.producto-card');
+                const nombre = card.querySelector('.producto-nombre').textContent;
+                const precioText = card.querySelector('.producto-precio').textContent;
+                const precio = parseFloat(precioText.replace('$', ''));
+                const cantidad = parseInt(card.querySelector('.cantidad-input').value);
+                const subtotal = precio * cantidad;
+                
+                total += subtotal;
+                
+                html += `<div class="summary-item">
+                    <div>${cantidad}x ${nombre}</div>
+                    <div>$${subtotal.toFixed(2)}</div>
+                </div>`;
+            });
+            
+            html += '</div>';
+            html += `<div class="summary-total">
+                <div>Total:</div>
+                <div>$${total.toFixed(2)}</div>
+            </div>`;
+            
+            summaryContent.innerHTML = html;
+        }
+        
+        // Manejar selección de productos
+        document.querySelectorAll('.producto-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const checkbox = this.querySelector('input[type="checkbox"]');
+                checkbox.checked = !checkbox.checked;
+                
+                if (checkbox.checked) {
+                    this.classList.add('selected');
+                } else {
+                    this.classList.remove('selected');
+                }
+                
+                // Actualizar la cantidad
+                const cantidadInput = this.querySelector('.cantidad-input');
+                if (checkbox.checked && cantidadInput.value === '0') {
+                    cantidadInput.value = '1';
+                }
+                
+                // Actualizar el resumen
+                actualizarResumen();
+            });
+            
+            // Botones de cantidad
+            const minusBtn = card.querySelector('.minus-btn');
+            const plusBtn = card.querySelector('.plus-btn');
+            const cantidadInput = card.querySelector('.cantidad-input');
+            const checkbox = card.querySelector('input[type="checkbox"]');
+            
+            if (minusBtn && plusBtn) {
+                minusBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    let value = parseInt(cantidadInput.value);
+                    if (value > 0) {
+                        cantidadInput.value = value - 1;
+                        
+                        if (cantidadInput.value === '0') {
+                            checkbox.checked = false;
+                            card.classList.remove('selected');
+                        }
+                        
+                        // Actualizar el resumen
+                        actualizarResumen();
+                    }
+                });
+                
+                plusBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    let value = parseInt(cantidadInput.value);
+                    cantidadInput.value = value + 1;
+                    
+                    if (!checkbox.checked && cantidadInput.value > 0) {
+                        checkbox.checked = true;
+                        card.classList.add('selected');
+                    }
+                    
+                    // Actualizar el resumen
+                    actualizarResumen();
+                });
+                
+                cantidadInput.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+                
+                cantidadInput.addEventListener('change', function() {
+                    if (parseInt(this.value) > 0) {
+                        checkbox.checked = true;
+                        card.classList.add('selected');
+                    } else {
+                        checkbox.checked = false;
+                        card.classList.remove('selected');
+                    }
+                    
+                    // Actualizar el resumen
+                    actualizarResumen();
+                });
+            }
+        });
+        
+        // Configurar botones de personalización
+        document.querySelectorAll('.btn-personalizar').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const productoId = this.dataset.productoId;
+                const productoNombre = this.dataset.productoNombre;
+                abrirModalPersonalizacion(productoId, productoNombre);
+            });
+        });
+    });
+    
+    // Variables globales para personalización
+    let personalizacionesSeleccionadas = {};
+    let productoActualPersonalizacion = null;
+    
+    // Datos de productos con personalizaciones (desde Django)
+    const productosPersonalizaciones = {
+        {% for categoria, productos in productos_por_categoria.items %}
+            {% for producto in productos %}
+                {% if producto.personalizaciones %}
+                {{ producto.id }}: [
+                    {% for personalizacion in producto.personalizaciones %}
+                    {
+                        id: {{ personalizacion.id }},
+                        nombre: "{{ personalizacion.nombre|escapejs }}",
+                        tipo: "{{ personalizacion.tipo }}",
+                        precio_extra: {{ personalizacion.precio_extra }}
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ]{% if not forloop.last %},{% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    };
+    
+    function abrirModalPersonalizacion(productoId, productoNombre) {
+        productoActualPersonalizacion = productoId;
+        
+        // Establecer título del modal
+        document.getElementById('modal-producto-nombre').textContent = `Personalizar: ${productoNombre}`;
+        
+        // Obtener personalizaciones del producto
+        const personalizaciones = productosPersonalizaciones[productoId] || [];
+        
+        // Agrupar personalizaciones por tipo
+        const grupos = {
+            quitar: personalizaciones.filter(p => p.tipo === 'quitar'),
+            agregar: personalizaciones.filter(p => p.tipo === 'agregar'),
+            cambiar: personalizaciones.filter(p => p.tipo === 'cambiar'),
+            nota: personalizaciones.filter(p => p.tipo === 'nota')
+        };
+        
+        // Construir HTML del modal
+        let html = '';
+        
+        if (grupos.quitar.length > 0) {
+            html += `
+                <div class="personalizacion-grupo">
+                    <div class="personalizacion-grupo-titulo">Quitar ingredientes</div>
+                    ${grupos.quitar.map(opcion => `
+                        <div class="personalizacion-opcion">
+                            <div class="opcion-info">
+                                <input type="checkbox" id="opcion-${opcion.id}" value="${opcion.id}">
+                                <label for="opcion-${opcion.id}">${opcion.nombre}</label>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        if (grupos.agregar.length > 0) {
+            html += `
+                <div class="personalizacion-grupo">
+                    <div class="personalizacion-grupo-titulo">Agregar extras</div>
+                    ${grupos.agregar.map(opcion => `
+                        <div class="personalizacion-opcion">
+                            <div class="opcion-info">
+                                <input type="checkbox" id="opcion-${opcion.id}" value="${opcion.id}">
+                                <label for="opcion-${opcion.id}">${opcion.nombre}</label>
+                            </div>
+                            <div class="opcion-precio">+$${opcion.precio_extra.toFixed(2)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        if (grupos.cambiar.length > 0) {
+            html += `
+                <div class="personalizacion-grupo">
+                    <div class="personalizacion-grupo-titulo">Cambios</div>
+                    ${grupos.cambiar.map(opcion => `
+                        <div class="personalizacion-opcion">
+                            <div class="opcion-info">
+                                <input type="checkbox" id="opcion-${opcion.id}" value="${opcion.id}">
+                                <label for="opcion-${opcion.id}">${opcion.nombre}</label>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        if (grupos.nota.length > 0) {
+            html += `
+                <div class="personalizacion-grupo">
+                    <div class="personalizacion-grupo-titulo">Notas especiales</div>
+                    <textarea id="nota-especial" class="nota-especial-input" placeholder="Escribe aquí cualquier indicación especial para la cocina..."></textarea>
+                </div>
+            `;
+        }
+        
+        // Insertar HTML en el modal
+        document.getElementById('modal-opciones-container').innerHTML = html;
+        
+        // Cargar personalizaciones previamente seleccionadas
+        const personalizacionesPrevias = personalizacionesSeleccionadas[productoId] || {};
+        Object.keys(personalizacionesPrevias).forEach(opcionId => {
+            const checkbox = document.getElementById(`opcion-${opcionId}`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        
+        if (personalizacionesPrevias.nota) {
+            const notaInput = document.getElementById('nota-especial');
+            if (notaInput) {
+                notaInput.value = personalizacionesPrevias.nota;
+            }
+        }
+        
+        // Mostrar modal
+        document.getElementById('modal-personalizacion').style.display = 'flex';
+    }
+    
+    function cerrarModalPersonalizacion() {
+        document.getElementById('modal-personalizacion').style.display = 'none';
+        productoActualPersonalizacion = null;
+    }
+    
+    function aplicarPersonalizaciones() {
+        if (!productoActualPersonalizacion) return;
+        
+        const opciones = {};
+        let textoResumen = [];
+        let precioExtra = 0;
+        
+        // Recopilar opciones seleccionadas
+        document.querySelectorAll('#modal-opciones-container input[type="checkbox"]:checked').forEach(checkbox => {
+            const opcionId = checkbox.value;
+            const opcion = Object.values(productosPersonalizaciones[productoActualPersonalizacion])
+                .flat()
+                .find(p => p.id == opcionId);
+            
+            if (opcion) {
+                opciones[opcionId] = opcion;
+                textoResumen.push(opcion.nombre);
+                precioExtra += opcion.precio_extra;
+            }
+        });
+        
+        // Recopilar nota especial
+        const notaInput = document.getElementById('nota-especial');
+        if (notaInput && notaInput.value.trim()) {
+            opciones.nota = notaInput.value.trim();
+            textoResumen.push(`Nota: ${notaInput.value.trim()}`);
+        }
+        
+        // Guardar personalizaciones
+        if (Object.keys(opciones).length > 0) {
+            personalizacionesSeleccionadas[productoActualPersonalizacion] = opciones;
+            
+            // Mostrar resumen en la tarjeta del producto
+            const resumenElement = document.getElementById(`personalizaciones-${productoActualPersonalizacion}`);
+            if (resumenElement) {
+                resumenElement.innerHTML = textoResumen.join(', ');
+                resumenElement.style.display = 'block';
+            }
+            
+            // Actualizar precio si hay extras
+            if (precioExtra > 0) {
+                const precioElement = document.querySelector(`[data-producto-id="${productoActualPersonalizacion}"]`)
+                    .closest('.producto-card')
+                    .querySelector('.producto-precio');
+                const precioOriginal = parseFloat(precioElement.textContent.replace('$', ''));
+                precioElement.innerHTML = `$${(precioOriginal + precioExtra).toFixed(2)} <small style="text-decoration: line-through;">$${precioOriginal.toFixed(2)}</small>`;
+            }
+        } else {
+            // Limpiar personalizaciones si no hay ninguna seleccionada
+            delete personalizacionesSeleccionadas[productoActualPersonalizacion];
+            
+            const resumenElement = document.getElementById(`personalizaciones-${productoActualPersonalizacion}`);
+            if (resumenElement) {
+                resumenElement.style.display = 'none';
+            }
+            
+            // Restaurar precio original
+            const precioElement = document.querySelector(`[data-producto-id="${productoActualPersonalizacion}"]`)
+                .closest('.producto-card')
+                .querySelector('.producto-precio');
+            const precioOriginal = precioElement.textContent.split(' ')[0]; // Obtener solo el primer precio
+            precioElement.innerHTML = precioOriginal;
+        }
+        
+        // Cerrar modal
+        cerrarModalPersonalizacion();
+        
+        // Actualizar resumen de la orden
+        actualizarResumen();
+    }
+    
+    // Cerrar modal al hacer clic fuera
+    document.getElementById('modal-personalizacion').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModalPersonalizacion();
+        }
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="nueva-orden-container">
+    <div class="orden-header">
+        <div class="orden-title">
+            <h1>Nueva Orden - Mesa {{ mesa_id }}</h1>
+            <p>Selecciona los productos para esta orden</p>
+        </div>
+        <div class="orden-summary">
+            <div class="summary-title">Resumen de Mesa {{ mesa_id }}</div>
+            <div id="summary-content">
+                Selecciona productos para crear la orden
+            </div>
+        </div>
+    </div>
+    
+    <form method="post" class="orden-form">
+        {% csrf_token %}
+        <div class="orden-menu">
+            <div class="categorias-tabs">
+                {% for categoria, productos in productos_por_categoria.items %}
+                    <div class="categoria-tab" data-categoria="{{ categoria|slugify }}">{{ categoria }}</div>
+                {% endfor %}
+            </div>
+            
+            {% for categoria, productos in productos_por_categoria.items %}
+                <div id="categoria-{{ categoria|slugify }}" class="categoria-productos productos-list">
+                    {% for producto in productos %}
+                        <div class="producto-card" data-producto-id="{{ producto.id }}">
+                            <input type="checkbox" name="items" value="{{ producto.id }}" style="display:none">
+                            <div class="producto-img">
+                                {% if producto.imagen %}
+                                    <img src="{{ producto.imagen }}" alt="{{ producto.nombre }}" loading="lazy">
+                                {% else %}
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                        <polyline points="21 15 16 10 5 21"></polyline>
+                                    </svg>
+                                {% endif %}
+                            </div>
+                            <div class="producto-info">
+                                <div class="producto-nombre">{{ producto.nombre }}</div>
+                                <div class="producto-precio">${{ producto.precio|floatformat:2 }}</div>
+                                <div class="cantidad-control">
+                                    <button type="button" class="cantidad-btn minus-btn">-</button>
+                                    <input type="number" name="cantidad-{{ producto.id }}" value="0" min="0" max="10" class="cantidad-input" data-producto-id="{{ producto.id }}">
+                                    <button type="button" class="cantidad-btn plus-btn">+</button>
+                                </div>
+                                {% if producto.personalizaciones %}
+                                <div class="personalizacion-control">
+                                    <button type="button" class="btn-personalizar" data-producto-id="{{ producto.id }}" data-producto-nombre="{{ producto.nombre }}">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                                        </svg>
+                                        Personalizar
+                                    </button>
+                                    <div class="personalizaciones-aplicadas" id="personalizaciones-{{ producto.id }}" style="display: none;"></div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="orden-cart">
+            <button type="submit" class="btn-submit" id="crear-orden-btn">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 8px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Enviar Orden a Cocina
+            </button>
+            <a href="{% url 'mesero:seleccionar_mesa' %}" class="btn-submit" style="margin-top: 10px; background: #f5f5f5; color: #455a64; text-align: center; text-decoration: none;">
+                Cancelar y Volver
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Modal de Personalización -->
+<div id="modal-personalizacion" class="modal-personalizacion">
+    <div class="modal-content-personalizacion">
+        <div class="modal-header-personalizacion">
+            <h3 class="modal-title-personalizacion" id="modal-producto-nombre">Personalizar Producto</h3>
+            <button type="button" class="modal-close" onclick="cerrarModalPersonalizacion()">&times;</button>
+        </div>
+        <div class="modal-body-personalizacion" id="modal-opciones-container">
+            <!-- Las opciones se cargarán dinámicamente -->
+        </div>
+        <div class="modal-footer-personalizacion">
+            <button type="button" class="btn-modal btn-cancelar" onclick="cerrarModalPersonalizacion()">Cancelar</button>
+            <button type="button" class="btn-modal btn-aplicar" onclick="aplicarPersonalizaciones()">Aplicar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales para el manejo de la orden
+let carrito = [];
+let personalizacionesSeleccionadas = {};
+
+// Función para manejar el envío del formulario
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.orden-form');
+    const crearOrdenBtn = document.getElementById('crear-orden-btn');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            enviarOrden();
+        });
+    }
+});
+
+// Función para enviar la orden
+function enviarOrden() {
+    const items = obtenerItemsCarrito();
+    const notas = document.getElementById('notas-especiales') ? document.getElementById('notas-especiales').value : '';
+    
+    if (items.length === 0) {
+        alert('Por favor, agrega al menos un producto a la orden');
+        return;
+    }
+    
+    const ordenData = {
+        mesa_id: {{ mesa_id }},
+        items: items,
+        notas: notas
+    };
+    
+    // Deshabilitar el botón durante la creación
+    const crearOrdenBtn = document.getElementById('crear-orden-btn');
+    crearOrdenBtn.disabled = true;
+    crearOrdenBtn.textContent = 'Enviando...';
+    
+    // Enviar la orden
+    fetch('{% url "mesero:crear_orden" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(ordenData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Orden enviada exitosamente a la cocina');
+            window.location.href = '{% url "mesero:orders" %}';
+        } else {
+            alert('Error al crear la orden: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al enviar la orden');
+    })
+    .finally(() => {
+        // Rehabilitar el botón
+        crearOrdenBtn.disabled = false;
+        crearOrdenBtn.innerHTML = `
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 8px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Enviar Orden a Cocina
+        `;
+    });
+}
+
+// Función para obtener los items del carrito
+function obtenerItemsCarrito() {
+    const items = [];
+    const productos = document.querySelectorAll('.producto-card');
+    
+    productos.forEach(producto => {
+        const cantidadInput = producto.querySelector('.cantidad-input');
+        const cantidad = parseInt(cantidadInput.value) || 0;
+        
+        if (cantidad > 0) {
+            const productoId = producto.dataset.productoId || cantidadInput.dataset.productoId;
+            const personalizaciones = personalizacionesSeleccionadas[productoId] || [];
+            
+            items.push({
+                id: productoId,
+                cantidad: cantidad,
+                personalizaciones: personalizaciones
+            });
+        }
+    });
+    
+    return items;
+}
+
+// Función para abrir el modal de personalización
+function abrirModalPersonalizacion(productoId, productoNombre) {
+    const modal = document.getElementById('modal-personalizacion');
+    const titulo = document.getElementById('modal-producto-nombre');
+    const container = document.getElementById('modal-opciones-container');
+    
+    titulo.textContent = `Personalizar ${productoNombre}`;
+    
+    // Obtener las opciones de personalización del producto
+    const productoCard = document.querySelector(`[data-producto-id="${productoId}"]`);
+    if (!productoCard) return;
+    
+    // Limpiar el container
+    container.innerHTML = '';
+    
+    // Buscar las personalizaciones en el script JSON
+    const personalizaciones = obtenerPersonalizacionesProducto(productoId);
+    
+    if (personalizaciones.length === 0) {
+        container.innerHTML = '<p>No hay opciones de personalización disponibles para este producto.</p>';
+    } else {
+        // Crear las opciones de personalización
+        const personalizacionesActuales = personalizacionesSeleccionadas[productoId] || [];
+        
+        personalizaciones.forEach(opcion => {
+            const opcionDiv = document.createElement('div');
+            opcionDiv.className = 'opcion-personalizacion';
+            
+            const checked = personalizacionesActuales.includes(opcion.id) ? 'checked' : '';
+            const precioExtra = opcion.precio_extra > 0 ? `(+$${opcion.precio_extra})` : '';
+            
+            opcionDiv.innerHTML = `
+                <label class="checkbox-label">
+                    <input type="checkbox" name="personalizacion" value="${opcion.id}" ${checked}>
+                    <span class="checkmark"></span>
+                    ${opcion.nombre} ${precioExtra}
+                </label>
+            `;
+            
+            container.appendChild(opcionDiv);
+        });
+    }
+    
+    // Guardar el producto actual en el modal
+    modal.dataset.productoId = productoId;
+    modal.style.display = 'block';
+}
+
+// Función para obtener las personalizaciones de un producto
+function obtenerPersonalizacionesProducto(productoId) {
+    // Buscar en los datos del template
+    const personalizaciones = [];
+    
+    {% for categoria, productos in productos_por_categoria.items %}
+        {% for producto in productos %}
+            if ('{{ producto.id }}' === productoId) {
+                {% if producto.personalizaciones %}
+                    {% for personalizacion in producto.personalizaciones %}
+                        personalizaciones.push({
+                            id: {{ personalizacion.id }},
+                            nombre: '{{ personalizacion.nombre }}',
+                            tipo: '{{ personalizacion.tipo }}',
+                            precio_extra: {{ personalizacion.precio_extra }}
+                        });
+                    {% endfor %}
+                {% endif %}
+            }
+        {% endfor %}
+    {% endfor %}
+    
+    return personalizaciones;
+}
+
+// Función para aplicar personalizaciones
+function aplicarPersonalizaciones() {
+    const modal = document.getElementById('modal-personalizacion');
+    const productoId = modal.dataset.productoId;
+    const checkboxes = modal.querySelectorAll('input[name="personalizacion"]:checked');
+    
+    // Guardar las personalizaciones seleccionadas
+    personalizacionesSeleccionadas[productoId] = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    // Mostrar las personalizaciones en el producto
+    mostrarPersonalizacionesEnProducto(productoId);
+    
+    // Actualizar el precio si es necesario
+    actualizarPrecioProducto(productoId);
+    
+    cerrarModalPersonalizacion();
+}
+
+// Función para mostrar las personalizaciones en el producto
+function mostrarPersonalizacionesEnProducto(productoId) {
+    const personalizacionesDiv = document.getElementById(`personalizaciones-${productoId}`);
+    const personalizaciones = personalizacionesSeleccionadas[productoId] || [];
+    
+    if (personalizaciones.length > 0) {
+        personalizacionesDiv.style.display = 'block';
+        personalizacionesDiv.innerHTML = `
+            <small class="personalizaciones-texto">
+                Personalizado (${personalizaciones.length} opciones)
+            </small>
+        `;
+    } else {
+        personalizacionesDiv.style.display = 'none';
+    }
+}
+
+// Función para actualizar el precio del producto con personalizaciones
+function actualizarPrecioProducto(productoId) {
+    // Esta función puede implementarse para mostrar el precio actualizado
+    // Por ahora, el precio se calculará en el backend
+}
+
+// Función para cerrar el modal
+function cerrarModalPersonalizacion() {
+    const modal = document.getElementById('modal-personalizacion');
+    modal.style.display = 'none';
+}
+
+// Event listeners para los botones de personalización
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-personalizar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productoId = this.dataset.productoId;
+            const productoNombre = this.dataset.productoNombre;
+            abrirModalPersonalizacion(productoId, productoNombre);
+        });
+    });
+});
+</script>
+
+{% endblock %}

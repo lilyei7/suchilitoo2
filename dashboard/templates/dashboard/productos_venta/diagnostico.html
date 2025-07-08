@@ -1,0 +1,54 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Diagnóstico JavaScript{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Diagnóstico de JavaScript</h1>
+    <p>Esta página es para diagnosticar problemas con la carga de JavaScript.</p>
+    
+    <div class="alert alert-info">
+        <p>Si ves este mensaje y el indicador azul abajo a la derecha, el JavaScript se está cargando correctamente.</p>
+    </div>
+    
+    <div class="my-4">
+        <button id="testButton" class="btn btn-primary">Probar JavaScript</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    console.log('🔍 [DEBUG] JavaScript de diagnóstico cargado', {
+        time: new Date().toISOString(),
+        page: 'diagnóstico',
+        url: window.location.href
+    });
+    
+    // Mostrar un indicador visual de que el JS está cargado
+    window.addEventListener('DOMContentLoaded', function() {
+        // Crear un elemento de notificación
+        const debugNotification = document.createElement('div');
+        debugNotification.style.position = 'fixed';
+        debugNotification.style.bottom = '20px';
+        debugNotification.style.right = '20px';
+        debugNotification.style.backgroundColor = 'rgba(0, 128, 255, 0.9)';
+        debugNotification.style.color = 'white';
+        debugNotification.style.padding = '10px 15px';
+        debugNotification.style.borderRadius = '5px';
+        debugNotification.style.zIndex = '9999';
+        debugNotification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+        debugNotification.textContent = '✓ JavaScript de diagnóstico cargado correctamente';
+        
+        // Añadir al DOM
+        document.body.appendChild(debugNotification);
+        
+        // Configurar botón de prueba
+        document.getElementById('testButton').addEventListener('click', function() {
+            alert('¡El JavaScript funciona correctamente!');
+            console.log('Botón de prueba clickeado');
+        });
+    });
+</script>
+{% endblock %}

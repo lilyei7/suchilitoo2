@@ -17,6 +17,10 @@ def get_sidebar_context(view_name):
         'inventario_section_active': view_name in [
             'inventario', 'entradas_salidas', 'insumos_compuestos', 
             'insumos_elaborados', 'proveedores', 'recetas', 'reportes'
+        ],
+        'cajero_section_active': view_name in [
+            'cajero_dashboard', 'punto_venta', 'ordenes_activas', 'historial_ventas',
+            'apertura_caja', 'cierre_caja', 'admin_mesas'
         ]
     }
     return sidebar_context

@@ -5,11 +5,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 
-from restaurant.models import Insumo, CategoriaInsumo, UnidadMedida
+from restaurant.models import Insumo, CategoriaInsumo, UnidadMedida, Inventario
 from dashboard.views.base_views import is_admin_or_manager
+from dashboard.utils.permissions import require_submodule_access
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_submodule_access('inventario', 'insumos')
 def crear_insumo(request):
     """Vista para crear un nuevo insumo básico"""
     if request.method == 'POST':
@@ -60,8 +61,7 @@ def crear_insumo(request):
             # Obtener objetos relacionados
             categoria = get_object_or_404(CategoriaInsumo, id=categoria_id)
             unidad_medida = get_object_or_404(UnidadMedida, id=unidad_medida_id)
-            
-            # Crear el insumo
+              # Crear el insumo
             insumo = Insumo.objects.create(
                 codigo=codigo,
                 nombre=nombre,
@@ -75,10 +75,29 @@ def crear_insumo(request):
                 dias_vencimiento=int(dias_vencimiento) if dias_vencimiento and perecedero else None,
                 activo=True
             )
+              # Crear registros de inventario en todas las sucursales activas
+            from accounts.models import Sucursal
+            sucursales_activas = Sucursal.objects.filter(activa=True)
+            inventarios_creados = 0
+            
+            for sucursal in sucursales_activas:
+                try:
+                    Inventario.objects.create(
+                        insumo=insumo,
+                        sucursal=sucursal,
+                        cantidad_actual=Decimal('0.00'),
+                        cantidad_reservada=Decimal('0.00'),
+                        costo_unitario=insumo.precio_unitario
+                    )
+                    inventarios_creados += 1
+                except Exception as e:
+                    print(f"Error creando inventario para {sucursal.nombre}: {e}")
+            
+            print(f"✅ Insumo '{insumo.nombre}' creado con {inventarios_creados} registros de inventario")
             
             return JsonResponse({
                 'success': True,
-                'message': f'Insumo "{insumo.nombre}" creado exitosamente',
+                'message': f'Insumo "{insumo.nombre}" creado exitosamente con inventario en {inventarios_creados} sucursal(es)',
                 'insumo': {
                     'id': insumo.id,
                     'codigo': insumo.codigo,
@@ -99,6 +118,7 @@ def crear_insumo(request):
     })
 
 @login_required
+@require_submodule_access('inventario', 'insumos')
 def detalle_insumo(request, insumo_id):
     """Vista para obtener detalles de un insumo"""
     try:
@@ -131,6 +151,8 @@ def detalle_insumo(request, insumo_id):
 
 @login_required
 @user_passes_test(is_admin_or_manager)
+@login_required
+@require_submodule_access('inventario', 'insumos')
 def editar_insumo(request, insumo_id):
     """Vista para editar un insumo"""
     if request.method == 'POST':
@@ -188,7 +210,7 @@ def editar_insumo(request, insumo_id):
     return detalle_insumo(request, insumo_id)
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_submodule_access('inventario', 'insumos')
 def eliminar_insumo(request, insumo_id):
     """Vista para eliminar un insumo"""
     if request.method == 'POST':
@@ -264,6 +286,7 @@ def eliminar_insumo(request, insumo_id):
     })
 
 @login_required
+@require_submodule_access('inventario', 'insumos')
 def obtener_insumos_basicos(request):
     """API para obtener insumos básicos disponibles para insumos compuestos"""
     try:

@@ -1,0 +1,344 @@
+/* Estilos personalizados para la aplicación de cocina */
+
+/* Navegación */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.navbar-nav .nav-link {
+    transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+/* Información del Chef y Sucursal */
+.chef-info {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-right: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.chef-info .chef-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.chef-info .sucursal-name {
+    font-size: 0.75rem;
+    color: #ffc107;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.chef-info .sucursal-name.sin-sucursal {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.chef-info i {
+    margin-right: 4px;
+    font-size: 0.8rem;
+}
+
+/* Responsive para información del chef */
+@media (max-width: 991px) {
+    .chef-info {
+        display: none;
+    }
+}
+
+/* Cards */
+.card {
+    transition: all 0.3s ease;
+    border: 1px solid #dee2e6;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Estados de órdenes */
+.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+.bg-success {
+    background-color: #28a745 !important;
+}
+
+.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+/* Badges */
+.badge {
+    font-size: 0.75em;
+    padding: 0.35em 0.65em;
+}
+
+/* Actividad Timeline */
+.activity-timeline {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.activity-time {
+    flex-shrink: 0;
+    width: 60px;
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.activity-content {
+    flex: 1;
+    margin-left: 1rem;
+}
+
+/* Cronómetro */
+#cronometro {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #007bff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Prioridades */
+.border-danger {
+    border-left: 4px solid #dc3545 !important;
+}
+
+.border-warning {
+    border-left: 4px solid #ffc107 !important;
+}
+
+.border-info {
+    border-left: 4px solid #17a2b8 !important;
+}
+
+.border-success {
+    border-left: 4px solid #28a745 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Animaciones */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.btn-urgente {
+    animation: pulse 2s infinite;
+}
+
+/* Estados de items */
+.item-estado-recibida {
+    background-color: #f8f9fa;
+    border-left: 4px solid #6c757d;
+}
+
+.item-estado-preparacion {
+    background-color: #e7f3ff;
+    border-left: 4px solid #17a2b8;
+}
+
+.item-estado-lista {
+    background-color: #e8f5e8;
+    border-left: 4px solid #28a745;
+}
+
+.item-estado-entregada {
+    background-color: #e3f2fd;
+    border-left: 4px solid #007bff;
+}
+
+/* Tabla responsiva */
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Botones de acción */
+.btn-action {
+    margin: 0 2px;
+    min-width: 80px;
+}
+
+/* Filtros */
+.form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    margin-left: -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Notificaciones */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+/* Orden cards específicos */
+.orden-card {
+    transition: all 0.3s ease;
+}
+
+.orden-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.orden-urgente {
+    animation: pulse 2s infinite;
+    border: 2px solid #dc3545 !important;
+}
+
+.orden-alta-prioridad {
+    border: 2px solid #ffc107 !important;
+}
+
+/* Tiempos */
+.tiempo-warning {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+.tiempo-danger {
+    color: #dc3545;
+    font-weight: bold;
+    animation: pulse 1s infinite;
+}
+
+.tiempo-success {
+    color: #28a745;
+    font-weight: bold;
+}
+
+/* Dashboard específico */
+.dashboard-stat {
+    text-align: center;
+    padding: 2rem;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.dashboard-stat i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.8;
+}
+
+.dashboard-stat h2 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-stat h5 {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .btn,
+    .card-footer {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #000 !important;
+    }
+}

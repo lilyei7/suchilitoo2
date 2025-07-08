@@ -1,0 +1,389 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Órdenes Activas - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="fas fa-clipboard-list me-2 text-primary"></i>
+            Órdenes Activas
+        </h1>
+        <p class="text-muted mb-0">Sucursal: {{ sucursal.nombre }}</p>
+    </div>
+    <div class="d-flex">
+        <a href="{% url 'dashboard:punto_venta' %}" class="btn btn-primary">
+            <i class="fas fa-cash-register me-2"></i>Punto de Venta
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Lista de órdenes activas -->
+    <div class="col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-list me-2"></i>
+                    Órdenes Pendientes
+                </h6>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-filter me-1"></i>Filtrar
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <li><a class="dropdown-item" href="#" data-filter="todas">Todas las órdenes</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="abierta">Abiertas</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="en_proceso">En proceso</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="lista">Listas para entrega</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" data-filter="mesa">Para mesa</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="llevar">Para llevar</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="delivery">Delivery</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="listaOrdenes">
+                    {% if ordenes_activas %}
+                        {% for orden in ordenes_activas %}
+                            <a href="#" class="list-group-item list-group-item-action py-3 orden-item" data-id="{{ orden.id }}" data-estado="{{ orden.estado }}" data-tipo="{{ orden.tipo }}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Orden #{{ orden.numero }}</h6>
+                                    <small>{{ orden.fecha_hora|time:"H:i" }}</small>
+                                </div>
+                                <div class="d-flex w-100 justify-content-between">
+                                    <p class="mb-1">
+                                        {% if orden.tipo == 'mesa' %}
+                                            <span class="badge bg-primary">Mesa {{ orden.mesa.numero }}</span>
+                                        {% elif orden.tipo == 'llevar' %}
+                                            <span class="badge bg-success">Para llevar</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Delivery</span>
+                                        {% endif %}
+                                        <span class="badge bg-secondary">{{ orden.items.count }} items</span>
+                                    </p>
+                                    <strong>${{ orden.total }}</strong>
+                                </div>
+                                <small>
+                                    {% if orden.cliente %}
+                                        Cliente: {{ orden.cliente.nombre }}
+                                    {% else %}
+                                        Cliente: General
+                                    {% endif %}
+                                </small>
+                                <div class="mt-1">
+                                    <span class="badge {% if orden.estado == 'abierta' %}bg-info{% elif orden.estado == 'en_proceso' %}bg-warning{% elif orden.estado == 'lista' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ orden.get_estado_display }}
+                                    </span>
+                                    {% if not orden.pagada %}
+                                        <span class="badge bg-danger">Pendiente de pago</span>
+                                    {% endif %}
+                                </div>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-clipboard-check fa-3x mb-3"></i>
+                            <p>No hay órdenes activas en este momento</p>
+                            <a href="{% url 'dashboard:punto_venta' %}" class="btn btn-sm btn-primary mt-2">
+                                <i class="fas fa-plus-circle me-2"></i>Crear nueva orden
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detalle de la orden seleccionada -->
+    <div class="col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-receipt me-2"></i>
+                    <span id="ordenTitulo">Detalle de la Orden</span>
+                </h6>
+                <div id="ordenBadges">
+                    <span class="badge bg-primary" id="ordenNumeroDetalle">Seleccione una orden</span>
+                    <span class="badge bg-info" id="ordenEstadoDetalle"></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="ordenNoSeleccionada" class="text-center py-5">
+                    <i class="fas fa-hand-pointer fa-3x text-muted mb-3"></i>
+                    <p>Seleccione una orden de la lista para ver sus detalles</p>
+                </div>
+                
+                <div id="ordenDetalle" style="display: none;">
+                    <!-- Información básica -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Fecha y Hora:</label>
+                                <p id="ordenFechaHora" class="mb-0">-</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Tipo de Orden:</label>
+                                <p id="ordenTipo" class="mb-0">-</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Mesa:</label>
+                                <p id="ordenMesa" class="mb-0">-</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Cliente:</label>
+                                <p id="ordenCliente" class="mb-0">-</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Atendido por:</label>
+                                <p id="ordenCajero" class="mb-0">-</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Estado de Pago:</label>
+                                <p id="ordenPagada" class="mb-0">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notas -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Notas:</label>
+                        <p id="ordenNotas" class="mb-0 fst-italic">-</p>
+                    </div>
+                    
+                    <!-- Items de la orden -->
+                    <div class="table-responsive mb-3">
+                        <label class="form-label small fw-bold">Productos:</label>
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Precio</th>
+                                    <th>Cantidad</th>
+                                    <th>Total</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordenItems">
+                                <!-- Los items se cargan dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Totales -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Cambio de estado -->
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Cambiar Estado:</label>
+                                <select class="form-select form-select-sm" id="cambiarEstado">
+                                    <option value="abierta">Abierta</option>
+                                    <option value="en_proceso">En Proceso</option>
+                                    <option value="lista">Lista para Entrega</option>
+                                    <option value="entregada">Entregada</option>
+                                    <option value="cancelada">Cancelada</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" id="btnActualizarEstado">
+                                <i class="fas fa-sync-alt me-2"></i>Actualizar Estado
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Subtotal:</span>
+                                        <span id="ordenSubtotal">$0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Descuento:</span>
+                                        <span id="ordenDescuento">$0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Impuestos:</span>
+                                        <span id="ordenImpuestos">$0.00</span>
+                                    </div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between fw-bold">
+                                        <span>TOTAL:</span>
+                                        <span id="ordenTotal" class="text-primary">$0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones de acción -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <div>
+                            <button class="btn btn-sm btn-outline-danger me-2" id="btnCancelarOrdenDetalle">
+                                <i class="fas fa-times-circle me-2"></i>Cancelar Orden
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" id="btnImprimirComanda">
+                                <i class="fas fa-print me-2"></i>Imprimir Comanda
+                            </button>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-success" id="btnProcesarPago">
+                                <i class="fas fa-money-bill-wave me-2"></i>Procesar Pago
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para procesar pago -->
+<div class="modal fade" id="pagoModal" tabindex="-1" aria-labelledby="pagoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pagoModalLabel">Procesar Pago</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Método de Pago:</label>
+                    <select class="form-select" id="metodoPago">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta de Crédito/Débito</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="mixto">Pago Mixto</option>
+                    </select>
+                </div>
+                
+                <div id="efectivoContainer">
+                    <div class="mb-3">
+                        <label class="form-label">Total a Pagar:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" class="form-control" id="totalAPagar" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Monto Recibido:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="montoRecibido" min="0" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Cambio a Devolver:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" class="form-control" id="cambio" readonly>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="tarjetaContainer" style="display: none;">
+                    <div class="mb-3">
+                        <label class="form-label">Referencia de Pago:</label>
+                        <input type="text" class="form-control" id="referenciaPago" placeholder="Últimos 4 dígitos o referencia">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Imprimir Ticket:</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="imprimirTicket" checked>
+                        <label class="form-check-label" for="imprimirTicket">Sí, imprimir ticket</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnCompletarPago">
+                    <i class="fas fa-check-circle me-2"></i>Completar Pago
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para mostrar ticket -->
+<div class="modal fade" id="ticketModal" tabindex="-1" aria-labelledby="ticketModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ticketModalLabel">Ticket de Venta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="ticketContainer" class="p-3 bg-white">
+                    <!-- El ticket se genera dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="btnImprimirTicket">
+                    <i class="fas fa-print me-2"></i>Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .list-group-item.orden-item {
+        transition: all 0.2s ease;
+    }
+    
+    .list-group-item.orden-item:hover {
+        background-color: #f8f9fc;
+    }
+    
+    .list-group-item.orden-item.active {
+        background-color: #4e73df;
+        border-color: #4e73df;
+    }
+    
+    #ticketContainer {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+    
+    .ticket-header {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    .ticket-info {
+        margin-bottom: 10px;
+    }
+    
+    .ticket-items {
+        width: 100%;
+        border-top: 1px dashed #000;
+        border-bottom: 1px dashed #000;
+        margin: 10px 0;
+        padding: 10px 0;
+    }
+    
+    .ticket-total {
+        text-align: right;
+        font-weight: bold;
+    }
+    
+    .ticket-footer {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'dashboard/js/ordenes_activas.js' %}"></script>
+{% endblock %}

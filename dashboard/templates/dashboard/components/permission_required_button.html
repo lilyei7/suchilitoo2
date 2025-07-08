@@ -1,0 +1,24 @@
+{% comment %}
+Componente para mostrar botones con verificación de permisos
+{% endcomment %}
+
+{% if show_button %}
+<button class="{{ button_class }}" 
+        data-module="{{ module }}" 
+        data-action="{{ action }}"
+        {% for attr, value in extra_attrs.items %}{{ attr }}="{{ value }}"{% endfor %}>
+    {% if icon %}
+        <i class="{{ icon }} me-1"></i>
+    {% endif %}
+    {{ button_text }}
+</button>
+{% else %}
+    {% comment %}
+    Opcional: Mostrar un placeholder o tooltip explicando por qué no se muestra el botón
+    {% endcomment %}
+    {% if show_disabled_hint %}
+    <span class="text-muted small" title="No tienes permisos para {{ action }} en {{ module }}">
+        <i class="fas fa-lock me-1"></i>{{ button_text }} (Sin permisos)
+    </span>
+    {% endif %}
+{% endif %}

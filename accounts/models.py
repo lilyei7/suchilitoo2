@@ -59,3 +59,16 @@ class Usuario(AbstractUser):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.username}"
+    
+    def has_feature(self, feature_name):
+        """
+        Verifica si el usuario tiene acceso a una característica específica
+        
+        Args:
+            feature_name (str): Nombre de la característica a verificar
+            
+        Returns:
+            bool: True si el usuario tiene la característica
+        """
+        from dashboard.utils.permissions import has_feature
+        return has_feature(self, feature_name)

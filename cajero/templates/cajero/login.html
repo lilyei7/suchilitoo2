@@ -1,0 +1,318 @@
+{% extends 'cajero/base.html' %}
+{% load static %}
+
+{% block title %}Login Cajero - Sushi Restaurant{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .login-container {
+        width: 100%;
+        max-width: 480px;
+        padding: 0 24px;
+    }
+    
+    .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        padding: 48px 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    
+    .login-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        box-shadow: 0 8px 24px rgba(52, 152, 219, 0.3);
+    }
+    
+    .login-icon i {
+        font-size: 36px;
+        color: white;
+    }
+    
+    .login-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .login-subtitle {
+        font-size: 16px;
+        color: #7f8c8d;
+        margin: 0;
+    }
+    
+    .form-floating {
+        margin-bottom: 24px;
+    }
+    
+    .form-floating .form-control {
+        min-height: 58px;
+        font-size: 16px;
+        border-radius: 16px;
+        border: 2px solid #e1e5e9;
+        background: rgba(255, 255, 255, 0.9);
+    }
+    
+    .form-floating .form-control:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.1);
+        background: white;
+    }
+    
+    .form-floating label {
+        font-size: 14px;
+        color: #6c757d;
+        font-weight: 500;
+    }
+    
+    .btn-login {
+        width: 100%;
+        min-height: 58px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        border: none;
+        color: white;
+        margin-top: 16px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(52, 152, 219, 0.3);
+    }
+    
+    .btn-login:hover {
+        background: linear-gradient(135deg, #2980b9, #1c6ba0);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(52, 152, 219, 0.4);
+    }
+    
+    .btn-login:active {
+        transform: translateY(0);
+    }
+    
+    .btn-login:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .alert {
+        border-radius: 12px;
+        margin-bottom: 24px;
+        font-size: 15px;
+        border: none;
+    }
+    
+    .footer-text {
+        text-align: center;
+        margin-top: 32px;
+        font-size: 14px;
+        color: #7f8c8d;
+    }
+    
+    /* Tablet specific adjustments */
+    @media (min-width: 768px) and (max-width: 1024px) {
+        .login-card {
+            padding: 56px 48px;
+        }
+        
+        .login-icon {
+            width: 90px;
+            height: 90px;
+        }
+        
+        .login-icon i {
+            font-size: 40px;
+        }
+        
+        .login-title {
+            font-size: 32px;
+        }
+        
+        .form-floating .form-control {
+            min-height: 64px;
+            font-size: 18px;
+        }
+        
+        .btn-login {
+            min-height: 64px;
+            font-size: 20px;
+        }
+    }
+    
+    /* Loading animation */
+    .btn-login.loading::after {
+        content: '';
+        width: 20px;
+        height: 20px;
+        margin-left: 12px;
+        border: 2px solid transparent;
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-icon">
+                <i class="fas fa-cash-register"></i>
+            </div>
+            <h1 class="login-title">Sistema de Cajero</h1>
+            <p class="login-subtitle">Acceso exclusivo para personal de caja</p>
+        </div>
+        
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" id="loginForm">
+            {% csrf_token %}
+            
+            <div class="form-floating">
+                <input type="text" 
+                       class="form-control" 
+                       id="username" 
+                       name="username" 
+                       placeholder="Usuario"
+                       autocomplete="username"
+                       required>
+                <label for="username">
+                    <i class="fas fa-user me-2"></i>Usuario
+                </label>
+            </div>
+            
+            <div class="form-floating">
+                <input type="password" 
+                       class="form-control" 
+                       id="password" 
+                       name="password" 
+                       placeholder="Contraseña"
+                       autocomplete="current-password"
+                       required>
+                <label for="password">
+                    <i class="fas fa-lock me-2"></i>Contraseña
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-login" id="loginBtn">
+                <i class="fas fa-sign-in-alt me-2"></i>
+                Iniciar Sesión
+            </button>
+        </form>
+        
+        <div class="footer-text">
+            <p class="mb-0">
+                <i class="fas fa-shield-alt me-1"></i>
+                Sistema seguro para cajeros
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    
+    // Auto-focus en el primer campo
+    usernameInput.focus();
+    
+    // Manejar envío del formulario
+    form.addEventListener('submit', function(e) {
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+        
+        if (!username || !password) {
+            e.preventDefault();
+            showAlert('Por favor completa todos los campos', 'error');
+            return;
+        }
+        
+        // Mostrar estado de carga
+        loginBtn.classList.add('loading');
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Iniciando sesión...';
+    });
+    
+    // Navegación con teclado
+    usernameInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            passwordInput.focus();
+        }
+    });
+    
+    passwordInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            form.submit();
+        }
+    });
+    
+    // Función para mostrar alertas
+    function showAlert(message, type = 'info') {
+        // Remover alertas existentes
+        const existingAlerts = document.querySelectorAll('.alert');
+        existingAlerts.forEach(alert => alert.remove());
+        
+        // Crear nueva alerta
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.innerHTML = `
+            <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+            ${message}
+        `;
+        
+        // Insertar antes del formulario
+        form.parentNode.insertBefore(alertDiv, form);
+        
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+    
+    // Haptic feedback para dispositivos compatibles
+    function hapticFeedback() {
+        if ('vibrate' in navigator) {
+            navigator.vibrate(50);
+        }
+    }
+    
+    // Agregar feedback táctil a botones
+    loginBtn.addEventListener('touchstart', hapticFeedback);
+});
+</script>
+{% endblock %}

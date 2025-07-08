@@ -1,0 +1,2067 @@
+{% extends 'mesero/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Oculta la navbar superior solo en este template */
+    .navbar { display: none !important; }
+    :root {
+        --primary-color: #1e88e5;
+        --secondary-color: #ffffff;
+        --text-color: #1a2236;
+        --border-color: #e3eafc;
+        --card-shadow: 0 8px 32px 0 rgba(30,136,229,0.10);
+        --badge-green: #43e97b;
+        --badge-red: #ff6b6b;
+        --glass-bg: rgba(255,255,255,0.96);
+        --glass-blur: blur(16px);
+    }
+    body {
+        background: linear-gradient(120deg, #e3f2fd 0%, #f5faff 100%);
+        min-height: 100vh;
+        position: relative;
+    }
+    /* Fondo con logo grande y difuminado */
+    .background-logo {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: 0;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.13;
+        filter: blur(6px) saturate(1.2);
+        background: none;
+    }
+    .background-logo img {
+        max-width: 540px;
+        width: 60vw;
+        height: auto;
+        user-select: none;
+        pointer-events: none;
+        opacity: 1;
+        filter: drop-shadow(0 8px 32px #1e88e522);
+    }
+    /* Eleva el contenido sobre el fondo */
+    .main-content {
+        position: relative;
+        z-index: 1;
+    }
+    .bienvenida-header {
+        max-width: 1200px;
+        margin: 0 auto 1.2rem auto;
+        padding: 1.2rem 1.2rem 1.1rem 1.2rem;
+        background: rgba(255,255,255,0.92);
+        border-radius: 22px;
+        box-shadow: 0 4px 32px 0 rgba(30,136,229,0.10);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.1rem;
+        animation: fadeInDown 0.8s cubic-bezier(.4,0,.2,1);
+        backdrop-filter: blur(10px);
+        position: relative;
+    }
+    .bienvenida-info {
+        display: flex;
+        align-items: center;
+        gap: 1.1rem;
+        flex: 1;
+    }
+    .sucursal-info {
+        background: linear-gradient(135deg, #e3f2fd 0%, #f5faff 100%);
+        padding: 0.8rem 1.2rem;
+        border-radius: 16px;
+        border: 1px solid #e3eafc;
+        box-shadow: 0 2px 8px rgba(30,136,229,0.08);
+    }
+    .sucursal-label {
+        font-size: 0.85rem;
+        color: #1976d2;
+        font-weight: 600;
+        margin-bottom: 0.2rem;
+        letter-spacing: 0.1px;
+        opacity: 0.9;
+        text-transform: uppercase;
+    }
+    .sucursal-nombre {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        letter-spacing: 0.1px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .sucursal-icono {
+        width: 18px;
+        height: 18px;
+        opacity: 0.8;
+    }
+    .bienvenida-header .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2196f3 60%, #21cbf3 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.7rem;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(30,136,229,0.10);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+    .bienvenida-header .texto {
+        display: flex;
+        flex-direction: column;
+    }
+    .bienvenida-header .texto .saludo {
+        font-size: 1.1rem;
+        color: #1976d2;
+        font-weight: 600;
+        margin-bottom: 0.1rem;
+        letter-spacing: 0.1px;
+        opacity: 0.93;
+    }
+    .bienvenida-header .texto .nombre {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        letter-spacing: 0.2px;
+        opacity: 0.98;
+    }
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-30px); }
+        to { opacity: 1; transform: none; }
+    }
+    .menu-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem 1rem 6.5rem 1rem; /* padding-bottom para no tapar el menú */
+        animation: fadeIn 1.1s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: none; }
+    }
+    .categoria {
+        margin-bottom: 3.5rem;
+        background: none;
+        animation: fadeInUp 0.8s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(40px); }
+        to { opacity: 1; transform: none; }
+    }
+    .categoria-header {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        margin-bottom: 1.7rem;
+        letter-spacing: 0.7px;
+        padding-left: 0.2rem;
+        opacity: 0.97;
+        position: sticky;
+        top: 0;
+        background: linear-gradient(90deg, #f5faff 80%, #e3f2fd 100%);
+        z-index: 10;
+        box-shadow: 0 2px 12px 0 rgba(30,136,229,0.04);
+        border-radius: 0 0 18px 18px;
+        padding-top: 0.7rem;
+        padding-bottom: 0.7rem;
+    }
+    .productos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 1.5rem 1.2rem;
+        max-width: 100%;
+    }
+    
+    /* Responsivo para diferentes tamaños de pantalla */
+    @media (min-width: 1400px) {
+        .productos-grid {
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1.8rem 1.5rem;
+        }
+    }
+    
+    @media (min-width: 1200px) and (max-width: 1399px) {
+        .productos-grid {
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1.6rem 1.3rem;
+        }
+    }
+    
+    @media (min-width: 900px) and (max-width: 1199px) {
+        .productos-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem 1.2rem;
+        }
+    }
+    
+    @media (min-width: 600px) and (max-width: 899px) {
+        .productos-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.3rem 1rem;
+        }
+    }
+    
+    @media (max-width: 599px) {
+        .productos-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem 0.8rem;
+        }
+    }
+    
+    .producto-card {
+        background: var(--glass-bg);
+        border-radius: 18px;
+        box-shadow: var(--card-shadow);
+        border: none;
+        transition: transform 0.18s, box-shadow 0.18s, filter 0.3s;
+        position: relative;
+        padding: 0;
+        overflow: visible;
+        min-height: 320px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        backdrop-filter: var(--glass-blur) saturate(1.2);
+        animation: fadeInCard 0.7s cubic-bezier(.4,0,.2,1);
+        opacity: 0;
+        will-change: transform, opacity;
+    }
+    @keyframes fadeInCard {
+        from { opacity: 0; transform: scale(0.97) translateY(30px); }
+        to { opacity: 1; transform: none; }
+    }
+    .producto-card.animated {
+        opacity: 1;
+    }
+    .producto-card:hover {
+        transform: translateY(-8px) scale(1.03);
+        box-shadow: 0 16px 40px 0 rgba(30,136,229,0.18), 0 0 0 6px #e3f2fd;
+        z-index: 2;
+        filter: brightness(1.05) drop-shadow(0 0 12px #90caf9cc);
+    }
+    .producto-imagen {
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 18px 18px 0 0;
+        background: #f5faff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .producto-imagen:hover {
+        filter: brightness(1.1);
+    }
+    .producto-imagen::after {
+        content: '🔍';
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(30,136,229,0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 50%;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .producto-imagen:hover::after {
+        opacity: 1;
+    }
+    .producto-imagen img, .producto-imagen svg {
+        transition: transform 0.4s cubic-bezier(.4,0,.2,1);
+    }
+    .producto-card:hover .producto-imagen img,
+    .producto-card:hover .producto-imagen svg {
+        transform: scale(1.11) rotate(-2deg);
+    }
+    .producto-info {
+        padding: 1.2rem 1rem 1rem 1rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .producto-nombre {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-color);
+        margin-bottom: 0.3rem;
+        letter-spacing: 0.1px;
+        opacity: 0.99;
+        line-height: 1.3;
+    }
+    .producto-descripcion {
+        color: #5a6a90;
+        font-size: 0.95rem;
+        margin-bottom: 0.7rem;
+        line-height: 1.4;
+        min-height: 35px;
+        opacity: 0.95;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    .producto-detalles {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.6rem;
+    }
+    .producto-precio {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        letter-spacing: 0.2px;
+        background: linear-gradient(90deg, #2196f3 0%, #21cbf3 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .btn-agregar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, #43e97b 0%, #38c172 100%);
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(.4,0,.2,1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 16px rgba(67,233,123,0.25);
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-agregar:hover {
+        transform: scale(1.1);
+        box-shadow: 0 8px 32px rgba(67,233,123,0.4);
+        background: linear-gradient(135deg, #38c172 0%, #2d9561 100%);
+    }
+    .btn-agregar:active {
+        transform: scale(0.95);
+    }
+    .btn-agregar.btn-disabled {
+        background: #e0e0e0;
+        color: #9e9e9e;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+    .btn-agregar.btn-disabled:hover {
+        transform: none;
+        box-shadow: none;
+        background: #e0e0e0;
+    }
+    /* Contador de productos seleccionados */
+    .carrito-contador {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--primary-color);
+        color: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.2rem;
+        box-shadow: 0 8px 32px rgba(30,136,229,0.3);
+        z-index: 1001;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(.4,0,.2,1);
+        backdrop-filter: blur(10px);
+    }
+    .carrito-contador:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 48px rgba(30,136,229,0.4);
+    }
+    .carrito-contador.hidden {
+        transform: scale(0);
+        opacity: 0;
+    }
+    /* Modal del carrito */
+    .modal-carrito {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1003;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+    }
+    .modal-carrito.show {
+        display: flex;
+    }
+    .modal-content-carrito {
+        background: white;
+        border-radius: 22px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+    }
+    .modal-header-carrito {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    .modal-header-carrito h3 {
+        color: var(--primary-color);
+        font-weight: 700;
+        margin: 0;
+    }
+    .btn-cerrar {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #999;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: all 0.2s;
+    }
+    .btn-cerrar:hover {
+        background: #f0f0f0;
+        color: #666;
+    }
+    .carrito-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .carrito-item:last-child {
+        border-bottom: none;
+    }
+    .item-info {
+        flex: 1;
+    }
+    .item-nombre {
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.25rem;
+    }
+    .item-precio {
+        color: var(--primary-color);
+        font-weight: 700;
+    }
+    .item-cantidad {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .btn-cantidad {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: var(--primary-color);
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-cantidad:hover {
+        transform: scale(1.1);
+    }
+    .cantidad-numero {
+        font-weight: 700;
+        min-width: 30px;
+        text-align: center;
+    }
+    .carrito-total {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #f0f0f0;
+        text-align: center;
+    }
+    .total-texto {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+    .btn-ordenar {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #1565c0 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        width: 100%;
+    }
+    .btn-ordenar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(30,136,229,0.3);
+    }
+    .btn-ordenar:disabled {
+        background: #e0e0e0;
+        color: #999;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    .badge {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        padding: 0.3rem 0.7rem;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        box-shadow: 0 4px 16px rgba(67,233,123,0.13);
+        background: var(--badge-green);
+        color: #fff;
+        z-index: 2;
+        opacity: 0.97;
+        border: none;
+        animation: badgeBounce 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes badgeBounce {
+        0% { transform: scale(0.7); opacity: 0; }
+        60% { transform: scale(1.18); opacity: 1; }
+        100% { transform: scale(1); opacity: 0.97; }
+    }
+    .badge-agotado {
+        background: var(--badge-red);
+        color: #fff;
+        animation: badgeBounce 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    .producto-meta {
+        font-size: 0.88rem;
+        color: #8fa2c7;
+        margin-top: 0.2rem;
+        letter-spacing: 0.1px;
+        opacity: 0.93;
+        transition: color 0.2s;
+        line-height: 1.3;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+    }
+    .producto-card:hover .producto-meta {
+        color: #1976d2;
+    }
+    /* Bottom nav bar */
+    .bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 64px;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 -2px 16px 0 rgba(30,136,229,0.08);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 1002;
+        border-top: 1.5px solid #e3eafc;
+        animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    .bottom-nav a {
+        color: #1e88e5;
+        text-decoration: none;
+        font-size: 0.93rem;
+        font-weight: 600;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        transition: color 0.18s;
+        padding: 0 8px;
+    }
+    .bottom-nav a.active, .bottom-nav a:hover {
+        color: #1565c0;
+    }
+    .bottom-nav svg {
+        width: 24px;
+        height: 24px;
+        margin-bottom: 2px;
+    }
+    @media (max-width: 600px) {
+        .menu-container {
+            padding-bottom: 6.5rem;
+            padding-left: 0.8rem;
+            padding-right: 0.8rem;
+        }
+        .bottom-nav {
+            height: 60px;
+        }
+        .bottom-nav svg {
+            width: 22px;
+            height: 22px;
+        }
+        .producto-card {
+            min-height: 280px;
+        }
+        .producto-imagen {
+            height: 120px;
+        }
+        .producto-info {
+            padding: 1rem 0.8rem 0.8rem 0.8rem;
+        }
+        .producto-nombre {
+            font-size: 1rem;
+        }
+        .producto-descripcion {
+            font-size: 0.9rem;
+            min-height: 30px;
+        }
+        .producto-precio {
+            font-size: 1.05rem;
+        }
+        .btn-agregar {
+            width: 32px;
+            height: 32px;
+            font-size: 0.9rem;
+        }
+        .producto-meta {
+            font-size: 0.8rem;
+        }
+        .badge {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            top: 12px;
+            right: 12px;
+        }
+        /* Responsivo para header de bienvenida */
+        .bienvenida-header {
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .bienvenida-info {
+            justify-content: center;
+        }
+        .sucursal-info {
+            text-align: center;
+            padding: 0.6rem 1rem;
+        }
+        .sucursal-label {
+            font-size: 0.8rem;
+        }
+        .sucursal-nombre {
+            font-size: 1rem;
+            justify-content: center;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .bienvenida-header {
+            margin-bottom: 1rem;
+        }
+        .avatar {
+            width: 42px !important;
+            height: 42px !important;
+            font-size: 1.5rem !important;
+        }
+        .texto .saludo {
+            font-size: 1rem !important;
+        }
+        .texto .nombre {
+            font-size: 1.2rem !important;
+        }
+        .sucursal-info {
+            padding: 0.5rem 0.8rem;
+        }
+        .sucursal-icono {
+            width: 16px;
+            height: 16px;
+        }
+    }
+    
+    /* Estilos para botones de mesa */
+    .btn-mesa {
+        background: white;
+        border: 2px solid #e3eafc;
+        border-radius: 12px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(.4,0,.2,1);
+        text-align: center;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        font-family: inherit;
+    }
+    
+    .btn-mesa.disponible {
+        border-color: #43e97b;
+        color: #2d9561;
+    }
+    
+    .btn-mesa.disponible:hover {
+        background: #f0fdf4;
+        border-color: #38c172;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(67,233,123,0.2);
+    }
+    
+    .btn-mesa.ocupada {
+        border-color: #ff6b6b;
+        color: #dc2626;
+        background: #fef2f2;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+    
+    .btn-mesa:disabled {
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* Modal de detalles del producto */
+    .modal-detalle-producto {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 1004;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .modal-detalle-producto.show {
+        display: flex;
+        opacity: 1;
+    }
+    
+    .modal-detalle-content {
+        background: white;
+        border-radius: 20px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+        transform: scale(0.8);
+        transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    }
+    
+    .modal-detalle-producto.show .modal-detalle-content {
+        transform: scale(1);
+    }
+    
+    .modal-detalle-header {
+        position: relative;
+        padding: 0;
+    }
+    
+    .modal-detalle-imagen {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        border-radius: 20px 20px 0 0;
+        background: linear-gradient(135deg, #e3f2fd 0%, #f5faff 100%);
+    }
+    
+    .modal-detalle-imagen-placeholder {
+        width: 100%;
+        height: 250px;
+        background: linear-gradient(135deg, #e3f2fd 0%, #f5faff 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 20px 20px 0 0;
+    }
+    
+    .modal-detalle-imagen-placeholder svg {
+        width: 80px;
+        height: 80px;
+        color: #90caf9;
+    }
+    
+    .modal-cerrar {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255,255,255,0.9);
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: #666;
+        transition: all 0.2s;
+        backdrop-filter: blur(10px);
+    }
+    
+    .modal-cerrar:hover {
+        background: rgba(255,255,255,1);
+        color: #333;
+        transform: scale(1.1);
+    }
+    
+    .modal-detalle-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-producto-nombre {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        line-height: 1.3;
+    }
+    
+    .modal-producto-precio {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        background: linear-gradient(90deg, #2196f3 0%, #21cbf3 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .modal-producto-descripcion {
+        color: #5a6a90;
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+    }
+    
+    .modal-producto-detalles {
+        background: #f7fbff;
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .modal-detalle-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+    
+    .modal-detalle-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .modal-detalle-label {
+        color: #78909c;
+        font-weight: 500;
+    }
+    
+    .modal-detalle-value {
+        color: var(--text-color);
+        font-weight: 600;
+    }
+    
+    .modal-acciones {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .btn-modal {
+        flex: 1;
+        padding: 1rem;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-modal-primary {
+        background: linear-gradient(135deg, #43e97b 0%, #38c172 100%);
+        color: white;
+    }
+    
+    .btn-modal-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(67,233,123,0.3);
+    }
+    
+    .btn-modal-secondary {
+        background: #f5f5f5;
+        color: #666;
+    }
+    
+    .btn-modal-secondary:hover {
+        background: #e0e0e0;
+    }
+    
+    /* Loading en modal */
+    .modal-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        color: var(--primary-color);
+    }
+    
+    .modal-loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e3f2fd;
+        border-top: 3px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 1rem;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive modal */
+    @media (max-width: 600px) {
+        .modal-detalle-content {
+            width: 95%;
+            margin: 1rem;
+        }
+        
+        .modal-detalle-imagen {
+            height: 200px;
+        }
+        
+        .modal-detalle-imagen-placeholder {
+            height: 200px;
+        }
+        
+        .modal-detalle-body {
+            padding: 1rem;
+        }
+        
+        .modal-acciones {
+            flex-direction: column;
+        }
+    }
+    
+    /* Estilos para el modal de notas especiales */
+    .modal-notas-especiales {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+    
+    .modal-notas-content {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 100%;
+        animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+    
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-30px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    
+    .modal-notas-header {
+        background: linear-gradient(135deg, #1e88e5 0%, #1976d2 100%);
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+    }
+    
+    .modal-notas-header h3 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .modal-notas-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+    
+    .modal-notas-body {
+        padding: 1.5rem;
+    }
+    
+    .notas-form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .notas-label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+    
+    .notas-textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e3f2fd;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: inherit;
+        resize: vertical;
+        min-height: 80px;
+        transition: border-color 0.2s;
+    }
+    
+    .notas-textarea:focus {
+        outline: none;
+        border-color: #1e88e5;
+        box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+    }
+    
+    .notas-sugerencias {
+        margin-top: 0.75rem;
+    }
+    
+    .notas-sugerencias-titulo {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .notas-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .nota-chip {
+        background: #f1f8ff;
+        color: #1565c0;
+        border: 1px solid #bbdefb;
+        border-radius: 20px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+    }
+    
+    .nota-chip:hover {
+        background: #e3f2fd;
+        border-color: #90caf9;
+    }
+    
+    .nota-chip:active {
+        transform: scale(0.95);
+    }
+    
+    .modal-notas-footer {
+        padding: 1rem 1.5rem;
+        background: #f8f9fa;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+    
+    .btn-modal {
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-modal-cancelar {
+        background: white;
+        color: #666;
+        border: 1px solid #ddd;
+    }
+    
+    .btn-modal-cancelar:hover {
+        background: #f5f5f5;
+        border-color: #ccc;
+    }
+    
+    .btn-modal-confirmar {
+        background: #1e88e5;
+        color: white;
+        min-width: 120px;
+        justify-content: center;
+    }
+    
+    .btn-modal-confirmar:hover {
+        background: #1976d2;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+    }
+    
+    @media (max-width: 480px) {
+        .modal-notas-content {
+            margin: 1rem;
+            max-width: none;
+        }
+        
+        .modal-notas-header {
+            padding: 1.2rem;
+        }
+        
+        .modal-notas-body {
+            padding: 1.2rem;
+        }
+        
+        .modal-notas-footer {
+            padding: 1rem 1.2rem;
+            flex-direction: column-reverse;
+        }
+        
+        .btn-modal {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Carrito de productos
+let carrito = [];
+let totalCarrito = 0;
+let mesaSeleccionada = null;
+
+// Animación escalonada para productos
+window.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.producto-card');
+    cards.forEach((card, i) => {
+        setTimeout(() => card.classList.add('animated'), 70 * i);
+    });
+    
+    // Activar el enlace actual en el menú inferior
+    const path = window.location.pathname;
+    document.querySelectorAll('.bottom-nav a').forEach(a => {
+        if (a.getAttribute('href') && path.includes(a.getAttribute('href'))) {
+            a.classList.add('active');
+        }
+    });
+    
+    // Inicializar carrito
+    actualizarContadorCarrito();
+});
+
+// Función para seleccionar mesa antes de agregar productos
+function seleccionarMesa() {
+    return new Promise((resolve, reject) => {
+        // Crear modal para seleccionar mesa
+        const modal = document.createElement('div');
+        modal.className = 'modal-carrito show';
+        modal.innerHTML = `
+            <div class="modal-content-carrito">
+                <div class="modal-header-carrito">
+                    <h3>🍽️ Seleccionar Mesa</h3>
+                    <button class="btn-cerrar" onclick="cerrarModal(this)">&times;</button>
+                </div>
+                <div id="mesasContenido">
+                    <div style="text-align: center; padding: 2rem;">
+                        <div style="font-size: 1.5rem; margin-bottom: 1rem;">🔄</div>
+                        <p>Cargando mesas...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Cargar mesas via AJAX
+        fetch('/mesero/mesas-modal/')
+            .then(response => response.json())
+            .then(data => {
+                const contenido = document.getElementById('mesasContenido');
+                contenido.innerHTML = '';
+                
+                if (data.mesas && data.mesas.length > 0) {
+                    const grid = document.createElement('div');
+                    grid.style.cssText = `
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                        gap: 1rem;
+                        padding: 1rem 0;
+                    `;
+                    
+                    data.mesas.forEach(mesa => {
+                        const mesaBtn = document.createElement('button');
+                        mesaBtn.className = mesa.disponible ? 'btn-mesa disponible' : 'btn-mesa ocupada';
+                        mesaBtn.disabled = !mesa.disponible;
+                        mesaBtn.onclick = () => {
+                            if (mesa.disponible) {
+                                mesaSeleccionada = mesa;
+                                modal.remove();
+                                resolve(mesa);
+                            }
+                        };
+                        
+                        mesaBtn.innerHTML = `
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">
+                                ${mesa.disponible ? '🍽️' : '🔒'}
+                            </div>
+                            <div style="font-weight: 700;">Mesa ${mesa.numero}</div>
+                            <div style="font-size: 0.8rem; opacity: 0.8;">
+                                ${mesa.capacidad} personas
+                            </div>
+                            <div style="font-size: 0.8rem; font-weight: 600; margin-top: 0.25rem;">
+                                ${mesa.disponible ? 'Disponible' : 'Ocupada'}
+                            </div>
+                        `;
+                        
+                        grid.appendChild(mesaBtn);
+                    });
+                    
+                    contenido.appendChild(grid);
+                } else {
+                    contenido.innerHTML = `
+                        <div style="text-align: center; padding: 2rem;">
+                            <div style="font-size: 1.5rem; margin-bottom: 1rem;">❌</div>
+                            <p>No hay mesas disponibles</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error cargando mesas:', error);
+                modal.remove();
+                reject(error);
+            });
+        
+        // Cerrar modal al hacer clic fuera
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.remove();
+                reject(new Error('Modal cerrado'));
+            }
+        });
+    });
+}
+
+// Función para agregar producto al carrito
+function agregarProducto(id, nombre, precio) {
+    console.log(`Agregando producto: ${nombre} - $${precio}`);
+    
+    // Mostrar modal de notas especiales
+    mostrarModalNotasEspeciales(id, nombre, precio);
+}
+
+// Función para mostrar modal de notas especiales
+function mostrarModalNotasEspeciales(id, nombre, precio) {
+    const modal = document.getElementById('modalNotasEspeciales');
+    const nombreProducto = document.getElementById('nombreProductoModal');
+    const textareaNotas = document.getElementById('notasEspeciales');
+    const btnConfirmar = document.getElementById('btnConfirmarAgregar');
+    
+    nombreProducto.textContent = nombre;
+    textareaNotas.value = '';
+    textareaNotas.focus();
+    
+    // Configurar botón de confirmar
+    btnConfirmar.onclick = function() {
+        const notas = textareaNotas.value.trim();
+        agregarProductoConNotas(id, nombre, precio, notas);
+        cerrarModalNotasEspeciales();
+    };
+    
+    modal.style.display = 'flex';
+    
+    // Cerrar modal al hacer clic fuera
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            cerrarModalNotasEspeciales();
+        }
+    };
+}
+
+function cerrarModalNotasEspeciales() {
+    const modal = document.getElementById('modalNotasEspeciales');
+    modal.style.display = 'none';
+}
+
+// Función para agregar producto con notas al carrito
+function agregarProductoConNotas(id, nombre, precio, notas) {
+    console.log(`Agregando producto: ${nombre} - $${precio} - Notas: "${notas}"`);
+    
+    // Buscar si el producto ya está en el carrito CON LAS MISMAS NOTAS
+    const productoExistente = carrito.find(item => item.id === id && item.notas === notas);
+    
+    if (productoExistente) {
+        productoExistente.cantidad += 1;
+    } else {
+        carrito.push({
+            id: id,
+            nombre: nombre,
+            precio: precio,
+            cantidad: 1,
+            notas: notas || ''
+        });
+    }
+    
+    // Actualizar total
+    calcularTotal();
+    actualizarContadorCarrito();
+    
+    // Mostrar feedback visual
+    const notasTexto = notas ? ` (${notas})` : '';
+    mostrarFeedback(`${nombre}${notasTexto} agregado al pedido`);
+}
+
+// Función para agregar nota sugerida al textarea
+function agregarNotaSugerida(nota) {
+    const textarea = document.getElementById('notasEspeciales');
+    const valorActual = textarea.value.trim();
+    
+    // Si ya hay texto, agregar coma y espacio
+    if (valorActual) {
+        // Verificar si la nota ya está incluida
+        if (!valorActual.toLowerCase().includes(nota.toLowerCase())) {
+            textarea.value = valorActual + ', ' + nota;
+        }
+    } else {
+        textarea.value = nota;
+    }
+    
+    // Enfocar el textarea
+    textarea.focus();
+    
+    // Posicionar cursor al final
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+}
+
+// Función para calcular el total del carrito
+function calcularTotal() {
+    totalCarrito = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
+}
+
+// Función para actualizar el contador del carrito
+function actualizarContadorCarrito() {
+    const contador = document.getElementById('carritoContador');
+    const totalItems = carrito.reduce((total, item) => total + item.cantidad, 0);
+    
+    if (!contador) {
+        // Crear el contador si no existe
+        const contadorDiv = document.createElement('div');
+        contadorDiv.id = 'carritoContador';
+        contadorDiv.className = 'carrito-contador hidden';
+        contadorDiv.onclick = abrirCarrito;
+        contadorDiv.innerHTML = '0';
+        document.body.appendChild(contadorDiv);
+    }
+    
+    const contadorElement = document.getElementById('carritoContador');
+    contadorElement.textContent = totalItems;
+    
+    if (totalItems > 0) {
+        contadorElement.classList.remove('hidden');
+    } else {
+        contadorElement.classList.add('hidden');
+    }
+}
+
+// Función para mostrar feedback visual
+function mostrarFeedback(mensaje, tipo = 'success') {
+    // Crear elemento de feedback
+    const feedback = document.createElement('div');
+    const esError = tipo === 'error';
+    feedback.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        background: ${esError ? '#ff6b6b' : '#43e97b'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        z-index: 1002;
+        box-shadow: 0 8px 32px ${esError ? 'rgba(255,107,107,0.3)' : 'rgba(67,233,123,0.3)'};
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+        max-width: 300px;
+        word-wrap: break-word;
+    `;
+    feedback.textContent = mensaje;
+    document.body.appendChild(feedback);
+    
+    // Animar entrada
+    setTimeout(() => {
+        feedback.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Animar salida y remover
+    const tiempo = esError ? 4000 : 2500;
+    setTimeout(() => {
+        feedback.style.transform = 'translateX(100%)';
+        setTimeout(() => feedback.remove(), 300);
+    }, tiempo);
+}
+
+// Función para abrir el modal del carrito
+function abrirCarrito() {
+    if (carrito.length === 0) {
+        mostrarFeedback('El carrito está vacío');
+        return;
+    }
+    
+    // Crear o mostrar modal
+    let modal = document.getElementById('modalCarrito');
+    if (!modal) {
+        modal = crearModalCarrito();
+    }
+    
+    actualizarContenidoCarrito();
+    modal.classList.add('show');
+}
+
+// Función para crear el modal del carrito
+function crearModalCarrito() {
+    const modal = document.createElement('div');
+    modal.id = 'modalCarrito';
+    modal.className = 'modal-carrito';
+    modal.innerHTML = `
+        <div class="modal-content-carrito">
+            <div class="modal-header-carrito">
+                <h3>🛒 Mi Pedido</h3>
+                <button class="btn-cerrar" onclick="cerrarCarrito()">&times;</button>
+            </div>
+            ${mesaSeleccionada ? `
+                <div style="background: #e3f2fd; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+                    <strong>📍 Mesa ${mesaSeleccionada.numero}</strong>
+                    <span style="font-size: 0.9rem; color: #666; margin-left: 0.5rem;">(${mesaSeleccionada.capacidad} personas)</span>
+                </div>
+            ` : ''}
+            <div id="carritoContenido"></div>
+            <div style="margin: 1rem 0;">
+                <label for="notasPedido" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--primary-color);">
+                    📝 Notas especiales (opcional):
+                </label>
+                <textarea 
+                    id="notasPedido" 
+                    placeholder="Ej: Sin wasabi, extra salsa de soya..."
+                    style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; resize: vertical; min-height: 60px; font-family: inherit;"
+                ></textarea>
+            </div>
+            <div class="carrito-total">
+                <div class="total-texto">Total: $<span id="totalPedido">0.00</span></div>
+                <button class="btn-ordenar" onclick="confirmarPedido()">
+                    ${mesaSeleccionada ? 'Confirmar Pedido' : 'Seleccionar Mesa y Confirmar'}
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Cerrar modal al hacer clic fuera
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            cerrarCarrito();
+        }
+    });
+    
+    document.body.appendChild(modal);
+    return modal;
+}
+
+// Función para actualizar el contenido del carrito
+function actualizarContenidoCarrito() {
+    const contenido = document.getElementById('carritoContenido');
+    const totalElement = document.getElementById('totalPedido');
+    
+    contenido.innerHTML = '';
+    
+    carrito.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'carrito-item';
+        itemDiv.innerHTML = `
+            <div class="item-info">
+                <div class="item-nombre">${item.nombre}</div>
+                <div class="item-precio">$${item.precio.toFixed(2)}</div>
+            </div>
+            <div class="item-cantidad">
+                <button class="btn-cantidad" onclick="cambiarCantidad(${item.id}, -1)">-</button>
+                <span class="cantidad-numero">${item.cantidad}</span>
+                <button class="btn-cantidad" onclick="cambiarCantidad(${item.id}, 1)">+</button>
+            </div>
+        `;
+        contenido.appendChild(itemDiv);
+    });
+    
+    totalElement.textContent = totalCarrito.toFixed(2);
+}
+
+// Función para cambiar la cantidad de un producto
+function cambiarCantidad(id, cambio) {
+    const producto = carrito.find(item => item.id === id);
+    if (producto) {
+        producto.cantidad += cambio;
+        
+        if (producto.cantidad <= 0) {
+            // Remover producto del carrito
+            const index = carrito.findIndex(item => item.id === id);
+            carrito.splice(index, 1);
+        }
+        
+        calcularTotal();
+        actualizarContadorCarrito();
+        actualizarContenidoCarrito();
+    }
+}
+
+// Función para cerrar el carrito
+function cerrarCarrito() {
+    const modal = document.getElementById('modalCarrito');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
+// Función para confirmar el pedido
+function confirmarPedido() {
+    if (carrito.length === 0) {
+        mostrarFeedback('El carrito está vacío');
+        return;
+    }
+    
+    // Verificar que hay una mesa seleccionada
+    if (!mesaSeleccionada) {
+        // Si no hay mesa seleccionada, mostrar selector
+        seleccionarMesa().then(mesa => {
+            enviarPedido();
+        }).catch(error => {
+            mostrarFeedback('Debe seleccionar una mesa para continuar');
+        });
+        return;
+    }
+    
+    enviarPedido();
+}
+
+// Función para enviar el pedido al servidor
+function enviarPedido() {
+    // Mostrar loading
+    const btnOrdenar = document.querySelector('.btn-ordenar');
+    const textoOriginal = btnOrdenar.textContent;
+    btnOrdenar.disabled = true;
+    btnOrdenar.textContent = 'Enviando...';
+    
+    // Preparar datos para enviar
+    const datosOrden = {
+        mesa_id: mesaSeleccionada.id,
+        items: carrito.map(item => ({
+            id: item.id,
+            cantidad: item.cantidad,
+            nombre: item.nombre,
+            precio: item.precio,
+            observaciones: item.notas || ''  // Incluir las notas especiales del producto
+        })),
+        notas: document.getElementById('notasPedido')?.value || ''
+    };
+    
+    // Obtener CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                     getCookie('csrftoken');
+    
+    // Enviar al servidor
+    fetch('/mesero/crear-orden/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(datosOrden)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Éxito
+            mostrarFeedback(`¡Pedido confirmado! Mesa ${data.mesa_numero} - Total: $${data.total.toFixed(2)}`);
+            
+            // Limpiar carrito
+            carrito = [];
+            totalCarrito = 0;
+            mesaSeleccionada = null;
+            actualizarContadorCarrito();
+            cerrarCarrito();
+            
+            // Opcional: redirigir a pedidos después de un momento
+            setTimeout(() => {
+                if (confirm('¿Desea ver sus pedidos activos?')) {
+                    window.location.href = '/mesero/orders/';
+                }
+            }, 2000);
+            
+        } else {
+            // Error
+            mostrarFeedback(`Error: ${data.error}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error enviando pedido:', error);
+        mostrarFeedback('Error de conexión. Intente nuevamente.', 'error');
+    })
+    .finally(() => {
+        // Restaurar botón
+        btnOrdenar.disabled = false;
+        btnOrdenar.textContent = textoOriginal;
+    });
+}
+
+// Función para obtener cookie CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Función para cerrar cualquier modal
+function cerrarModal(elemento) {
+    const modal = elemento.closest('.modal-carrito');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Funciones para el modal de detalles del producto
+function abrirDetalleProducto(productoId) {
+    const modal = document.getElementById('modalDetalleProducto');
+    const contenido = document.getElementById('contenidoProductoDetalle');
+    const imagenContainer = document.getElementById('imagenProductoDetalle');
+    
+    // Mostrar modal con loading
+    modal.classList.add('show');
+    contenido.innerHTML = `
+        <div class="modal-loading">
+            <div class="modal-loading-spinner"></div>
+            <span>Cargando detalles...</span>
+        </div>
+    `;
+    imagenContainer.innerHTML = '';
+    
+    // Hacer petición AJAX para obtener detalles
+    fetch(`/mesero/producto-detalle/${productoId}/`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarDetalleProducto(data.producto);
+        } else {
+            mostrarErrorDetalle(data.error || 'Error al cargar los detalles');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarErrorDetalle('Error de conexión');
+    });
+}
+
+function mostrarDetalleProducto(producto) {
+    const contenido = document.getElementById('contenidoProductoDetalle');
+    const imagenContainer = document.getElementById('imagenProductoDetalle');
+    
+    // Mostrar imagen
+    if (producto.imagen) {
+        imagenContainer.innerHTML = `
+            <img src="${producto.imagen}" alt="${producto.nombre}" class="modal-detalle-imagen">
+        `;
+    } else {
+        imagenContainer.innerHTML = `
+            <div class="modal-detalle-imagen-placeholder">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+        `;
+    }
+    
+    // Mostrar detalles
+    contenido.innerHTML = `
+        <div class="modal-producto-nombre">${producto.nombre}</div>
+        <div class="modal-producto-precio">$${parseFloat(producto.precio).toFixed(2)}</div>
+        <div class="modal-producto-descripcion">${producto.descripcion}</div>
+        
+        <div class="modal-producto-detalles">
+            <div class="modal-detalle-item">
+                <span class="modal-detalle-label">⏱️ Tiempo de preparación:</span>
+                <span class="modal-detalle-value">${producto.tiempo_preparacion} min</span>
+            </div>
+            ${producto.calorias ? `
+            <div class="modal-detalle-item">
+                <span class="modal-detalle-label">🔥 Calorías:</span>
+                <span class="modal-detalle-value">${producto.calorias} kcal</span>
+            </div>
+            ` : ''}
+            <div class="modal-detalle-item">
+                <span class="modal-detalle-label">🍽️ Tipo:</span>
+                <span class="modal-detalle-value">${producto.tipo}</span>
+            </div>
+            <div class="modal-detalle-item">
+                <span class="modal-detalle-label">📦 Estado:</span>
+                <span class="modal-detalle-value ${producto.disponible ? 'text-success' : 'text-danger'}">
+                    ${producto.disponible ? '✅ Disponible' : '❌ No disponible'}
+                </span>
+            </div>
+            ${producto.es_promocion ? `
+            <div class="modal-detalle-item">
+                <span class="modal-detalle-label">🏷️ Promoción:</span>
+                <span class="modal-detalle-value">✨ Producto en promoción</span>
+            </div>
+            ` : ''}
+        </div>
+        
+        <div class="modal-acciones">
+            ${producto.disponible ? `
+            <button class="btn-modal btn-modal-primary" onclick="agregarProductoDesdeModal(${producto.id}, '${producto.nombre}', ${producto.precio})">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Agregar al Pedido
+            </button>
+            ` : ''}
+            <button class="btn-modal btn-modal-secondary" onclick="cerrarDetalleProducto()">
+                Cerrar
+            </button>
+        </div>
+    `;
+}
+
+function mostrarErrorDetalle(mensaje) {
+    const contenido = document.getElementById('contenidoProductoDetalle');
+    contenido.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: #ff6b6b;">
+            <svg width="60" height="60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom: 1rem;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            <h3>Error al cargar</h3>
+            <p>${mensaje}</p>
+            <button class="btn-modal btn-modal-secondary" onclick="cerrarDetalleProducto()" style="margin-top: 1rem;">
+                Cerrar
+            </button>
+        </div>
+    `;
+}
+
+function cerrarDetalleProducto() {
+    const modal = document.getElementById('modalDetalleProducto');
+    modal.classList.remove('show');
+}
+
+function agregarProductoDesdeModal(id, nombre, precio) {
+    // Agregar producto al carrito
+    agregarProducto(id, nombre, precio);
+    
+    // Cerrar modal
+    cerrarDetalleProducto();
+    
+    // Mostrar feedback
+    mostrarFeedback(`${nombre} agregado al pedido desde detalles`);
+}
+
+// Cerrar modal al hacer click fuera del contenido
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('modalDetalleProducto');
+    if (e.target === modal) {
+        cerrarDetalleProducto();
+    }
+});
+
+// Función para agregar una nota sugerida al textarea
+function agregarNotaSugerida(nota) {
+    const textarea = document.getElementById('notasEspeciales');
+    const valorActual = textarea.value.trim();
+    
+    // Si ya hay texto, agregar coma y espacio
+    if (valorActual) {
+        // Verificar si la nota ya está incluida
+        if (!valorActual.toLowerCase().includes(nota.toLowerCase())) {
+            textarea.value = valorActual + ', ' + nota;
+        }
+    } else {
+        textarea.value = nota;
+    }
+    
+    // Enfocar el textarea y mover el cursor al final
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+}
+
+// Manejar tecla Enter en el modal de notas para confirmar
+document.addEventListener('keydown', function(e) {
+    const modal = document.getElementById('modalNotasEspeciales');
+    if (modal.style.display === 'flex' && e.key === 'Enter' && e.ctrlKey) {
+        // Ctrl + Enter para confirmar rápidamente
+        document.getElementById('btnConfirmarAgregar').click();
+    } else if (modal.style.display === 'flex' && e.key === 'Escape') {
+        // Escape para cancelar
+        cerrarModalNotasEspeciales();
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="background-logo">
+    <img src="{% static 'img/logo_sushi.png' %}" alt="Logo Sushi" draggable="false">
+</div>
+<div class="main-content">
+    <div class="bienvenida-header">
+        <div class="bienvenida-info">
+            <div class="avatar">
+                {{ user.first_name|default:user.username|slice:":1"|upper }}
+            </div>
+            <div class="texto">
+                <span class="saludo">¡Bienvenido{{ user.first_name|default:user.username|slice:":1"|upper|yesno:",,a" }}!</span>
+                <span class="nombre">{{ user.get_full_name|default:user.username }}</span>
+            </div>
+        </div>
+        <div class="sucursal-info">
+            <div class="sucursal-label">Sucursal Actual</div>
+            <div class="sucursal-nombre">
+                <svg class="sucursal-icono" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                {% if user.sucursal %}
+                    {{ user.sucursal.nombre }}
+                {% else %}
+                    Sin asignar
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="menu-container">
+        {% for categoria, productos in productos_por_categoria.items %}
+            <div class="categoria">
+                <div class="categoria-header">{{ categoria }}</div>
+                <div class="productos-grid">
+                    {% for producto in productos %}
+                        <div class="producto-card">
+                            {% if producto.disponible %}
+                                <span class="badge">Disponible</span>
+                            {% else %}
+                                <span class="badge badge-agotado">Agotado</span>
+                            {% endif %}
+                            {% if producto.imagen %}
+                                <img src="{{ producto.imagen }}" alt="{{ producto.nombre }}" class="producto-imagen" onclick="abrirDetalleProducto({{ producto.id }})">
+                            {% else %}
+                                <div class="producto-imagen" onclick="abrirDetalleProducto({{ producto.id }})">
+                                    <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                        <polyline points="21 15 16 10 5 21"></polyline>
+                                    </svg>
+                                </div>
+                            {% endif %}
+                            <div class="producto-info">
+                                <div>
+                                    <div class="producto-nombre">{{ producto.nombre }}</div>
+                                    <div class="producto-descripcion">{{ producto.descripcion }}</div>
+                                </div>
+                                <div class="producto-detalles">
+                                    <span class="producto-precio">${{ producto.precio|floatformat:2 }}</span>
+                                    {% if producto.disponible %}
+                                        <button class="btn-agregar" onclick="agregarProducto({{ producto.id }}, '{{ producto.nombre }}', {{ producto.precio }})">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    {% else %}
+                                        <button class="btn-agregar btn-disabled" disabled>
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                <div class="producto-meta">
+                                    <small>
+                                        🕒 {{ producto.tiempo_preparacion }} min{% if producto.calorias %} | 🔥 {{ producto.calorias }} cal{% endif %}
+                                        {% if producto.tipo %} | {{ producto.tipo }}{% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <!-- Menú de navegación inferior -->
+    <nav class="bottom-nav">
+        <a href="{% url 'mesero:seleccionar_mesa' %}">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h8M12 8v8"/>
+            </svg>
+            Mesas
+        </a>
+        <a href="{% url 'mesero:menu' %}">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="3" y="6" width="18" height="13" rx="2"/>
+                <path d="M16 3v3M8 3v3"/>
+            </svg>
+            Menú
+        </a>
+        <a href="{% url 'mesero:orders' %}">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            Pedidos
+        </a>
+        <a href="{% url 'mesero:logout' %}">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7"/>
+            </svg>
+            Salir
+        </a>
+    </nav>
+    
+    <!-- Modal de detalles del producto -->
+    <div class="modal-detalle-producto" id="modalDetalleProducto">
+        <div class="modal-detalle-content">
+            <div class="modal-detalle-header">
+                <button class="modal-cerrar" onclick="cerrarDetalleProducto()">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <div id="imagenProductoDetalle"></div>
+            </div>
+            <div class="modal-detalle-body" id="contenidoProductoDetalle">
+                <div class="modal-loading">
+                    <div class="modal-loading-spinner"></div>
+                    <span>Cargando detalles...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de notas especiales -->
+    <div class="modal-notas-especiales" id="modalNotasEspeciales">
+        <div class="modal-notas-content">
+            <div class="modal-notas-header">
+                <h3>🍽️ Notas Especiales</h3>
+                <p>Agregando: <strong id="nombreProductoModal"></strong></p>
+            </div>
+            
+            <div class="modal-notas-body">
+                <div class="notas-form-group">
+                    <label class="notas-label" for="notasEspeciales">
+                        ¿Alguna preparación especial para este platillo?
+                    </label>
+                    <textarea 
+                        id="notasEspeciales" 
+                        class="notas-textarea" 
+                        placeholder="Ej: Sin tomate, extra picante, sin cebolla, cocción media, etc."
+                        maxlength="200"></textarea>
+                </div>
+                
+                <div class="notas-sugerencias">
+                    <div class="notas-sugerencias-titulo">💡 Sugerencias comunes:</div>
+                    <div class="notas-chips">
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Sin tomate')">Sin tomate</span>
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Sin cebolla')">Sin cebolla</span>
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Extra picante')">Extra picante</span>
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Sin picante')">Sin picante</span>
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Cocción media')">Cocción media</span>
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Bien cocido')">Bien cocido</span>
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Sin salsa')">Sin salsa</span>
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Extra salsa')">Extra salsa</span>
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Sin arroz')">Sin arroz</span>
+                        <span class="nota-chip" onclick="agregarNotaSugerida('Extra queso')">Extra queso</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-notas-footer">
+                <button class="btn-modal btn-modal-cancelar" onclick="cerrarModalNotasEspeciales()">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 18px; height: 18px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Cancelar
+                </button>
+                <button class="btn-modal btn-modal-confirmar" id="btnConfirmarAgregar">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 18px; height: 18px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Agregar al pedido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

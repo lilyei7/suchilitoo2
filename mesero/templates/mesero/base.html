@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SushiLitoo - Mesero{% endblock %}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: #f5faff;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: linear-gradient(90deg, #2196f3 0%, #1e88e5 100%);
+            color: #fff;
+            padding: 0.9rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 3px 10px rgba(33,150,243,0.1);
+        }
+        .navbar .brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .navbar nav {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .navbar nav a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.2s;
+            padding: 0.4rem 0.7rem;
+            border-radius: 4px;
+        }
+        .navbar nav a:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 1.5rem auto 2rem auto;
+            padding: 1.5rem;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(30,136,229,0.08);
+        }
+        .messages {
+            margin: 1rem 0 0.5rem 0;
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px;
+            background: #e3f2fd;
+            color: #1976d2;
+            font-size: 1rem;
+            border-left: 4px solid #1976d2;
+        }
+        
+        /* Botón flotante para nueva orden */
+        .floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: #1e88e5;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 1000;
+            text-decoration: none;
+        }
+        
+        .floating-btn:hover {
+            background: #1976d2;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .floating-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .action-bar {
+            background: #f7fbff;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #e3f2fd;
+        }
+        
+        .action-bar h2 {
+            margin: 0;
+            color: #1e88e5;
+            font-size: 1.3rem;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.8rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #1e88e5;
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: #1976d2;
+        }
+        
+        .btn-outline {
+            background: white;
+            color: #1e88e5;
+            border: 1px solid #bbdefb;
+        }
+        
+        .btn-outline:hover {
+            background: #e3f2fd;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+                margin: 1rem auto;
+            }
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 0.7rem 1rem;
+            }
+            .navbar nav {
+                margin-top: 0.7rem;
+                width: 100%;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+            }
+        }
+    </style>
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="navbar">
+        <span class="brand">SushiLitoo Mesero</span>
+        <nav>
+            <a href="{% url 'mesero:seleccionar_mesa' %}">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 5px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Seleccionar Mesa
+            </a>
+            <a href="{% url 'mesero:menu' %}">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 5px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9h18M3 15h18M3 21h18"></path>
+                </svg>
+                Menú
+            </a>
+            <a href="{% url 'mesero:orders' %}">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 5px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                </svg>
+                Pedidos
+            </a>
+            <a href="{% url 'mesero:logout' %}">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 5px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                Cerrar Sesión
+            </a>
+        </nav>
+    </div>
+    <div class="container">
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    {{ message }}<br>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Botón flotante inteligente (cambia según el contexto) -->
+    {% if user.is_authenticated %}
+        {% if request.resolver_match.url_name == 'seleccionar_mesa' %}
+            <!-- Ya estamos en selección de mesa, muestra botón para ver pedidos -->
+            <a href="{% url 'mesero:orders' %}" class="floating-btn" title="Ver Pedidos">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                </svg>
+            </a>
+        {% elif request.resolver_match.url_name == 'orders' %}
+            <!-- Ya estamos en pedidos, muestra botón para seleccionar mesa -->
+            <a href="{% url 'mesero:seleccionar_mesa' %}" class="floating-btn" title="Seleccionar Mesa">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </a>
+        {% elif request.resolver_match.url_name == 'nueva_orden' %}
+            <!-- Ya estamos en nueva orden, muestra botón para ver pedidos -->
+            <a href="{% url 'mesero:orders' %}" class="floating-btn" title="Ver Pedidos">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                </svg>
+            </a>
+        {% else %}
+            <!-- Página de menú u otra, muestra botón para seleccionar mesa -->
+            <a href="{% url 'mesero:seleccionar_mesa' %}" class="floating-btn" title="Seleccionar Mesa">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </a>
+        {% endif %}
+    {% endif %}
+    {% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const msg = document.querySelector('.messages');
+        if (msg) {
+            setTimeout(() => {
+                msg.style.transition = 'opacity 0.7s';
+                msg.style.opacity = '0';
+                setTimeout(() => {
+                    if (msg.parentNode) msg.parentNode.removeChild(msg);
+                }, 700);
+            }, 3000); // 3 segundos
+        }
+    });
+</script>
+{% endblock %}
+</body>
+</html>

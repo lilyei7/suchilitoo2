@@ -11,8 +11,13 @@ import json
 
 from accounts.models import Usuario, Sucursal, Rol
 from .base_views import get_sidebar_context, is_admin_or_manager
+from ..utils.permissions import (
+    require_module_access, require_permission, 
+    has_module_access, has_permission, invalidate_user_permissions
+)
 
 @login_required
+@require_module_access('usuarios')
 def usuarios_view(request):
     """Vista principal para gestión de usuarios"""
     # Obtener todos los usuarios con sus relaciones
@@ -54,7 +59,7 @@ def usuarios_view(request):
     return render(request, 'dashboard/usuarios.html', context)
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_permission('usuarios', 'create')
 def crear_usuario(request):
     """Vista para crear un nuevo usuario"""
     if request.method == 'POST':
@@ -143,6 +148,7 @@ def crear_usuario(request):
     return JsonResponse({'success': False, 'message': 'Método no permitido'})
 
 @login_required
+@require_permission('usuarios', 'read')
 def detalle_usuario(request, usuario_id):
     """Vista para ver detalles de un usuario"""
     try:
@@ -185,7 +191,7 @@ def detalle_usuario(request, usuario_id):
         })
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_permission('usuarios', 'update')
 def editar_usuario(request, usuario_id):
     """Vista para editar un usuario existente"""
     if request.method != 'POST':
@@ -266,12 +272,15 @@ def editar_usuario(request, usuario_id):
             usuario.sucursal = sucursal
             usuario.rol = rol
             usuario.is_active = is_active
-            
-            # Actualizar contraseña si se proporciona
+              # Actualizar contraseña si se proporciona
             if password:
                 usuario.password = make_password(password)
             
             usuario.save()
+            
+            # Invalidar cache de permisos si se cambió el rol
+            if rol_id:
+                invalidate_user_permissions(usuario)
         
         return JsonResponse({
             'success': True,
@@ -286,7 +295,7 @@ def editar_usuario(request, usuario_id):
         })
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_permission('usuarios', 'delete')
 def eliminar_usuario(request, usuario_id):
     """Vista para eliminar un usuario"""
     if request.method != 'POST':
@@ -325,7 +334,7 @@ def eliminar_usuario(request, usuario_id):
         })
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_permission('usuarios', 'update')
 def toggle_estado_usuario(request, usuario_id):
     """Vista para activar/desactivar un usuario"""
     if request.method != 'POST':
@@ -401,7 +410,7 @@ def obtener_sucursales_roles(request):
         })
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_permission('usuarios', 'update')
 def cambiar_contrasena_usuario(request, usuario_id):
     """Vista para cambiar la contraseña de un usuario"""
     if request.method != 'POST':

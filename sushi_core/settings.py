@@ -25,7 +25,29 @@ SECRET_KEY = 'django-insecure-525rban!z$ekqe=eas__zzx5wnqk5*spf1s1^)cysz$dsw(fp_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1', '192.168.1.98', '0.0.0.0', '*']
+
+# CSRF Configuration for ngrok and external domains
+CSRF_TRUSTED_ORIGINS = [
+    'https://0e3d14efa2a4.ngrok-free.app',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'http://192.168.1.98:8000',
+]
+
+# Configuración adicional de CSRF para desarrollo
+CSRF_COOKIE_SECURE = False  # Para desarrollo local
+CSRF_COOKIE_HTTPONLY = False  # Para desarrollo con JavaScript
+CSRF_USE_SESSIONS = False  # Usar cookies en lugar de sesiones
+
+# Configuración de sesiones y cookies para ngrok
+SESSION_COOKIE_SECURE = False  # Para desarrollo
+SESSION_COOKIE_SAMESITE = 'Lax'  # Permitir cookies cross-site
+CSRF_COOKIE_SAMESITE = 'Lax'  # Permitir CSRF cookies cross-site
+
+# Configuración adicional para ngrok
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+SECURE_REFERRER_POLICY = None
 
 
 # Application definition
@@ -40,6 +62,9 @@ INSTALLED_APPS = [
     'accounts',
     'restaurant',
     'dashboard',
+    'cajero',
+    'mesero.apps.MeseroConfig',  # Nueva app usando la configuración explícita
+    'cocina',  # Nueva app para cocina
 ]
 
 MIDDLEWARE = [
@@ -57,14 +82,20 @@ ROOT_URLCONF = 'sushi_core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'templates',
+            BASE_DIR / 'mesero' / 'templates',
+            BASE_DIR / 'dashboard' / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'debug': DEBUG,  # Esto ayudará a ver errores de template
         },
     },
 ]
@@ -117,7 +148,18 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Configuración adicional para archivos estáticos en desarrollo
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -128,10 +170,48 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.Usuario'
 
 # Login URLs
-LOGIN_URL = '/dashboard/login/'
-LOGIN_REDIRECT_URL = '/dashboard/'
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/mesero/seleccionar-mesa/'
 LOGOUT_REDIRECT_URL = '/dashboard/login/'
 
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Logging configuration for detailed debugging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'dashboard.views': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

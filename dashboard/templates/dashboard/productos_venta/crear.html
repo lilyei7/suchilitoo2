@@ -1,0 +1,170 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Crear Producto de Venta{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Crear Producto de Venta</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:principal' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:lista_productos_venta' %}">Productos de Venta</a></li>
+        <li class="breadcrumb-item active">Crear Producto</li>
+    </ol>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-utensils me-1"></i> Formulario de Producto
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="codigo" class="form-label">Código *</label>
+                        <input type="text" class="form-control" id="codigo" name="codigo" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="nombre" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" required>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="categoria" class="form-label">Categoría *</label>
+                        <select class="form-select" id="categoria" name="categoria" required>
+                            <option value="">-- Seleccione una categoría --</option>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="precio" class="form-label">Precio de Venta *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="precio" name="precio" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="calorias" class="form-label">Calorías</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="calorias" name="calorias" min="0">
+                            <span class="input-group-text">cal</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="disponible" class="form-label">Disponibilidad</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="disponible" name="disponible" checked>
+                            <label class="form-check-label" for="disponible">Producto disponible para venta</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="imagen" class="form-label">Imagen del Producto</label>
+                        <input type="file" class="form-control" id="imagen" name="imagen" accept="image/*">
+                        <div class="form-text">Sube una imagen atractiva del producto. Formatos permitidos: JPG, PNG, GIF.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mt-4" id="image-preview-container" style="display: none;">
+                            <label class="form-label">Vista previa:</label>
+                            <div class="border p-2 rounded">
+                                <img id="image-preview" src="#" alt="Vista previa" style="max-width: 100%; max-height: 150px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="descripcion" class="form-label">Descripción</label>
+                    <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="recetas" class="form-label">Recetas que componen este producto *</label>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Seleccione una o más recetas que formarán parte de este producto.
+                    </div>
+                    <select class="form-select" id="recetas" name="recetas" multiple size="8" required>
+                        {% for receta in recetas_disponibles %}
+                            <option value="{{ receta.id }}">
+                                {% if receta.producto %}
+                                    {{ receta.producto.nombre }} 
+                                {% else %}
+                                    Receta sin nombre
+                                {% endif %}
+                                ({{ receta.tiempo_preparacion }} min | {{ receta.porciones }} porciones)
+                            </option>
+                        {% empty %}
+                            <option disabled>No hay recetas disponibles</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Mantenga presionada la tecla Ctrl (Windows) o Command (Mac) para seleccionar múltiples recetas.</div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{% url 'dashboard:lista_productos_venta' %}" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Código adicional para mejorar la experiencia de usuario en el formulario
+        const recetasSelect = document.getElementById('recetas');
+        
+        // Agregar bordes para mostrar selección múltiple
+        recetasSelect.addEventListener('change', function() {
+            const selectedOptions = Array.from(this.selectedOptions);
+            
+            // Resetear todos los estilos
+            Array.from(this.options).forEach(option => {
+                option.classList.remove('bg-primary', 'text-white');
+            });
+            
+            // Aplicar estilo a los seleccionados
+            selectedOptions.forEach(option => {
+                option.classList.add('bg-primary', 'text-white');
+            });
+        });
+        
+        // Inicializar estilos en carga
+        Array.from(recetasSelect.selectedOptions).forEach(option => {
+            option.classList.add('bg-primary', 'text-white');
+        });
+    });
+
+    // Funcionalidad de vista previa de imagen
+    document.getElementById('imagen').addEventListener('change', function() {
+        const file = this.files[0];
+        const previewContainer = document.getElementById('image-preview-container');
+        const previewImage = document.getElementById('image-preview');
+
+        if (file) {
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                previewContainer.style.display = 'block';
+            }
+
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

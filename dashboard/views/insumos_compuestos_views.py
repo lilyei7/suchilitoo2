@@ -7,11 +7,13 @@ from restaurant.models import (
     InsumoCompuesto
 )
 from .base_views import get_sidebar_context, is_admin_or_manager
+from dashboard.utils.permissions import require_submodule_access
 
 # Usamos el Insumo de restaurant para tener consistencia
 Insumo = RestaurantInsumo
 
 @login_required
+@require_submodule_access('inventario', 'compuestos')
 def insumos_compuestos_view(request):
     """Vista principal para insumos compuestos"""
     # Obtener insumos compuestos
@@ -38,6 +40,8 @@ def insumos_compuestos_view(request):
 
 @login_required
 @user_passes_test(is_admin_or_manager)
+@login_required
+@require_submodule_access('inventario', 'compuestos')
 def crear_insumo_compuesto(request):
     """Vista para crear un insumo compuesto"""
     if request.method == 'POST':
@@ -189,6 +193,7 @@ def crear_insumo_compuesto(request):
     })
 
 @login_required
+@require_submodule_access('inventario', 'compuestos')
 def detalle_insumo_compuesto(request, insumo_id):
     """Vista para ver detalles de un insumo compuesto"""
     try:
@@ -252,7 +257,7 @@ def detalle_insumo_compuesto(request, insumo_id):
         })
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_submodule_access('inventario', 'compuestos')
 def editar_insumo_compuesto(request, insumo_id):
     """Vista para editar un insumo compuesto"""
     if request.method == 'POST':
@@ -323,7 +328,7 @@ def editar_insumo_compuesto(request, insumo_id):
         })
 
 @login_required
-@user_passes_test(is_admin_or_manager)
+@require_submodule_access('inventario', 'compuestos')
 def eliminar_insumo_compuesto(request, insumo_id):
     """Vista para eliminar un insumo compuesto"""
     if request.method == 'POST':

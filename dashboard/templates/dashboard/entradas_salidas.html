@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permission_tags %}
 
 {% block title %}Entradas y Salidas - Sushi Restaurant{% endblock %}
 
@@ -12,133 +13,394 @@
         </h1>
         <p class="text-muted mb-0">Gestiona los movimientos de inventario</p>
     </div>
-    <div>
-        <button class="btn btn-primary">
+    <div>        <button class="btn btn-primary" id="btnNuevoMovimiento">
             <i class="fas fa-plus me-2"></i>Nuevo Movimiento
         </button>
     </div>
 </div>
 
-<!-- Filtros de búsqueda -->
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label text-muted small mb-1">Buscar movimientos</label>
-                <div class="position-relative">
-                    <input type="text" class="form-control" placeholder="Buscar por insumo, usuario...">
-                    <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ total_movimientos|default:"0" }}</h3>
+                        <p class="text-muted mb-0 small">Total Movimientos</p>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <label class="form-label text-muted small mb-1">Tipo</label>
-                <select class="form-select">
-                    <option selected>Todos</option>
-                    <option value="entrada">Entrada</option>
-                    <option value="salida">Salida</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label text-muted small mb-1">Sucursal</label>
-                <select class="form-select">
-                    <option selected>Todas las sucursales</option>
-                    {% for sucursal in sucursales %}
-                    <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label text-muted small mb-1">Fecha</label>
-                <input type="date" class="form-control" placeholder="mm/dd/yyyy">
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button class="btn btn-outline-primary w-100">
-                    <i class="fas fa-filter me-2"></i>Filtrar
-                </button>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ entradas_recientes|default:"0" }}</h3>
+                        <p class="text-muted mb-0 small">Entradas (30 días)</p>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-danger">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ salidas_recientes|default:"0" }}</h3>
+                        <p class="text-muted mb-0 small">Salidas (30 días)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card stats-card stats-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stats-icon">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0">{{ movimientos_hoy|default:"0" }}</h3>
+                        <p class="text-muted mb-0 small">Movimientos Hoy</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros de búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">        <form id="formFiltro">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label text-muted small mb-1">Buscar movimientos</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control" name="busqueda" id="filtroBusqueda" placeholder="Buscar por insumo, usuario...">
+                        <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Tipo</label>
+                    <select class="form-select" name="tipo" id="filtroTipo">
+                        <option value="todos" selected>Todos</option>
+                        <option value="entrada">Entrada</option>
+                        <option value="salida">Salida</option>
+                    </select>
+                </div>                <div class="col-md-3">
+                    <label class="form-label text-muted small mb-1">Sucursal</label>
+                    {% if user_sucursal and not is_admin %}
+                        <!-- Usuario con sucursal específica: filtro deshabilitado -->
+                        <select class="form-select" name="sucursal" id="filtroSucursal" disabled>
+                            <option value="{{ user_sucursal.id }}" selected>{{ user_sucursal.nombre }}</option>
+                        </select>
+                    {% else %}
+                        <!-- Admin: puede filtrar por todas las sucursales -->
+                        <select class="form-select" name="sucursal" id="filtroSucursal">
+                            <option value="todos" selected>Todas las sucursales</option>
+                            {% for sucursal in sucursales %}
+                            <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    {% endif %}
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Fecha</label>
+                    <input type="date" class="form-control" name="fecha" id="filtroFecha">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
 <!-- Contenido principal -->
 <div class="card">
     <div class="card-body">
-        {% if movimientos %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>FECHA</th>
-                        <th>TIPO</th>
-                        <th>INSUMO</th>
-                        <th>CANTIDAD</th>
-                        <th>USUARIO</th>
-                        <th>SUCURSAL</th>
-                        <th>MOTIVO</th>
-                        <th>ACCIONES</th>
-                    </tr>
-                </thead>
-                <tbody>                    {% for movimiento in movimientos %}
-                    <tr>
-                        <td>
-                            <span class="text-muted">{{ movimiento.created_at|date:"d/m/Y H:i" }}</span>
-                        </td>
-                        <td>
-                            {% if movimiento.tipo_movimiento == 'entrada' %}
-                                <span class="badge bg-success">Entrada</span>
-                            {% else %}
-                                <span class="badge bg-danger">Salida</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div>
-                                <h6 class="mb-0">{{ movimiento.insumo.nombre }}</h6>
-                                <small class="text-muted">{{ movimiento.insumo.codigo }}</small>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="fw-bold">{{ movimiento.cantidad }} {{ movimiento.insumo.unidad_medida }}</span>
-                        </td>
-                        <td>
-                            <span class="text-muted">{{ movimiento.usuario.get_full_name|default:movimiento.usuario.username }}</span>
-                        </td>
-                        <td>
-                            <span class="text-muted">{{ movimiento.sucursal.nombre }}</span>
-                        </td>
-                        <td>
-                            <span class="text-muted">{{ movimiento.motivo|default:"—" }}</span>
-                        </td>
-                        <td>
-                            <div class="dropdown">
-                                <button class="btn btn-link text-muted" data-bs-toggle="dropdown">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-eye me-2"></i>Ver detalles</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Editar</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i>Eliminar</a></li>
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <!-- Estado vacío -->
-        <div class="text-center py-5">
-            <div class="mb-4">
-                <i class="fas fa-box-open text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+        <div id="movimientosTableContainer">
+            {% if movimientos %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="tablaMovimientos">
+                    <thead>
+                        <tr>
+                            <th>FECHA</th>
+                            <th>TIPO</th>
+                            <th>INSUMO</th>
+                            <th>CANTIDAD</th>
+                            <th>USUARIO</th>
+                            <th>SUCURSAL</th>
+                            <th>MOTIVO</th>
+                            <th>ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movimientosTableBody">
+                        {% for movimiento in movimientos %}
+                        <tr>
+                            <td>
+                                <span class="text-muted">{{ movimiento.created_at|date:"d/m/Y H:i" }}</span>
+                            </td>
+                            <td>
+                                {% if movimiento.tipo_movimiento == 'entrada' %}
+                                    <span class="badge bg-success">Entrada</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Salida</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>
+                                    <h6 class="mb-0">{{ movimiento.insumo.nombre }}</h6>
+                                    <small class="text-muted">{{ movimiento.insumo.codigo }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold">{{ movimiento.cantidad }} {{ movimiento.insumo.unidad_medida.abreviacion }}</span>
+                            </td>
+                            <td>
+                                <span class="text-muted">{{ movimiento.usuario.get_full_name|default:movimiento.usuario.username }}</span>
+                            </td>
+                            <td>
+                                <span class="text-muted">{{ movimiento.sucursal.nombre }}</span>
+                            </td>
+                            <td>
+                                <span class="text-muted">{{ movimiento.motivo|default:"—" }}</span>
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-link text-muted" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="verDetalleMovimiento({{ movimiento.id }})"><i class="fas fa-eye me-2"></i>Ver detalles</a></li>
+                                        {% if user.rol.nombre == 'admin' or user.rol.nombre == 'gerente' %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="confirmarEliminarMovimiento({{ movimiento.id }})"><i class="fas fa-trash me-2"></i>Eliminar</a></li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <h5 class="text-muted mb-2">No hay movimientos</h5>
-            <p class="text-muted mb-4">Aún no se han registrado movimientos de inventario</p>
-            <button class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Crear primer movimiento
-            </button>
+            {% else %}
+            <!-- Estado vacío -->
+            <div class="text-center py-5" id="estadoVacio">
+                <div class="mb-4">
+                    <i class="fas fa-box-open text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                </div>
+                <h5 class="text-muted mb-2">No hay movimientos</h5>
+                <p class="text-muted mb-4">Aún no se han registrado movimientos de inventario</p>                <button class="btn btn-primary" id="btnNuevoMovimientoVacio">
+                    <i class="fas fa-plus me-2"></i>Crear primer movimiento
+                </button>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para Nuevo Movimiento -->
+<div class="modal" id="modalMovimiento" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="movimientoModalTitle">
+                    <i class="fas fa-exchange-alt me-2"></i>Nuevo Movimiento
+                </h5>
+                <button type="button" class="btn-close close" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formMovimiento">
+                    {% csrf_token %}
+                    <input type="hidden" id="movimientoId" name="id" value="">
+                      <!-- Tipo de movimiento -->
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Movimiento *</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check form-check-inline flex-grow-1">
+                                <input class="form-check-input" type="radio" name="tipoMovimiento" id="tipoEntrada" value="entrada" checked>
+                                <label class="form-check-label d-flex align-items-center" for="tipoEntrada">
+                                    <i class="fas fa-arrow-down text-success me-2"></i>
+                                    <span>Entrada</span>
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline flex-grow-1">
+                                <input class="form-check-input" type="radio" name="tipoMovimiento" id="tipoSalida" value="salida">
+                                <label class="form-check-label d-flex align-items-center" for="tipoSalida">
+                                    <i class="fas fa-arrow-up text-danger me-2"></i>
+                                    <span>Salida</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div><!-- Sucursal -->
+                    <div class="mb-3">
+                        <label for="sucursal" class="form-label">Sucursal *</label>
+                        {% if user_sucursal and not is_admin %}
+                            <!-- Usuario con sucursal específica: campo deshabilitado -->
+                            <select id="sucursal" name="sucursal" class="form-select" required disabled>
+                                <option value="{{ user_sucursal.id }}" selected>{{ user_sucursal.nombre }}</option>
+                            </select>
+                            <!-- Campo oculto para enviar el valor -->
+                            <input type="hidden" name="sucursalMovimiento" value="{{ user_sucursal.id }}">
+                            <small class="text-muted">Su sucursal asignada</small>
+                        {% else %}
+                            <!-- Admin: puede seleccionar cualquier sucursal -->
+                            <select id="sucursal" name="sucursalMovimiento" class="form-select" required>
+                                <option value="">Seleccionar sucursal</option>
+                                {% for sucursal in sucursales %}
+                                <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        {% endif %}
+                    </div>                    <!-- Motivo -->
+                    <div class="mb-3">
+                        <label for="motivo" class="form-label">Motivo *</label>
+                        <select id="motivo" name="motivoMovimiento" class="form-select" required>
+                            <option value="">Seleccionar motivo</option>
+                            <option value="compra">Compra</option>
+                            <option value="devolucion">Devolución</option>
+                            <option value="ajuste_inventario">Ajuste de inventario</option>
+                            <option value="traspaso">Traspaso entre sucursales</option>
+                            <option value="caducidad">Caducidad</option>
+                            <option value="consumo_interno">Consumo interno</option>
+                            <option value="venta">Venta</option>
+                            <option value="merma">Merma</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                      <!-- Proveedor (solo para entradas y devoluciones) -->
+                    <div id="contenedorProveedor" class="mb-3" style="display: none;">
+                        <label for="proveedor" class="form-label">Proveedor</label>
+                        <select id="proveedor" name="proveedorMovimiento" class="form-select">
+                            <option value="">Seleccionar proveedor (opcional)</option>
+                            {% for proveedor in proveedores %}
+                            <option value="{{ proveedor.id }}">{{ proveedor.nombre_comercial }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Sucursal de destino (solo para traspasos) -->
+                    <div id="contenedorSucursalDestino" class="mb-3" style="display: none;">
+                        <label for="sucursalDestino" class="form-label">Sucursal de Destino *</label>
+                        <select id="sucursalDestino" name="sucursal_destino" class="form-select">
+                            <option value="">Seleccionar sucursal de destino</option>
+                            {% for sucursal in sucursales %}
+                            <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>                    <!-- Insumo -->
+                    <div class="mb-3">
+                        <label for="insumo" class="form-label">Insumo *</label>
+                        <select id="insumo" name="insumoMovimiento" class="form-select" required>
+                            <option value="">Seleccione datos adicionales primero</option>
+                        </select>
+                        <small id="insumoInfo" class="text-muted d-none"></small>
+                    </div><!-- Cantidad y Unidad -->
+                    <div class="row mb-3">                        <div class="col-md-8">
+                            <label for="cantidad" class="form-label">Cantidad *</label>
+                            <div class="input-group">
+                                <input type="number" id="cantidad" name="cantidadMovimiento" class="form-control" step="0.01" min="0" required>
+                                <span class="input-group-text" id="unidadMedidaText">-</span>
+                            </div>
+                            <small class="text-muted">Stock actual: <span id="stockActual">0</span> <span id="unidadMedida">-</span></small>
+                        </div>
+                    </div>                    <!-- Costo nuevo (solo para entradas) -->
+                    <div id="contenedorCostoUnitario" class="mb-3" style="display: none;">
+                        <label for="costoUnitario" class="form-label">Costo Unitario Nuevo *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" id="costoUnitario" name="costoUnitario" class="form-control" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <!-- Otro motivo -->
+                    <div id="contenedorOtroMotivo" class="mb-3" style="display: none;">
+                        <label for="otroMotivo" class="form-label">Especificar motivo *</label>
+                        <input type="text" id="otroMotivo" name="otro_motivo" class="form-control" placeholder="Describe el motivo del movimiento...">
+                    </div>                    <!-- Observaciones -->
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">Observaciones</label>
+                        <textarea id="observaciones" name="observacionesMovimiento" class="form-control" rows="3" placeholder="Comentarios adicionales..."></textarea>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary btn-cerrar">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="btnGuardarMovimiento">
+                            <i class="fas fa-save me-2"></i> Guardar Movimiento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Ver Detalles -->
+<div class="modal" id="modalDetalleMovimiento" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>Detalle del Movimiento
+                </h5>
+                <button type="button" class="btn-close close" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="detalleMovimientoContent">
+                <!-- El contenido se cargará dinámicamente -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-cerrar">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación para Eliminar -->
+<div class="modal" id="modalConfirmDelete" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close close" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar este movimiento de inventario? Esta acción no se puede deshacer.</p>
+                <p class="fw-bold">Nota: Se realizará un ajuste inverso para compensar este movimiento.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-cerrar">Cancelar</button>
+                <button type="button" id="btnConfirmarEliminar" class="btn btn-danger">
+                    <i class="fas fa-trash me-2"></i>Eliminar
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -153,6 +415,92 @@
 
 .position-relative .fas.fa-search {
     pointer-events: none;
+}
+
+/* Estilos para modales personalizados */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    opacity: 1;
+}
+
+.modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 500px;
+    position: relative;
+    pointer-events: none;
+    transform: translateY(-50px);
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-dialog {
+    transform: translateY(0);
+}
+
+.modal-lg {
+    max-width: 800px;
+}
+
+.modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    pointer-events: auto;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 0.3rem;
+    outline: 0;
+}
+
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-body {
+    position: relative;
+    flex: 1 1 auto;
+    padding: 1rem;
+}
+
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.close {
+    float: right;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: .5;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
 }
 
 .table th {
@@ -183,5 +531,65 @@
     border-color: #3b82f6;
     color: white;
 }
+
+/* Estilos para las tarjetas de estadísticas */
+.stats-card {
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.stats-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.stats-primary .stats-icon {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.stats-success .stats-icon {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.stats-danger .stats-icon {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.stats-info .stats-icon {
+    background-color: rgba(14, 165, 233, 0.1);
+    color: #0ea5e9;
+}
+
+/* Estilos para los radio buttons */
+.form-check-inline {
+    padding: 10px 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-right: 0;
+}
+
+.form-check-input:checked + .form-check-label {
+    font-weight: 500;
+}
+
+.form-check-input:checked ~ .form-check-label i.fa-arrow-down {
+    color: #10b981 !important;
+}
+
+.form-check-input:checked ~ .form-check-label i.fa-arrow-up {
+    color: #ef4444 !important;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'dashboard/js/entradas_salidas_new.js' %}"></script>
 {% endblock %}

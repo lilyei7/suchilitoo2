@@ -1,0 +1,316 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Ejemplo RBAC - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            
+            <!-- Header con información del usuario -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">
+                        {% role_icon user.rol.nombre %} Ejemplo de Sistema RBAC
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Usuario: <strong>{{ user.get_full_name|default:user.username }}</strong> 
+                        - Rol: <span class="{% role_badge_class user.rol.nombre %}">{{ user.rol.get_nombre_display|default:"Sin rol" }}</span>
+                    </p>
+                </div>
+                
+                <!-- Botón que solo aparece si puede crear usuarios -->
+                {% permission_button user 'usuarios' 'create' 'Crear Usuario' 'btn btn-primary' 'fas fa-user-plus' onclick='alert("Crear usuario")' %}
+            </div>
+
+            <!-- Módulos accesibles -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h4>📁 Módulos Accesibles</h4>
+                    <div class="row">
+                        {% for module in accessible_modules %}
+                        <div class="col-md-3 mb-2">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-check-circle text-success mb-2"></i>
+                                    <h6 class="card-title">{{ module|title }}</h6>
+                                    
+                                    <!-- Mostrar permisos CRUD para este módulo -->
+                                    <div class="small">
+                                        {% if user|can_create:module %}<span class="badge bg-primary">C</span>{% endif %}
+                                        {% if user|can_read:module %}<span class="badge bg-info">R</span>{% endif %}
+                                        {% if user|can_update:module %}<span class="badge bg-warning">U</span>{% endif %}
+                                        {% if user|can_delete:module %}<span class="badge bg-danger">D</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secciones basadas en acceso a módulos -->
+            <div class="row mb-4">
+                
+                <!-- Sección de Inventario -->
+                {% if user|has_module_access:'inventario' %}
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-boxes me-2"></i>Inventario</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Tienes acceso al módulo de inventario.</p>
+                            
+                            <!-- Botones según permisos -->
+                            <div class="btn-group" role="group">
+                                {% if user|can_create:'inventario' %}
+                                <button class="btn btn-success btn-sm">
+                                    <i class="fas fa-plus"></i> Crear
+                                </button>
+                                {% endif %}
+                                
+                                {% if user|can_update:'inventario' %}
+                                <button class="btn btn-warning btn-sm">
+                                    <i class="fas fa-edit"></i> Editar
+                                </button>
+                                {% endif %}
+                                
+                                {% if user|can_delete:'inventario' %}
+                                <button class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </button>
+                                {% endif %}
+                            </div>
+
+                            <!-- Información de precios/costos según características -->
+                            <div class="mt-3">
+                                {% if user|has_feature:'ver_precios' %}
+                                <div class="alert alert-info small">
+                                    <i class="fas fa-dollar-sign me-1"></i>
+                                    <strong>Precio del producto:</strong> $150.00
+                                </div>
+                                {% endif %}
+
+                                {% if user|has_feature:'ver_costos' %}
+                                <div class="alert alert-warning small">
+                                    <i class="fas fa-calculator me-1"></i>
+                                    <strong>Costo de producción:</strong> $85.00
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Sección de Usuarios -->
+                {% if user|has_module_access:'usuarios' %}
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-users me-2"></i>Usuarios</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Tienes acceso al módulo de usuarios.</p>
+                            
+                            <!-- Solo mostrar datos sensibles si tiene la característica -->
+                            {% if user|has_feature:'ver_datos_sensibles' %}
+                            <div class="alert alert-secondary small">
+                                <i class="fas fa-eye me-1"></i>
+                                <strong>Datos sensibles:</strong> Cédula: 123-456-789
+                            </div>
+                            {% else %}
+                            <div class="alert alert-light small">
+                                <i class="fas fa-eye-slash me-1"></i>
+                                <strong>Datos protegidos:</strong> ***-***-***
+                            </div>
+                            {% endif %}
+
+                            <!-- Característica de gestión de usuarios -->
+                            {% if user|has_feature:'gestionar_usuarios' %}
+                            <div class="alert alert-success small">
+                                <i class="fas fa-user-cog me-1"></i>
+                                Puedes gestionar roles y permisos de usuarios
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Sección de Reportes -->
+                {% if user|has_module_access:'reportes' %}
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-bar me-2"></i>Reportes</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Tienes acceso al módulo de reportes.</p>
+                            
+                            {% if user|has_feature:'ver_reportes_completos' %}
+                            <div class="alert alert-info small">
+                                <i class="fas fa-file-alt me-1"></i>
+                                Acceso a reportes completos y detallados
+                            </div>
+                            {% else %}
+                            <div class="alert alert-light small">
+                                <i class="fas fa-file me-1"></i>
+                                Acceso a reportes básicos solamente
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Sección de Configuración -->
+                {% if user|has_module_access:'configuracion' %}
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5><i class="fas fa-cog me-2"></i>Configuración</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>¡Cuidado!</strong> Tienes acceso a configuración del sistema.</p>
+                            
+                            {% if user|has_feature:'cambiar_configuracion' %}
+                            <div class="alert alert-danger small">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Puedes modificar configuraciones críticas del sistema
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+
+            <!-- Información detallada de permisos (solo en desarrollo) -->
+            {% if debug %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-bug me-2"></i>Debug de Permisos</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Información del usuario:</h6>
+                            <ul>
+                                <li><strong>Usuario:</strong> {{ user.username }}</li>
+                                <li><strong>Rol:</strong> {{ user_role.display_name }}</li>
+                                <li><strong>Es Admin:</strong> {{ user_role.is_admin|yesno:"Sí,No" }}</li>
+                                <li><strong>Es Manager:</strong> {{ user_role.is_manager|yesno:"Sí,No" }}</li>
+                                <li><strong>Es Supervisor:</strong> {{ user_role.is_supervisor|yesno:"Sí,No" }}</li>
+                            </ul>
+
+                            <h6>Módulos accesibles:</h6>
+                            <ul>
+                                {% for module in accessible_modules %}
+                                <li>{{ module }}</li>
+                                {% empty %}
+                                <li class="text-muted">Ninguno</li>
+                                {% endfor %}
+                            </ul>
+
+                            <h6>Características habilitadas:</h6>
+                            <ul>
+                                {% for feature, enabled in feature_access.items %}
+                                    {% if enabled %}
+                                    <li class="text-success">{{ feature }}</li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+
+                            <h6>Permisos CRUD:</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Módulo</th>
+                                            <th>Create</th>
+                                            <th>Read</th>
+                                            <th>Update</th>
+                                            <th>Delete</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for module, perms in crud_permissions.items %}
+                                        <tr>
+                                            <td><strong>{{ module }}</strong></td>
+                                            <td>{{ perms.create|yesno:"✅,❌" }}</td>
+                                            <td>{{ perms.read|yesno:"✅,❌" }}</td>
+                                            <td>{{ perms.update|yesno:"✅,❌" }}</td>
+                                            <td>{{ perms.delete|yesno:"✅,❌" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.badge {
+    font-size: 0.7rem;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+.btn-group .btn {
+    border-radius: 4px !important;
+    margin-right: 2px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Ejemplo de uso de información de permisos en JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== INFORMACIÓN DE PERMISOS ===');
+    console.log('Usuario:', '{{ user.username }}');
+    console.log('Rol:', '{{ user_role.name }}');
+    console.log('Módulos accesibles:', {{ accessible_modules|safe }});
+    
+    // Ejemplo de control dinámico basado en permisos
+    {% if user|can_create:'inventario' %}
+    console.log('✅ El usuario puede crear en inventario');
+    {% else %}
+    console.log('❌ El usuario NO puede crear en inventario');
+    {% endif %}
+    
+    {% if user|has_feature:'ver_costos' %}
+    console.log('✅ El usuario puede ver costos');
+    // Habilitar funcionalidades de costos
+    {% else %}
+    console.log('❌ El usuario NO puede ver costos');
+    // Deshabilitar funcionalidades de costos
+    {% endif %}
+});
+</script>
+{% endblock %}

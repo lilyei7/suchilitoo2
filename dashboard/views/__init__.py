@@ -8,7 +8,7 @@ from .auth_views import login_view, logout_view
 from .base_views import principal_view, get_sidebar_context, is_admin_or_manager, is_admin
 
 # Inventario views
-from .inventario_views import inventario_view, entradas_salidas_view
+from .inventario_views import inventario_view, entradas_salidas_view, insumo_detalle_api
 
 # Insumos básicos views
 from .insumos_views import (
@@ -45,13 +45,20 @@ from .categorias_views import (
 from .proveedores_views import (
     proveedores_view, crear_proveedor, detalle_proveedor, editar_proveedor, 
     eliminar_proveedor, asignar_insumo_proveedor, remover_insumo_proveedor, 
-    obtener_insumos_disponibles
+    obtener_insumos_disponibles, ajax_debug_view
 )
 
 # Sucursales views
 from .sucursales_views import (
     sucursales_view, crear_sucursal, detalle_sucursal, editar_sucursal,
     eliminar_sucursal, toggle_estado_sucursal
+)
+
+# Croquis views
+from .croquis_views import (
+    croquis_editor_view, guardar_layout_croquis, cargar_layout_croquis,
+    preview_croquis, eliminar_layout_croquis, estadisticas_croquis,
+    obtener_mesas_croquis
 )
 
 # Usuarios views
@@ -65,4 +72,11 @@ from .usuarios_views import (
 from .otros_views import (
     productos_venta_view, reportes_view, 
     checklist_view, ventas_view, recursos_humanos_view
+)
+
+# Productos Venta views
+from .productos_venta_views import (
+    lista_productos_venta, crear_producto_venta, editar_producto_venta,
+    eliminar_producto_venta, desactivar_producto_venta, ver_detalle_producto,
+    cambiar_estado_producto, obtener_recetas, diagnostico_view
 )

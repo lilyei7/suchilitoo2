@@ -2,11 +2,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.contrib import messages
-from django.db.models import Avg
+from django.db.models import Avg, Q
 
 from dashboard.models import Proveedor, ProveedorInsumo
 from restaurant.models import Insumo as RestaurantInsumo
+from accounts.models import Sucursal
 from .base_views import get_sidebar_context
+from dashboard.utils.permissions import has_feature
 
 # Usamos el Insumo de restaurant para tener consistencia
 Insumo = RestaurantInsumo
@@ -14,8 +16,36 @@ Insumo = RestaurantInsumo
 @login_required
 def proveedores_view(request):
     """Vista principal para gestión de proveedores"""
-    # Obtener todos los proveedores
-    proveedores = Proveedor.objects.all().order_by('nombre_comercial')
+    # Aplicar filtros según el rol del usuario
+    user = request.user
+    
+    # Por defecto, filtrar proveedores
+    if has_feature(user, 'ver_todos_proveedores'):  # Administradores
+        proveedores = Proveedor.objects.all()
+        # Aplicar filtro por sucursal si se proporciona
+        sucursal_id = request.GET.get('sucursal')
+        if sucursal_id:
+            proveedores = proveedores.filter(sucursal_id=sucursal_id)
+    else:  # Gerentes y otros roles
+        # Solo ver proveedores creados por el usuario actual
+        proveedores = Proveedor.objects.filter(creado_por=user)
+    
+    # Aplicar filtro de búsqueda si existe
+    busqueda = request.GET.get('buscar')
+    if busqueda:
+        proveedores = proveedores.filter(
+            Q(nombre_comercial__icontains=busqueda) |
+            Q(persona_contacto__icontains=busqueda) |
+            Q(email__icontains=busqueda)
+        )
+        
+    # Ordenar proveedores
+    proveedores = proveedores.order_by('nombre_comercial')
+    
+    # Obtener lista de sucursales para el filtro (solo para administradores)
+    sucursales = None
+    if has_feature(user, 'ver_todos_proveedores'):
+        sucursales = Sucursal.objects.filter(activa=True).order_by('nombre')
     
     # Estadísticas
     total_proveedores = proveedores.count()
@@ -25,6 +55,8 @@ def proveedores_view(request):
         'proveedores': proveedores,
         'total_proveedores': total_proveedores,
         'proveedores_activos': proveedores_activos,
+        'sucursales': sucursales,
+        'sucursal_seleccionada': request.GET.get('sucursal'),
         **get_sidebar_context('proveedores')
     }
     
@@ -36,68 +68,71 @@ def crear_proveedor(request):
     if request.method == 'POST':
         try:
             # Obtener datos del formulario
-            nombre_comercial = request.POST.get('nombre_comercial', '').strip()
-            razon_social = request.POST.get('razon_social', '').strip()
-            rfc = request.POST.get('rfc', '').strip()
-            persona_contacto = request.POST.get('persona_contacto', '').strip()
-            telefono = request.POST.get('telefono', '').strip()
-            email = request.POST.get('email', '').strip()
-            forma_pago_preferida = request.POST.get('forma_pago_preferida', 'transferencia')
-            dias_credito = int(request.POST.get('dias_credito', '0'))
-            direccion = request.POST.get('direccion', '').strip()
-            ciudad_estado = request.POST.get('ciudad_estado', '').strip()
-            categoria_productos = request.POST.get('categoria_productos', 'ingredientes')
-            notas_adicionales = request.POST.get('notas_adicionales', '').strip()
+            nombre_comercial = request.POST.get('nombre_comercial')
+            razon_social = request.POST.get('razon_social', '')
+            rfc = request.POST.get('rfc', '')
+            persona_contacto = request.POST.get('persona_contacto', '')
+            telefono = request.POST.get('telefono', '')
+            email = request.POST.get('email', '')
+            direccion = request.POST.get('direccion', '')
+            ciudad_estado = request.POST.get('ciudad_estado', '')
+            forma_pago = request.POST.get('forma_pago_preferida', 'transferencia')
+            dias_credito = request.POST.get('dias_credito', 0)
+            categoria = request.POST.get('categoria_productos', 'ingredientes')
+            notas = request.POST.get('notas_adicionales', '')
+            sucursal_id = request.POST.get('sucursal')
             
-            # Validaciones básicas
-            if not all([nombre_comercial, telefono]):
-                return JsonResponse({
-                    'success': False,
-                    'message': 'El nombre comercial y teléfono son obligatorios'
-                })
-            
-            # Crear el proveedor
-            proveedor = Proveedor.objects.create(
+            # Validar datos básicos
+            if not nombre_comercial:
+                messages.error(request, 'El nombre comercial es obligatorio.')
+                return redirect('dashboard:proveedores')
+                
+            # Crear proveedor
+            proveedor = Proveedor(
                 nombre_comercial=nombre_comercial,
                 razon_social=razon_social,
                 rfc=rfc,
                 persona_contacto=persona_contacto,
                 telefono=telefono,
                 email=email,
-                forma_pago_preferida=forma_pago_preferida,
-                dias_credito=dias_credito,
                 direccion=direccion,
                 ciudad_estado=ciudad_estado,
-                categoria_productos=categoria_productos,
-                notas_adicionales=notas_adicionales,
-                estado='activo'
+                forma_pago_preferida=forma_pago,
+                dias_credito=int(dias_credito) if dias_credito else 0,
+                categoria_productos=categoria,
+                notas_adicionales=notas,
+                creado_por=request.user
             )
             
-            # Devolver respuesta según el tipo de solicitud
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'message': f'Proveedor "{nombre_comercial}" creado exitosamente',
-                    'proveedor_id': proveedor.id
-                })
+            # Asignar sucursal
+            if sucursal_id and has_feature(request.user, 'ver_todos_proveedores'):
+                try:
+                    sucursal = Sucursal.objects.get(id=sucursal_id)
+                    proveedor.sucursal = sucursal
+                except Sucursal.DoesNotExist:
+                    pass
             else:
-                messages.success(request, f'Proveedor "{nombre_comercial}" creado exitosamente')
-                return redirect('dashboard:proveedores')
+                # Si no es admin, asignar su sucursal actual
+                if request.user.sucursal:
+                    proveedor.sucursal = request.user.sucursal
+            
+            proveedor.save()
+            messages.success(request, f'Proveedor {nombre_comercial} creado correctamente.')
+            return redirect('dashboard:proveedores')
                 
         except Exception as e:
-            print(f"Error creando proveedor: {e}")
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Error: {str(e)}'
-                })
-            else:
-                messages.error(request, f'Error: {str(e)}')
-                return redirect('dashboard:proveedores')
+            messages.error(request, f'Error al crear proveedor: {str(e)}')
+            return redirect('dashboard:proveedores')
     
     # Si es GET, mostrar formulario
+    # Obtener sucursales para el dropdown (si el usuario es admin)
+    sucursales = None
+    if has_feature(request.user, 'ver_todos_proveedores'):
+        sucursales = Sucursal.objects.filter(activa=True).order_by('nombre')
+    
     context = {
         'titulo': 'Crear Proveedor',
+        'sucursales': sucursales,
         **get_sidebar_context('proveedores')
     }
     
@@ -161,6 +196,10 @@ def detalle_proveedor(request, proveedor_id):
         'notas_adicionales': proveedor.notas_adicionales,
         'total_insumos': total_insumos,
         'precio_promedio': float(precio_promedio),
+        'sucursal': proveedor.sucursal.nombre if proveedor.sucursal else "No asignada",
+        'creado_por': f"{proveedor.creado_por.first_name} {proveedor.creado_por.last_name}".strip() if proveedor.creado_por else "Desconocido",
+        'sucursal_id': proveedor.sucursal.id if proveedor.sucursal else None,
+        'creado_por_id': proveedor.creado_por.id if proveedor.creado_por else None,
     }
     
     # Datos del proveedor para non-AJAX (versión simplificada)
@@ -171,13 +210,15 @@ def detalle_proveedor(request, proveedor_id):
         'rfc': proveedor.rfc,
         'telefono': proveedor.telefono,
         'email': proveedor.email,
-        'direccion': proveedor.direccion,
-        'contacto_principal': proveedor.persona_contacto,
+        'direccion': proveedor.direccion,        'contacto_principal': proveedor.persona_contacto,
         'estado': proveedor.estado,
         'fecha_registro': proveedor.fecha_registro.strftime('%d/%m/%Y'),
         'precio_promedio': float(precio_promedio),
+        'sucursal': proveedor.sucursal.nombre if proveedor.sucursal else "No asignada",
+        'creado_por': f"{proveedor.creado_por.first_name} {proveedor.creado_por.last_name}".strip() if proveedor.creado_por else "Desconocido",
     }
-      # Responder según el tipo de solicitud
+    
+    # Responder según el tipo de solicitud
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         # Renderizar el HTML del modal para AJAX
         from django.template.loader import render_to_string
@@ -194,14 +235,14 @@ def detalle_proveedor(request, proveedor_id):
             'proveedor': proveedor_ajax,
             'insumos': insumos_data,
             'html': modal_html
-        })
+        }, json_dumps_params={'ensure_ascii': False})
     else:
         # Para solicitudes no-AJAX
         return JsonResponse({
             'success': True,
             'proveedor': proveedor_simple,
             'insumos': insumos_data
-        })
+        }, json_dumps_params={'ensure_ascii': False})
 
 @login_required
 def editar_proveedor(request, proveedor_id):
@@ -224,6 +265,16 @@ def editar_proveedor(request, proveedor_id):
             proveedor.categoria_productos = request.POST.get('categoria_productos', 'ingredientes')
             proveedor.notas_adicionales = request.POST.get('notas_adicionales', '').strip()
             proveedor.estado = request.POST.get('estado', 'activo')
+            
+            # Actualizar sucursal si el usuario es administrador
+            if has_feature(request.user, 'ver_todos_proveedores'):
+                sucursal_id = request.POST.get('sucursal')
+                if sucursal_id:
+                    try:
+                        sucursal = Sucursal.objects.get(id=sucursal_id)
+                        proveedor.sucursal = sucursal
+                    except Sucursal.DoesNotExist:
+                        pass
             
             proveedor.save()
             
@@ -312,21 +363,13 @@ def asignar_insumo_proveedor(request, proveedor_id):
     """Vista para asignar un insumo a un proveedor con precio"""
     if request.method == 'POST':
         try:
-            # Log de datos recibidos para debug
-            print(f"🔍 DEBUG - Datos recibidos:")
-            print(f"   proveedor_id: {proveedor_id} (tipo: {type(proveedor_id)})")
-            print(f"   POST data: {dict(request.POST)}")
-            
-            # El proveedor_id viene del URL, no del POST
+            # Obtener datos del formulario
             insumo_id = request.POST.get('insumo_id')
             precio_unitario = request.POST.get('precio_unitario')
             precio_descuento = request.POST.get('precio_descuento') or None
             cantidad_minima = request.POST.get('cantidad_minima', 1)
             tiempo_entrega_dias = request.POST.get('tiempo_entrega_dias', 1)
             notas = request.POST.get('observaciones', '')
-            
-            print(f"   insumo_id: {insumo_id} (tipo: {type(insumo_id)})")
-            print(f"   precio_unitario: {precio_unitario}")
             
             # Validaciones
             if not insumo_id or not precio_unitario:
@@ -367,7 +410,6 @@ def asignar_insumo_proveedor(request, proveedor_id):
             # Buscar proveedor
             try:
                 proveedor = Proveedor.objects.get(id=proveedor_id)
-                print(f"   ✅ Proveedor encontrado: {proveedor.id} - {proveedor.nombre_comercial}")
             except Proveedor.DoesNotExist:
                 return JsonResponse({
                     'success': False,
@@ -377,51 +419,59 @@ def asignar_insumo_proveedor(request, proveedor_id):
             # Buscar insumo
             try:
                 insumo = Insumo.objects.get(id=insumo_id)
-                print(f"   ✅ Insumo encontrado: {insumo.id} - {insumo.nombre}")
             except Insumo.DoesNotExist:
                 return JsonResponse({
                     'success': False,
                     'message': f'No se encontró el insumo con ID {insumo_id}'
                 })
-                
-            # Verificar si ya existe la relación
+                  # Verificar si ya existe la relación
             existing = ProveedorInsumo.objects.filter(proveedor=proveedor, insumo=insumo).first()
             if existing:
-                print(f"   ⚠️ Relación ya existe, actualizando: {existing.id}")
                 # Actualizar la relación existente
-                existing.precio_unitario = precio_unitario
-                if precio_descuento:
-                    try:
-                        existing.precio_descuento = float(precio_descuento)
-                    except (ValueError, TypeError):
+                try:
+                    existing.precio_unitario = precio_unitario
+                    if precio_descuento:
+                        try:
+                            existing.precio_descuento = float(precio_descuento)
+                        except (ValueError, TypeError):
+                            existing.precio_descuento = None
+                    else:
                         existing.precio_descuento = None
-                else:
-                    existing.precio_descuento = None
-                    
-                existing.cantidad_minima = float(cantidad_minima) if cantidad_minima else 1
-                existing.tiempo_entrega_dias = int(tiempo_entrega_dias) if tiempo_entrega_dias else 1
-                existing.notas = notas
-                existing.activo = True
-                existing.save()
-                proveedor_insumo = existing
-                mensaje = f'Precio de "{insumo.nombre}" actualizado para el proveedor "{proveedor.nombre_comercial}"'
+                        
+                    existing.cantidad_minima = float(cantidad_minima) if cantidad_minima else 1
+                    existing.tiempo_entrega_dias = int(tiempo_entrega_dias) if tiempo_entrega_dias else 1
+                    existing.notas = notas
+                    existing.activo = True
+                    existing.save()
+                    proveedor_insumo = existing
+                    mensaje = f'Precio de "{insumo.nombre}" actualizado para el proveedor "{proveedor.nombre_comercial}"'
+                except Exception as e:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Error al actualizar relación existente: {str(e)}'
+                    }, json_dumps_params={'ensure_ascii': False})
             else:
-                print(f"   ✅ Creando nueva relación...")
                 # Crear una nueva relación
-                proveedor_insumo = ProveedorInsumo.objects.create(
-                    proveedor=proveedor,
-                    insumo=insumo,
-                    precio_unitario=precio_unitario,
-                    precio_descuento=float(precio_descuento) if precio_descuento else None,
-                    cantidad_minima=float(cantidad_minima) if cantidad_minima else 1,
-                    tiempo_entrega_dias=int(tiempo_entrega_dias) if tiempo_entrega_dias else 1,
-                    notas=notas,
-                    activo=True
-                )
-                print(f"   ✅ Relación creada exitosamente: {proveedor_insumo.id}")
-                mensaje = f'Insumo "{insumo.nombre}" asignado al proveedor "{proveedor.nombre_comercial}" exitosamente'
+                try:
+                    proveedor_insumo = ProveedorInsumo.objects.create(
+                        proveedor=proveedor,
+                        insumo=insumo,
+                        precio_unitario=precio_unitario,
+                        precio_descuento=float(precio_descuento) if precio_descuento else None,
+                        cantidad_minima=float(cantidad_minima) if cantidad_minima else 1,
+                        tiempo_entrega_dias=int(tiempo_entrega_dias) if tiempo_entrega_dias else 1,
+                        notas=notas,
+                        activo=True
+                    )
+                    mensaje = f'Insumo "{insumo.nombre}" asignado al proveedor "{proveedor.nombre_comercial}" exitosamente'
+                except Exception as e:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Error al crear nueva relación: {str(e)}'
+                    }, json_dumps_params={'ensure_ascii': False})
             
-            return JsonResponse({
+            # Construir respuesta con datos validados para evitar problemas de serialización
+            response_data = {
                 'success': True,
                 'message': mensaje,
                 'proveedor_insumo': {
@@ -430,17 +480,14 @@ def asignar_insumo_proveedor(request, proveedor_id):
                     'precio_unitario': float(proveedor_insumo.precio_unitario),
                     'precio_final': float(proveedor_insumo.precio_final()),
                 }
-            })
+            }            
+            return JsonResponse(response_data, json_dumps_params={'ensure_ascii': False})
             
         except Exception as e:
-            print(f"❌ Error en asignar_insumo_proveedor: {e}")
-            print(f"   Tipo de error: {type(e).__name__}")
-            import traceback
-            traceback.print_exc()
             return JsonResponse({
                 'success': False,
                 'message': f'Error al asignar el insumo: {str(e)}'
-            })
+            }, json_dumps_params={'ensure_ascii': False})
     
     return JsonResponse({
         'success': False,
@@ -518,3 +565,9 @@ def obtener_insumos_disponibles(request):
             'success': False,
             'message': f'Error al obtener insumos: {str(e)}'
         })
+
+# New debug view
+@login_required
+def ajax_debug_view(request):
+    """View for debugging AJAX calls"""
+    return render(request, 'dashboard/ajax_debug.html')

@@ -1,0 +1,419 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Productos de Venta - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="fas fa-shopping-cart me-2 text-primary"></i>
+            Productos de Venta
+        </h1>
+        <p class="text-muted mb-0">Catálogo de productos disponibles para venta</p>
+    </div>
+    <a href="{% url 'dashboard:crear_producto_venta' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nuevo Producto
+    </a>
+</div>
+
+<!-- Barra de búsqueda y filtros -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="search-container">
+            <div class="position-relative">
+                <i class="fas fa-search search-icon"></i>
+                <form method="get" action="{% url 'dashboard:productos_venta_moderna' %}" class="d-flex">
+                    <input type="search" name="q" class="form-control" placeholder="Buscar producto..." 
+                           aria-label="Buscar producto" value="{{ query|default:'' }}">
+                    <button type="submit" class="btn btn-outline-primary ms-2">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="d-flex gap-2">
+            <form method="get" action="{% url 'dashboard:productos_venta_moderna' %}" class="d-flex w-100">
+                <select class="form-select me-2" id="categoria-filter" name="categoria" onchange="this.form.submit()">
+                    <option value="">Todas las categorías</option>
+                    {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoria.id|stringformat:"s" == categoria_seleccionada %}selected{% endif %}>
+                            {{ categoria.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <select class="form-select" id="estado-filter" name="estado" onchange="this.form.submit()">
+                    <option value="">Todos los estados</option>
+                    <option value="disponible" {% if estado == "disponible" %}selected{% endif %}>Disponible</option>
+                    <option value="no-disponible" {% if estado == "no-disponible" %}selected{% endif %}>No disponible</option>
+                </select>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Grid de productos -->
+{% if productos %}
+<div class="row">
+    {% for producto in productos %}
+    <!-- Product Card -->
+    <div class="col-12 col-sm-6 col-lg-4 mb-4">
+        <div class="card h-100 product-card">
+            {% if producto.imagen %}
+            <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}" style="height: 200px; object-fit: cover;">
+            {% else %}
+            <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                <i class="fas fa-image fa-3x text-muted"></i>
+            </div>
+            {% endif %}
+            
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title mb-0">{{ producto.nombre }}</h5>
+                    {% if producto.disponible %}
+                        <span class="badge bg-success">Disponible</span>
+                    {% else %}
+                        <span class="badge bg-danger">No disponible</span>
+                    {% endif %}
+                </div>
+                
+                <small class="text-muted mb-2">{{ producto.codigo }}</small>
+                
+                {% if producto.categoria %}
+                <span class="badge bg-light text-dark mb-2">{{ producto.categoria.nombre }}</span>
+                {% endif %}
+                
+                <p class="card-text flex-grow-1">{{ producto.descripcion|truncatewords:15 }}</p>
+                
+                <div class="mt-auto">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        {% if producto.es_promocion and producto.precio_promocion %}
+                        <div>
+                            <span class="text-decoration-line-through text-muted">${{ producto.precio|floatformat:0 }}</span>
+                            <span class="h5 text-danger mb-0">${{ producto.precio_promocion|floatformat:0 }}</span>
+                            <small class="badge bg-warning text-dark">PROMO</small>
+                        </div>
+                        {% else %}
+                        <span class="h5 text-success mb-0">${{ producto.precio|floatformat:0 }}</span>
+                        {% endif %}
+                        
+                        {% if producto.calorias %}
+                        <small class="text-muted">{{ producto.calorias }} cal</small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="btn-group w-100" role="group">
+                        <a href="{% url 'dashboard:ver_detalle_producto' producto.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'dashboard:editar_producto_venta' producto.id %}" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button type="button" class="btn btn-outline-danger btn-sm delete-product-btn" 
+                                data-product-id="{{ producto.id }}" 
+                                data-nombre="{{ producto.nombre }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-{% if producto.disponible %}danger{% else %}success{% endif %} btn-sm toggle-status"
+                                data-id="{{ producto.id }}" data-disponible="{{ producto.disponible|yesno:"true,false" }}">
+                            <i class="fas fa-{% if producto.disponible %}pause{% else %}play{% endif %}"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+    <h5 class="text-muted">No hay productos registrados</h5>
+    <p class="text-muted">Comienza agregando tu primer producto al catálogo.</p>
+    <a href="{% url 'dashboard:crear_producto_venta' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Crear Primer Producto
+    </a>
+</div>
+{% endif %}
+
+<!-- Estadísticas de productos -->
+<div class="row mt-5">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-shopping-cart fa-2x text-primary mb-3"></i>
+                <h5>Total Productos</h5>
+                <h3 class="text-primary">{{ productos.count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-check-circle fa-2x text-success mb-3"></i>
+                <h5>Disponibles</h5>
+                <h3 class="text-success">
+                    {{ productos_disponibles }}
+                </h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-percentage fa-2x text-warning mb-3"></i>
+                <h5>En Promoción</h5>
+                <h3 class="text-warning">{{ productos_promocion }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-dollar-sign fa-2x text-info mb-3"></i>
+                <h5>Precio Promedio</h5>
+                <h3 class="text-info">${{ precio_promedio|floatformat:0 }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Product Modal -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-labelledby="deleteProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteProductModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Está seguro que desea eliminar este producto?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteProductForm" method="POST" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// PRIMER TEST: Verificar que el script se ejecuta
+console.log('� Inicializando sistema de eliminación...');
+
+// SEGUNDO TEST: Verificar que el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('� DOM READY - El documento está listo');
+    alert('📋 DOM está listo!');
+    
+    // TERCER TEST: Verificar Bootstrap
+    if (typeof bootstrap !== 'undefined') {
+        console.log('✅ Bootstrap disponible');
+        alert('✅ Bootstrap funciona!');
+    } else {
+        console.error('❌ Bootstrap NO disponible');
+        alert('❌ Bootstrap NO funciona!');
+        return;
+    }
+    
+    // Obtener elementos del modal
+    const deleteModal = document.getElementById('deleteProductModal');
+    const deleteForm = document.getElementById('deleteProductForm');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (!deleteModal || !deleteForm || !confirmDeleteBtn) {
+        console.error('❌ Elementos del modal no encontrados');
+        return;
+    }
+    
+    // Inicializar modal
+    const modalInstance = new bootstrap.Modal(deleteModal);
+    let currentProductId = null;
+    let currentProductCard = null;
+    
+    // CUARTO TEST: Buscar botones
+    const buttons = document.querySelectorAll('.delete-product-btn');
+    console.log(`✅ Sistema listo: ${buttons.length} productos configurados`);
+    
+    if (buttons.length === 0) {
+        console.error('❌ No hay botones de eliminar');
+        alert('❌ No se encontraron botones!');
+        return;
+    }
+    
+    // QUINTO TEST: Agregar evento click simple
+    buttons.forEach(function(button, index) {
+        console.log('⚙️ Configurando botón', index + 1);
+        
+        button.addEventListener('click', function() {
+            console.log('�️ CLICK DETECTADO en botón', index + 1);
+            alert('🖱️ CLICK DETECTADO en botón ' + (index + 1) + '!');
+        });
+    });
+    
+    // Manejar envío del formulario
+    deleteForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        console.log('📤 Enviando eliminación...');
+        
+        if (!currentProductId) {
+            console.error('❌ No hay producto seleccionado');
+            return;
+        }
+        
+        // Deshabilitar botón y mostrar loading
+        confirmDeleteBtn.disabled = true;
+        const originalText = confirmDeleteBtn.innerHTML;
+        confirmDeleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Eliminando...';
+        
+        // Obtener CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Crear FormData
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', csrfToken);
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            console.log(`📨 Respuesta: ${response.status}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return response.json();
+        })
+        .then(data => {
+            console.log('✅ Respuesta del servidor:', data);
+            
+            if (data.success) {
+                console.log('🎉 Producto eliminado exitosamente');
+                
+                // Cerrar modal
+                modalInstance.hide();
+                
+                // Eliminar tarjeta del DOM con animación
+                if (currentProductCard) {
+                    currentProductCard.style.transition = 'all 0.3s ease';
+                    currentProductCard.style.transform = 'scale(0.8)';
+                    currentProductCard.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        try {
+                            currentProductCard.remove();
+                            console.log('🗑️ Producto removido del DOM');
+                        } catch (err) {
+                            console.error('❌ Error al remover la tarjeta del DOM:', err);
+                            console.log('🔄 Recargando página...');
+                            location.reload();
+                            return;
+                        }
+                        
+                        // Verificar si quedan productos
+                        const remainingProducts = document.querySelectorAll('.product-card').length;
+                        console.log(`📊 Productos restantes: ${remainingProducts}`);
+                        
+                        if (remainingProducts === 0) {
+                            console.log('🔄 No quedan productos, recargando...');
+                            setTimeout(() => location.reload(), 1000);
+                        }
+                    }, 300);
+                } else {
+                    // Si no se puede encontrar el elemento a eliminar, recargar la página
+                    console.log('⚠️ No se pudo encontrar la tarjeta del producto, recargando página...');
+                    setTimeout(() => location.reload(), 1000);
+                }
+                
+                // Mostrar toast de éxito
+                showToast(data.message || 'Producto eliminado exitosamente', 'success');
+                
+            } else {
+                console.error('❌ Error del servidor:', data.message);
+                showToast(data.message || 'Error al eliminar el producto', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error de conexión:', error);
+            showToast('Error de conexión al eliminar el producto', 'error');
+        })
+        .finally(() => {
+            // Restaurar estado del botón
+            confirmDeleteBtn.disabled = false;
+            confirmDeleteBtn.innerHTML = originalText;
+            
+            // Limpiar variables
+            currentProductId = null;
+            currentProductCard = null;
+        });
+    });
+    
+    // Función para mostrar toast
+    function showToast(message, type) {
+        const toastHtml = `
+            <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        
+        // Crear contenedor de toast si no existe
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Agregar toast
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        // Mostrar toast
+        const toastElement = toastContainer.lastElementChild;
+        const toast = new bootstrap.Toast(toastElement, {
+            autohide: true,
+            delay: 4000
+        });
+        toast.show();
+        
+        // Limpiar después de que se oculte
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
+    }
+    
+    console.log('🎯 Sistema de eliminación listo');
+});
+</script>
+{% endblock %}

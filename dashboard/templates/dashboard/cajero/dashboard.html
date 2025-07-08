@@ -1,0 +1,246 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Cajero - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="fas fa-cash-register me-2 text-primary"></i>
+            Dashboard de Cajero
+        </h1>
+        <p class="text-muted mb-0">Bienvenido, {{ request.user.first_name|default:request.user.username }}</p>
+    </div>
+    <div>
+        <a href="{% url 'dashboard:punto_venta' %}" class="btn btn-primary">
+            <i class="fas fa-shopping-cart me-2"></i>Punto de Venta
+        </a>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Ventas Hoy</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">${{ ventas_hoy|default:'0.00' }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Tickets Emitidos</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ tickets_hoy|default:'0' }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-receipt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Venta Promedio</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">${{ promedio_venta|default:'0.00' }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Sucursal</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ sucursal.nombre }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-store fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Accesos rápidos -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-tools me-2"></i>Acceso Rápido
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard:punto_venta' %}" class="card h-100 text-center text-decoration-none shadow-sm hover-shadow">
+                            <div class="card-body">
+                                <i class="fas fa-cash-register fa-3x text-primary mb-3"></i>
+                                <h5 class="card-title">Punto de Venta</h5>
+                                <p class="card-text small text-muted">Registrar ventas y emitir tickets</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard:ordenes_activas' %}" class="card h-100 text-center text-decoration-none shadow-sm hover-shadow">
+                            <div class="card-body">
+                                <i class="fas fa-clipboard-list fa-3x text-success mb-3"></i>
+                                <h5 class="card-title">Órdenes Activas</h5>
+                                <p class="card-text small text-muted">Gestionar órdenes en proceso</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard:historial_ventas' %}" class="card h-100 text-center text-decoration-none shadow-sm hover-shadow">
+                            <div class="card-body">
+                                <i class="fas fa-history fa-3x text-info mb-3"></i>
+                                <h5 class="card-title">Historial de Ventas</h5>
+                                <p class="card-text small text-muted">Ver historial de ventas y tickets</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard:inventario' %}" class="card h-100 text-center text-decoration-none shadow-sm hover-shadow">
+                            <div class="card-body">
+                                <i class="fas fa-boxes fa-3x text-warning mb-3"></i>
+                                <h5 class="card-title">Inventario</h5>
+                                <p class="card-text small text-muted">Consultar disponibilidad de productos</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Productos Populares -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-star me-2"></i>Productos Populares
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if productos_populares %}
+                        {% for producto in productos_populares %}
+                            <div class="col-md-3 mb-3">
+                                <div class="card producto-card h-100">
+                                    {% if producto.imagen %}
+                                        <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}">
+                                    {% else %}
+                                        <div class="card-img-top bg-light text-center py-4">
+                                            <i class="fas fa-utensils fa-3x text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ producto.nombre }}</h6>
+                                        <p class="card-text mb-0">
+                                            <span class="badge bg-primary">{{ producto.get_tipo_display }}</span>
+                                            {% if producto.es_promocion %}
+                                                <span class="badge bg-danger">Promoción</span>
+                                            {% endif %}
+                                        </p>
+                                        <p class="card-text mt-2">
+                                            <strong class="text-primary">${{ producto.precio }}</strong>
+                                        </p>
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <a href="{% url 'dashboard:punto_venta' %}?producto={{ producto.id }}" class="btn btn-sm btn-outline-primary w-100">
+                                            <i class="fas fa-plus me-1"></i>Vender
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No hay productos destacados configurados. Los productos más vendidos aparecerán aquí automáticamente.
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hover-shadow:hover {
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
+    }
+    
+    .card {
+        transition: all 0.3s ease;
+    }
+    
+    .producto-card .card-img-top {
+        height: 150px;
+        object-fit: cover;
+    }
+    
+    .border-left-primary {
+        border-left: 4px solid #4e73df!important;
+    }
+    
+    .border-left-success {
+        border-left: 4px solid #1cc88a!important;
+    }
+    
+    .border-left-info {
+        border-left: 4px solid #36b9cc!important;
+    }
+    
+    .border-left-warning {
+        border-left: 4px solid #f6c23e!important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Cajero Dashboard cargado correctamente');
+        
+        // Aquí puedes agregar cualquier inicialización JS necesaria
+    });
+</script>
+{% endblock %}

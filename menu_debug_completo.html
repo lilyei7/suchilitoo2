@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SushiLitoo - Mesero</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: #f5faff;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: linear-gradient(90deg, #2196f3 0%, #1e88e5 100%);
+            color: #fff;
+            padding: 0.9rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 3px 10px rgba(33,150,243,0.1);
+        }
+        .navbar .brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .navbar nav {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .navbar nav a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.2s;
+            padding: 0.4rem 0.7rem;
+            border-radius: 4px;
+        }
+        .navbar nav a:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 1.5rem auto 2rem auto;
+            padding: 1.5rem;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(30,136,229,0.08);
+        }
+        .messages {
+            margin: 1rem 0 0.5rem 0;
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px;
+            background: #e3f2fd;
+            color: #1976d2;
+            font-size: 1rem;
+            border-left: 4px solid #1976d2;
+        }
+        
+        /* Botón flotante para nueva orden */
+        .floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: #1e88e5;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 1000;
+            text-decoration: none;
+        }
+        
+        .floating-btn:hover {
+            background: #1976d2;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .floating-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .action-bar {
+            background: #f7fbff;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #e3f2fd;
+        }
+        
+        .action-bar h2 {
+            margin: 0;
+            color: #1e88e5;
+            font-size: 1.3rem;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.8rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #1e88e5;
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: #1976d2;
+        }
+        
+        .btn-outline {
+            background: white;
+            color: #1e88e5;
+            border: 1px solid #bbdefb;
+        }
+        
+        .btn-outline:hover {
+            background: #e3f2fd;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+                margin: 1rem auto;
+            }
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 0.7rem 1rem;
+            }
+            .navbar nav {
+                margin-top: 0.7rem;
+                width: 100%;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+            }
+        }
+    </style>
+    </style>
+    
+<style>
+    /* Oculta la navbar superior solo en este template */
+    .navbar { display: none !important; }
+    :root {
+        --primary-color: #1e88e5;
+        --secondary-color: #ffffff;
+        --text-color: #1a2236;
+        --border-color: #e3eafc;
+        --card-shadow: 0 8px 32px 0 rgba(30,136,229,0.10);
+        --badge-green: #43e97b;
+        --badge-red: #ff6b6b;
+        --glass-bg: rgba(255,255,255,0.96);
+        --glass-blur: blur(16px);
+    }
+    body {
+        background: linear-gradient(120deg, #e3f2fd 0%, #f5faff 100%);
+        min-height: 100vh;
+        position: relative;
+    }
+    /* Fondo con logo grande y difuminado */
+    .background-logo {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: 0;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.13;
+        filter: blur(6px) saturate(1.2);
+        background: none;
+    }
+    .background-logo img {
+        max-width: 540px;
+        width: 60vw;
+        height: auto;
+        user-select: none;
+        pointer-events: none;
+        opacity: 1;
+        filter: drop-shadow(0 8px 32px #1e88e522);
+    }
+    /* Eleva el contenido sobre el fondo */
+    .main-content {
+        position: relative;
+        z-index: 1;
+    }
+    .bienvenida-header {
+        max-width: 1200px;
+        margin: 0 auto 1.2rem auto;
+        padding: 1.2rem 1.2rem 1.1rem 1.2rem;
+        background: rgba(255,255,255,0.92);
+        border-radius: 22px;
+        box-shadow: 0 4px 32px 0 rgba(30,136,229,0.10);
+        display: flex;
+        align-items: center;
+        gap: 1.1rem;
+        animation: fadeInDown 0.8s cubic-bezier(.4,0,.2,1);
+        backdrop-filter: blur(10px);
+        position: relative;
+    }
+    .bienvenida-header .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2196f3 60%, #21cbf3 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.7rem;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(30,136,229,0.10);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+    .bienvenida-header .texto {
+        display: flex;
+        flex-direction: column;
+    }
+    .bienvenida-header .texto .saludo {
+        font-size: 1.1rem;
+        color: #1976d2;
+        font-weight: 600;
+        margin-bottom: 0.1rem;
+        letter-spacing: 0.1px;
+        opacity: 0.93;
+    }
+    .bienvenida-header .texto .nombre {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        letter-spacing: 0.2px;
+        opacity: 0.98;
+    }
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-30px); }
+        to { opacity: 1; transform: none; }
+    }
+    .menu-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2.5rem 1rem 6.5rem 1rem; /* padding-bottom para no tapar el menú */
+        animation: fadeIn 1.1s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: none; }
+    }
+    .categoria {
+        margin-bottom: 3.5rem;
+        background: none;
+        animation: fadeInUp 0.8s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(40px); }
+        to { opacity: 1; transform: none; }
+    }
+    .categoria-header {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        margin-bottom: 1.7rem;
+        letter-spacing: 0.7px;
+        padding-left: 0.2rem;
+        opacity: 0.97;
+        position: sticky;
+        top: 0;
+        background: linear-gradient(90deg, #f5faff 80%, #e3f2fd 100%);
+        z-index: 10;
+        box-shadow: 0 2px 12px 0 rgba(30,136,229,0.04);
+        border-radius: 0 0 18px 18px;
+        padding-top: 0.7rem;
+        padding-bottom: 0.7rem;
+    }
+    .productos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+        gap: 2.5rem 2rem;
+    }
+    .producto-card {
+        background: var(--glass-bg);
+        border-radius: 22px;
+        box-shadow: var(--card-shadow);
+        border: none;
+        transition: transform 0.18s, box-shadow 0.18s, filter 0.3s;
+        position: relative;
+        padding: 0;
+        overflow: visible;
+        min-height: 370px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        backdrop-filter: var(--glass-blur) saturate(1.2);
+        animation: fadeInCard 0.7s cubic-bezier(.4,0,.2,1);
+        opacity: 0;
+        will-change: transform, opacity;
+    }
+    @keyframes fadeInCard {
+        from { opacity: 0; transform: scale(0.97) translateY(30px); }
+        to { opacity: 1; transform: none; }
+    }
+    .producto-card.animated {
+        opacity: 1;
+    }
+    .producto-card:hover {
+        transform: translateY(-12px) scale(1.055);
+        box-shadow: 0 24px 60px 0 rgba(30,136,229,0.20), 0 0 0 8px #e3f2fd;
+        z-index: 2;
+        filter: brightness(1.07) drop-shadow(0 0 16px #90caf9cc);
+    }
+    .producto-imagen {
+        width: 100%;
+        height: 170px;
+        object-fit: cover;
+        border-radius: 22px 22px 0 0;
+        background: #f5faff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+    }
+    .producto-imagen img, .producto-imagen svg {
+        transition: transform 0.4s cubic-bezier(.4,0,.2,1);
+    }
+    .producto-card:hover .producto-imagen img,
+    .producto-card:hover .producto-imagen svg {
+        transform: scale(1.11) rotate(-2deg);
+    }
+    .producto-info {
+        padding: 1.5rem 1.3rem 1.2rem 1.3rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .producto-nombre {
+        font-size: 1.22rem;
+        font-weight: 700;
+        color: var(--text-color);
+        margin-bottom: 0.4rem;
+        letter-spacing: 0.12px;
+        opacity: 0.99;
+    }
+    .producto-descripcion {
+        color: #5a6a90;
+        font-size: 1.04rem;
+        margin-bottom: 0.9rem;
+        line-height: 1.6;
+        min-height: 40px;
+        opacity: 0.95;
+    }
+    .producto-detalles {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.8rem;
+    }
+    .producto-precio {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        letter-spacing: 0.22px;
+        background: linear-gradient(90deg, #2196f3 0%, #21cbf3 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .btn-agregar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, #43e97b 0%, #38c172 100%);
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(.4,0,.2,1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 16px rgba(67,233,123,0.25);
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-agregar:hover {
+        transform: scale(1.1);
+        box-shadow: 0 8px 32px rgba(67,233,123,0.4);
+        background: linear-gradient(135deg, #38c172 0%, #2d9561 100%);
+    }
+    .btn-agregar:active {
+        transform: scale(0.95);
+    }
+    .btn-agregar.btn-disabled {
+        background: #e0e0e0;
+        color: #9e9e9e;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+    .btn-agregar.btn-disabled:hover {
+        transform: none;
+        box-shadow: none;
+        background: #e0e0e0;
+    }
+    /* Contador de productos seleccionados */
+    .carrito-contador {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--primary-color);
+        color: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.2rem;
+        box-shadow: 0 8px 32px rgba(30,136,229,0.3);
+        z-index: 1001;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(.4,0,.2,1);
+        backdrop-filter: blur(10px);
+    }
+    .carrito-contador:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 48px rgba(30,136,229,0.4);
+    }
+    .carrito-contador.hidden {
+        transform: scale(0);
+        opacity: 0;
+    }
+    /* Modal del carrito */
+    .modal-carrito {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1003;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+    }
+    .modal-carrito.show {
+        display: flex;
+    }
+    .modal-content-carrito {
+        background: white;
+        border-radius: 22px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+    }
+    .modal-header-carrito {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    .modal-header-carrito h3 {
+        color: var(--primary-color);
+        font-weight: 700;
+        margin: 0;
+    }
+    .btn-cerrar {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #999;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: all 0.2s;
+    }
+    .btn-cerrar:hover {
+        background: #f0f0f0;
+        color: #666;
+    }
+    .carrito-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .carrito-item:last-child {
+        border-bottom: none;
+    }
+    .item-info {
+        flex: 1;
+    }
+    .item-nombre {
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.25rem;
+    }
+    .item-precio {
+        color: var(--primary-color);
+        font-weight: 700;
+    }
+    .item-cantidad {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .btn-cantidad {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: var(--primary-color);
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-cantidad:hover {
+        transform: scale(1.1);
+    }
+    .cantidad-numero {
+        font-weight: 700;
+        min-width: 30px;
+        text-align: center;
+    }
+    .carrito-total {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #f0f0f0;
+        text-align: center;
+    }
+    .total-texto {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+    .btn-ordenar {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #1565c0 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        width: 100%;
+    }
+    .btn-ordenar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(30,136,229,0.3);
+    }
+    .btn-ordenar:disabled {
+        background: #e0e0e0;
+        color: #999;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    .badge {
+        position: absolute;
+        top: 22px;
+        right: 22px;
+        padding: 0.38rem 0.9rem;
+        border-radius: 18px;
+        font-size: 0.92rem;
+        font-weight: 700;
+        box-shadow: 0 4px 16px rgba(67,233,123,0.13);
+        background: var(--badge-green);
+        color: #fff;
+        z-index: 2;
+        opacity: 0.97;
+        border: none;
+        animation: badgeBounce 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes badgeBounce {
+        0% { transform: scale(0.7); opacity: 0; }
+        60% { transform: scale(1.18); opacity: 1; }
+        100% { transform: scale(1); opacity: 0.97; }
+    }
+    .badge-agotado {
+        background: var(--badge-red);
+        color: #fff;
+        animation: badgeBounce 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    .producto-meta {
+        font-size: 1.01rem;
+        color: #8fa2c7;
+        margin-top: 0.3rem;
+        letter-spacing: 0.13px;
+        opacity: 0.93;
+        transition: color 0.2s;
+    }
+    .producto-card:hover .producto-meta {
+        color: #1976d2;
+    }
+    /* Bottom nav bar */
+    .bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 64px;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 -2px 16px 0 rgba(30,136,229,0.08);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 1002;
+        border-top: 1.5px solid #e3eafc;
+        animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    .bottom-nav a {
+        color: #1e88e5;
+        text-decoration: none;
+        font-size: 0.93rem;
+        font-weight: 600;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        transition: color 0.18s;
+        padding: 0 8px;
+    }
+    .bottom-nav a.active, .bottom-nav a:hover {
+        color: #1565c0;
+    }
+    .bottom-nav svg {
+        width: 24px;
+        height: 24px;
+        margin-bottom: 2px;
+    }
+    @media (max-width: 600px) {
+        .menu-container {
+            padding-bottom: 6.5rem;
+        }
+        .bottom-nav {
+            height: 60px;
+        }
+        .bottom-nav svg {
+            width: 22px;
+            height: 22px;
+        }
+    }
+</style>
+
+</head>
+<body>
+    <div class="navbar">
+        <span class="brand">SushiLitoo Mesero</span>
+        <nav>
+            <a href="/mesero/seleccionar-mesa/">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 5px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Seleccionar Mesa
+            </a>
+            <a href="/mesero/menu/">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 5px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9h18M3 15h18M3 21h18"></path>
+                </svg>
+                Menú
+            </a>
+            <a href="/mesero/orders/">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 5px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                </svg>
+                Pedidos
+            </a>
+            <a href="/mesero/logout/">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 5px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                Cerrar Sesión
+            </a>
+        </nav>
+    </div>
+    <div class="container">
+        
+        
+        
+<div class="background-logo">
+    <img src="/static/img/logo_sushi.png" alt="Logo Sushi" draggable="false">
+</div>
+<div class="main-content">
+    <div class="bienvenida-header">
+        <div class="avatar">
+            M
+        </div>
+        <div class="texto">
+            <span class="saludo">¡Bienvenido!</span>
+            <span class="nombre">mesero_test</span>
+        </div>
+    </div>
+    <div class="menu-container">
+        
+    </div>
+    <!-- Menú de navegación inferior -->
+    <nav class="bottom-nav">
+        <a href="/mesero/seleccionar-mesa/">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h8M12 8v8"/>
+            </svg>
+            Mesas
+        </a>
+        <a href="/mesero/menu/">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="3" y="6" width="18" height="13" rx="2"/>
+                <path d="M16 3v3M8 3v3"/>
+            </svg>
+            Menú
+        </a>
+        <a href="/mesero/orders/">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            Pedidos
+        </a>
+        <a href="/mesero/logout/">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7"/>
+            </svg>
+            Salir
+        </a>
+    </nav>
+</div>
+
+    </div>
+    
+    <!-- Botón flotante inteligente (cambia según el contexto) -->
+    
+        
+            <!-- Página de menú u otra, muestra botón para seleccionar mesa -->
+            <a href="/mesero/seleccionar-mesa/" class="floating-btn" title="Seleccionar Mesa">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </a>
+        
+    
+    
+<script>
+// Carrito de productos
+let carrito = [];
+let totalCarrito = 0;
+
+// Animación escalonada para productos
+window.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.producto-card');
+    cards.forEach((card, i) => {
+        setTimeout(() => card.classList.add('animated'), 70 * i);
+    });
+    
+    // Activar el enlace actual en el menú inferior
+    const path = window.location.pathname;
+    document.querySelectorAll('.bottom-nav a').forEach(a => {
+        if (a.getAttribute('href') && path.includes(a.getAttribute('href'))) {
+            a.classList.add('active');
+        }
+    });
+    
+    // Inicializar carrito
+    actualizarContadorCarrito();
+});
+
+// Función para agregar producto al carrito
+function agregarProducto(id, nombre, precio) {
+    console.log(`Agregando producto: ${nombre} - $${precio}`);
+    
+    // Buscar si el producto ya está en el carrito
+    const productoExistente = carrito.find(item => item.id === id);
+    
+    if (productoExistente) {
+        productoExistente.cantidad += 1;
+    } else {
+        carrito.push({
+            id: id,
+            nombre: nombre,
+            precio: precio,
+            cantidad: 1
+        });
+    }
+    
+    // Actualizar total
+    calcularTotal();
+    actualizarContadorCarrito();
+    
+    // Mostrar feedback visual
+    mostrarFeedback(`${nombre} agregado al pedido`);
+}
+
+// Función para calcular el total del carrito
+function calcularTotal() {
+    totalCarrito = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
+}
+
+// Función para actualizar el contador del carrito
+function actualizarContadorCarrito() {
+    const contador = document.getElementById('carritoContador');
+    const totalItems = carrito.reduce((total, item) => total + item.cantidad, 0);
+    
+    if (!contador) {
+        // Crear el contador si no existe
+        const contadorDiv = document.createElement('div');
+        contadorDiv.id = 'carritoContador';
+        contadorDiv.className = 'carrito-contador hidden';
+        contadorDiv.onclick = abrirCarrito;
+        contadorDiv.innerHTML = '0';
+        document.body.appendChild(contadorDiv);
+    }
+    
+    const contadorElement = document.getElementById('carritoContador');
+    contadorElement.textContent = totalItems;
+    
+    if (totalItems > 0) {
+        contadorElement.classList.remove('hidden');
+    } else {
+        contadorElement.classList.add('hidden');
+    }
+}
+
+// Función para mostrar feedback visual
+function mostrarFeedback(mensaje) {
+    // Crear elemento de feedback
+    const feedback = document.createElement('div');
+    feedback.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        background: #43e97b;
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        z-index: 1002;
+        box-shadow: 0 8px 32px rgba(67,233,123,0.3);
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    `;
+    feedback.textContent = mensaje;
+    document.body.appendChild(feedback);
+    
+    // Animar entrada
+    setTimeout(() => {
+        feedback.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Animar salida y remover
+    setTimeout(() => {
+        feedback.style.transform = 'translateX(100%)';
+        setTimeout(() => feedback.remove(), 300);
+    }, 2500);
+}
+
+// Función para abrir el modal del carrito
+function abrirCarrito() {
+    if (carrito.length === 0) {
+        mostrarFeedback('El carrito está vacío');
+        return;
+    }
+    
+    // Crear o mostrar modal
+    let modal = document.getElementById('modalCarrito');
+    if (!modal) {
+        modal = crearModalCarrito();
+    }
+    
+    actualizarContenidoCarrito();
+    modal.classList.add('show');
+}
+
+// Función para crear el modal del carrito
+function crearModalCarrito() {
+    const modal = document.createElement('div');
+    modal.id = 'modalCarrito';
+    modal.className = 'modal-carrito';
+    modal.innerHTML = `
+        <div class="modal-content-carrito">
+            <div class="modal-header-carrito">
+                <h3>🛒 Mi Pedido</h3>
+                <button class="btn-cerrar" onclick="cerrarCarrito()">&times;</button>
+            </div>
+            <div id="carritoContenido"></div>
+            <div class="carrito-total">
+                <div class="total-texto">Total: $<span id="totalPedido">0.00</span></div>
+                <button class="btn-ordenar" onclick="confirmarPedido()">Confirmar Pedido</button>
+            </div>
+        </div>
+    `;
+    
+    // Cerrar modal al hacer clic fuera
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            cerrarCarrito();
+        }
+    });
+    
+    document.body.appendChild(modal);
+    return modal;
+}
+
+// Función para actualizar el contenido del carrito
+function actualizarContenidoCarrito() {
+    const contenido = document.getElementById('carritoContenido');
+    const totalElement = document.getElementById('totalPedido');
+    
+    contenido.innerHTML = '';
+    
+    carrito.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'carrito-item';
+        itemDiv.innerHTML = `
+            <div class="item-info">
+                <div class="item-nombre">${item.nombre}</div>
+                <div class="item-precio">$${item.precio.toFixed(2)}</div>
+            </div>
+            <div class="item-cantidad">
+                <button class="btn-cantidad" onclick="cambiarCantidad(${item.id}, -1)">-</button>
+                <span class="cantidad-numero">${item.cantidad}</span>
+                <button class="btn-cantidad" onclick="cambiarCantidad(${item.id}, 1)">+</button>
+            </div>
+        `;
+        contenido.appendChild(itemDiv);
+    });
+    
+    totalElement.textContent = totalCarrito.toFixed(2);
+}
+
+// Función para cambiar la cantidad de un producto
+function cambiarCantidad(id, cambio) {
+    const producto = carrito.find(item => item.id === id);
+    if (producto) {
+        producto.cantidad += cambio;
+        
+        if (producto.cantidad <= 0) {
+            // Remover producto del carrito
+            const index = carrito.findIndex(item => item.id === id);
+            carrito.splice(index, 1);
+        }
+        
+        calcularTotal();
+        actualizarContadorCarrito();
+        actualizarContenidoCarrito();
+    }
+}
+
+// Función para cerrar el carrito
+function cerrarCarrito() {
+    const modal = document.getElementById('modalCarrito');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
+// Función para confirmar el pedido
+function confirmarPedido() {
+    if (carrito.length === 0) {
+        mostrarFeedback('El carrito está vacío');
+        return;
+    }
+    
+    // Aquí puedes agregar la lógica para enviar el pedido al servidor
+    console.log('Pedido confirmado:', carrito);
+    console.log('Total:', totalCarrito);
+    
+    // Mostrar confirmación
+    mostrarFeedback('¡Pedido confirmado! Redirigiendo...');
+    
+    // Simular redirección (puedes cambiar esto por una URL real)
+    setTimeout(() => {
+        alert(`Pedido confirmado por $${totalCarrito.toFixed(2)}\\n\\nProductos:\\n${carrito.map(item => `${item.cantidad}x ${item.nombre}`).join('\\n')}\\n\\n¿Continuar con el proceso?`);
+        
+        // Limpiar carrito después de confirmar
+        carrito = [];
+        totalCarrito = 0;
+        actualizarContadorCarrito();
+        cerrarCarrito();
+    }, 1500);
+}
+</script>
+
+</body>
+</html>

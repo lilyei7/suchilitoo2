@@ -1,0 +1,255 @@
+{% extends 'cocina/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Cocina{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="bi bi-chef-hat"></i> Dashboard de Cocina
+            </h1>
+            <div>
+                <span class="badge bg-primary fs-6" id="current-time"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas rápidas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-history fs-1 text-warning"></i>
+                <h5 class="card-title mt-2">Pendientes</h5>
+                <h2 class="text-warning mb-0">{{ ordenes_pendientes }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <i class="bi bi-gear fs-1 text-info"></i>
+                <h5 class="card-title mt-2">En Preparación</h5>
+                <h2 class="text-info mb-0">{{ ordenes_en_preparacion }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle fs-1 text-success"></i>
+                <h5 class="card-title mt-2">Listas</h5>
+                <h2 class="text-success mb-0">{{ ordenes_listas }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-primary">
+            <div class="card-body text-center">
+                <i class="bi bi-check-all fs-1 text-primary"></i>
+                <h5 class="card-title mt-2">Completadas Hoy</h5>
+                <h2 class="text-primary mb-0">{{ ordenes_completadas_hoy }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Órdenes Urgentes -->
+{% if ordenes_urgentes %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Órdenes Urgentes
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for orden in ordenes_urgentes %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title">Orden #{{ orden.numero_orden }}</h6>
+                                        <p class="text-muted mb-1">Mesa {{ orden.mesa.numero }}</p>
+                                        <small class="text-danger">
+                                            <i class="bi bi-clock"></i> 
+                                            {{ orden.fecha_creacion|timesince }} hace
+                                        </small>
+                                    </div>
+                                    <a href="{% url 'cocina:detalle_orden' orden.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Órdenes Recientes -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-task"></i> Órdenes Recientes
+                </h5>
+                <a href="{% url 'cocina:ordenes_pendientes' %}" class="btn btn-sm btn-outline-primary">
+                    Ver todas <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Orden</th>
+                                <th>Mesa</th>
+                                <th>Estado</th>
+                                <th>Tiempo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for orden in ordenes_recientes %}
+                            <tr>
+                                <td>
+                                    <strong>#{{ orden.numero_orden }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ orden.items.count }} items</small>
+                                </td>
+                                <td>{{ orden.mesa.numero }}</td>
+                                <td>
+                                    {% if orden.estado == 'pendiente' %}
+                                        <span class="badge bg-warning">{{ orden.get_estado_display }}</span>
+                                    {% elif orden.estado == 'en_preparacion' %}
+                                        <span class="badge bg-info">{{ orden.get_estado_display }}</span>
+                                    {% elif orden.estado == 'lista' %}
+                                        <span class="badge bg-success">{{ orden.get_estado_display }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ orden.get_estado_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ orden.fecha_creacion|timesince }} hace
+                                    </small>
+                                </td>
+                                <td>
+                                    <a href="{% url 'cocina:detalle_orden' orden.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    No hay órdenes recientes
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up"></i> Estadísticas del Día
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Tiempo promedio por orden:</span>
+                        <strong>{{ tiempo_promedio_orden|floatformat:0 }} min</strong>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Órdenes completadas:</span>
+                        <strong>{{ ordenes_completadas_hoy }}</strong>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Platos más pedidos:</span>
+                        <strong>{{ plato_mas_pedido|default:"N/A" }}</strong>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Eficiencia:</span>
+                        <strong class="text-success">{{ eficiencia|floatformat:1 }}%</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actividad Reciente -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity"></i> Actividad Reciente
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="activity-timeline">
+                    {% for log in actividad_reciente %}
+                    <div class="activity-item">
+                        <div class="activity-time">{{ log.timestamp|date:"H:i" }}</div>
+                        <div class="activity-content">
+                            <strong>{{ log.get_accion_display }}</strong><br>
+                            <small class="text-muted">Orden #{{ log.orden.numero_orden }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted">
+                        <i class="bi bi-clock-history"></i><br>
+                        No hay actividad reciente
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        document.getElementById('current-time').textContent = timeString;
+    }
+    
+    // Actualizar tiempo cada segundo
+    setInterval(updateTime, 1000);
+    updateTime();
+    
+    // Auto-refresh cada 30 segundos
+    setInterval(function() {
+        location.reload();
+    }, 30000);
+</script>
+{% endblock %}

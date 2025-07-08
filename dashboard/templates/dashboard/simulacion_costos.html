@@ -1,0 +1,684 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Simulador de Costos - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-calculator me-2 text-primary"></i>
+            Simulador de Costos
+        </h1>
+        <p class="text-muted mb-0">Calcula costos de recetas basados en precios históricos</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Panel de configuración -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>
+                    Configuración
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="formSimulacion">
+                    {% if es_admin %}
+                    <div class="mb-3">
+                        <label for="sucursalSelect" class="form-label">Sucursal</label>
+                        <select class="form-select" id="sucursalSelect" name="sucursal">
+                            <option value="">Global (todas las sucursales)</option>
+                            {% for sucursal in sucursales_disponibles %}
+                                <option value="{{ sucursal.id }}" {% if sucursal_seleccionada.id == sucursal.id %}selected{% endif %}>
+                                    {{ sucursal.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Selecciona la sucursal para calcular costos específicos</div>
+                    </div>
+                    {% else %}
+                        {% if sucursal_seleccionada %}
+                        <input type="hidden" name="sucursal" value="{{ sucursal_seleccionada.id }}">
+                        <div class="mb-3">
+                            <label class="form-label">Sucursal</label>
+                            <input type="text" class="form-control" value="{{ sucursal_seleccionada.nombre }}" disabled>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="metodoSelect" class="form-label">Método de cálculo</label>
+                        <select class="form-select" id="metodoSelect" name="metodo">
+                            <option value="peps" selected>PEPS (Primero en Entrar, Primero en Salir)</option>
+                            <option value="promedio">Costo Promedio Ponderado</option>
+                        </select>
+                        <div class="form-text">
+                            PEPS: Usa los precios más antiguos primero.<br>
+                            Promedio: Calcula un precio promedio de todo el stock.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="incluirManoObra" name="incluirManoObra">
+                            <label class="form-check-label" for="incluirManoObra">Incluir costo de mano de obra</label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="incluirGastosFijos" name="incluirGastosFijos">
+                            <label class="form-check-label" for="incluirGastosFijos">Incluir gastos fijos</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Panel de recetas -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-utensils me-2"></i>
+                    Recetas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="recetaSelect" class="form-label">Seleccionar receta</label>
+                    <select class="form-select" id="recetaSelect">
+                        <option value="">Cargando recetas...</option>
+                    </select>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" id="btnCalcularReceta">
+                        <i class="fas fa-calculator me-2"></i>Calcular costo de receta
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel de insumos individuales -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-box me-2"></i>
+                    Insumos individuales
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="insumoSelect" class="form-label">Seleccionar insumo</label>
+                    <select class="form-select" id="insumoSelect">
+                        <option value="">Cargando insumos...</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="cantidadInput" class="form-label">Cantidad</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="cantidadInput" value="1" min="0.01" step="0.01">
+                        <span class="input-group-text" id="unidadSpan">--</span>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" id="btnCalcularInsumo">
+                        <i class="fas fa-calculator me-2"></i>Calcular costo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Panel de resultados -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Resultados
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="resultadosVacios" class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-calculator fa-4x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted mb-2">No hay resultados</h5>
+                    <p class="text-muted mb-4">
+                        Selecciona una receta o insumo y calcula su costo para ver los resultados
+                    </p>
+                </div>
+                
+                <div id="resultadosContenido" style="display: none;">
+                    <!-- Aquí se mostrará el resultado del cálculo -->
+                    <div id="resumenCalculo" class="mb-4"></div>
+                    
+                    <!-- Tabla de desglose -->
+                    <div id="desgloseContainer" class="mt-4">
+                        <h6 class="border-bottom pb-2 mb-3">Desglose del cálculo</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="tablaDesglose">
+                                <thead>
+                                    <tr>
+                                        <th>Insumo</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio unitario</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Aquí se mostrarán los detalles del cálculo -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Detalles PEPS -->
+                    <div id="detallesPepsContainer" class="mt-4">
+                        <h6 class="border-bottom pb-2 mb-3">Detalle método PEPS</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="tablaPeps">
+                                <thead>
+                                    <tr>
+                                        <th>Lote</th>
+                                        <th>Fecha compra</th>
+                                        <th>Precio unitario</th>
+                                        <th>Cantidad tomada</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Aquí se mostrarán los detalles PEPS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tarjetas resumen -->
+        <div class="row" id="tarjetasResumen" style="display: none;">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Costo total</h6>
+                        <h3 class="mb-0" id="costoTotalCard">$0.00</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Costo unitario</h6>
+                        <h3 class="mb-0" id="costoUnitarioCard">$0.00</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Método utilizado</h6>
+                        <h3 class="mb-0" id="metodoCard">PEPS</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #edf2f9;
+    padding: 16px 20px;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #4b5563;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.btn-outline-primary {
+    border-color: #d1d5db;
+    color: #6b7280;
+}
+
+.btn-outline-primary:hover {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+}
+
+.btn-primary {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.btn-primary:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+/* Resumen de tarjetas */
+#tarjetasResumen .card {
+    transition: all 0.3s ease;
+}
+
+#tarjetasResumen .card:hover {
+    transform: translateY(-5px);
+}
+
+.bg-primary {
+    background-color: #3b82f6 !important;
+}
+
+.bg-success {
+    background-color: #10b981 !important;
+}
+
+.bg-info {
+    background-color: #0ea5e9 !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Referencias a elementos
+    const sucursalSelect = document.getElementById('sucursalSelect');
+    const metodoSelect = document.getElementById('metodoSelect');
+    const recetaSelect = document.getElementById('recetaSelect');
+    const insumoSelect = document.getElementById('insumoSelect');
+    const cantidadInput = document.getElementById('cantidadInput');
+    const unidadSpan = document.getElementById('unidadSpan');
+    const btnCalcularReceta = document.getElementById('btnCalcularReceta');
+    const btnCalcularInsumo = document.getElementById('btnCalcularInsumo');
+    
+    const resultadosVacios = document.getElementById('resultadosVacios');
+    const resultadosContenido = document.getElementById('resultadosContenido');
+    const resumenCalculo = document.getElementById('resumenCalculo');
+    const tablaDesglose = document.getElementById('tablaDesglose');
+    const tablaPeps = document.getElementById('tablaPeps');
+    const tarjetasResumen = document.getElementById('tarjetasResumen');
+    
+    const costoTotalCard = document.getElementById('costoTotalCard');
+    const costoUnitarioCard = document.getElementById('costoUnitarioCard');
+    const metodoCard = document.getElementById('metodoCard');
+    
+    // Cargar datos iniciales
+    cargarInsumos();
+    cargarRecetas();
+    
+    // Event listeners
+    if (insumoSelect) {
+        insumoSelect.addEventListener('change', function() {
+            actualizarUnidadMedida();
+        });
+    }
+    
+    if (btnCalcularInsumo) {
+        btnCalcularInsumo.addEventListener('click', function() {
+            calcularCostoInsumo();
+        });
+    }
+    
+    if (btnCalcularReceta) {
+        btnCalcularReceta.addEventListener('click', function() {
+            calcularCostoReceta();
+        });
+    }
+    
+    // Funciones
+    function cargarInsumos() {
+        fetch('/dashboard/api/insumos/?activo=true')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const insumos = data.insumos;
+                    
+                    // Limpiar select
+                    insumoSelect.innerHTML = '<option value="">Seleccione un insumo</option>';
+                    
+                    // Agregar opciones
+                    insumos.forEach(insumo => {
+                        const option = document.createElement('option');
+                        option.value = insumo.id;
+                        option.textContent = insumo.nombre;
+                        option.dataset.unidad = insumo.unidad_medida.abreviacion;
+                        insumoSelect.appendChild(option);
+                    });
+                    
+                    // Actualizar unidad de medida
+                    actualizarUnidadMedida();
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar insumos:', error);
+                insumoSelect.innerHTML = '<option value="">Error al cargar insumos</option>';
+            });
+    }
+    
+    function cargarRecetas() {
+        fetch('/dashboard/api/recetas/?activas=true')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const recetas = data.recetas;
+                    
+                    // Limpiar select
+                    recetaSelect.innerHTML = '<option value="">Seleccione una receta</option>';
+                    
+                    // Agregar opciones
+                    recetas.forEach(receta => {
+                        const option = document.createElement('option');
+                        option.value = receta.id;
+                        option.textContent = receta.nombre;
+                        recetaSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar recetas:', error);
+                recetaSelect.innerHTML = '<option value="">Error al cargar recetas</option>';
+            });
+    }
+    
+    function actualizarUnidadMedida() {
+        const insumoId = insumoSelect.value;
+        
+        if (insumoId) {
+            const option = insumoSelect.options[insumoSelect.selectedIndex];
+            const unidad = option.dataset.unidad;
+            
+            if (unidad) {
+                unidadSpan.textContent = unidad;
+            } else {
+                unidadSpan.textContent = '--';
+            }
+        } else {
+            unidadSpan.textContent = '--';
+        }
+    }
+    
+    function calcularCostoInsumo() {
+        const insumoId = insumoSelect.value;
+        const cantidad = cantidadInput.value;
+        const metodo = metodoSelect.value;
+        const sucursal = sucursalSelect ? sucursalSelect.value : '';
+        
+        if (!insumoId || !cantidad || cantidad <= 0) {
+            alert('Por favor, seleccione un insumo y especifique una cantidad válida.');
+            return;
+        }
+        
+        // Mostrar indicador de carga
+        resumenCalculo.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Calculando costo...</p></div>';
+        mostrarResultados();
+        
+        // Construir URL de la API
+        let url = `/dashboard/api/calcular-costo?insumo=${insumoId}&cantidad=${cantidad}&metodo=${metodo}`;
+        if (sucursal) {
+            url += `&sucursal=${sucursal}`;
+        }
+        
+        // Realizar petición a la API
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarResultadoInsumo(data);
+                } else {
+                    mostrarError(data.message || 'Error al calcular costo.');
+                }
+            })
+            .catch(error => {
+                console.error('Error al calcular costo:', error);
+                mostrarError('Error de conexión al calcular costo.');
+            });
+    }
+    
+    function calcularCostoReceta() {
+        const recetaId = recetaSelect.value;
+        const metodo = metodoSelect.value;
+        const sucursal = sucursalSelect ? sucursalSelect.value : '';
+        const incluirManoObra = document.getElementById('incluirManoObra').checked;
+        const incluirGastosFijos = document.getElementById('incluirGastosFijos').checked;
+        
+        if (!recetaId) {
+            alert('Por favor, seleccione una receta.');
+            return;
+        }
+        
+        // Mostrar indicador de carga
+        resumenCalculo.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Calculando costo de receta...</p></div>';
+        mostrarResultados();
+        
+        // Construir URL de la API
+        let url = `/dashboard/api/calcular-costo-receta?receta=${recetaId}&metodo=${metodo}`;
+        if (sucursal) {
+            url += `&sucursal=${sucursal}`;
+        }
+        if (incluirManoObra) {
+            url += '&incluirManoObra=true';
+        }
+        if (incluirGastosFijos) {
+            url += '&incluirGastosFijos=true';
+        }
+        
+        // Realizar petición a la API
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarResultadoReceta(data);
+                } else {
+                    mostrarError(data.message || 'Error al calcular costo de receta.');
+                }
+            })
+            .catch(error => {
+                console.error('Error al calcular costo de receta:', error);
+                mostrarError('Error de conexión al calcular costo de receta.');
+            });
+    }
+    
+    function mostrarResultados() {
+        resultadosVacios.style.display = 'none';
+        resultadosContenido.style.display = 'block';
+        tarjetasResumen.style.display = 'flex';
+    }
+    
+    function ocultarResultados() {
+        resultadosVacios.style.display = 'block';
+        resultadosContenido.style.display = 'none';
+        tarjetasResumen.style.display = 'none';
+    }
+    
+    function mostrarResultadoInsumo(data) {
+        // Actualizar tarjetas resumen
+        costoTotalCard.textContent = `$${data.costo_total.toFixed(2)}`;
+        costoUnitarioCard.textContent = `$${data.costo_unitario.toFixed(2)}`;
+        metodoCard.textContent = data.metodo;
+        
+        // Generar resumen
+        let html = `
+            <div class="alert alert-primary">
+                <h5 class="alert-heading mb-1">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Costo calculado: ${data.insumo.nombre}
+                </h5>
+                <p class="mb-0">
+                    <strong>Cantidad:</strong> ${data.cantidad} ${data.insumo.unidad}<br>
+                    <strong>Costo total:</strong> $${data.costo_total.toFixed(2)}<br>
+                    <strong>Costo unitario:</strong> $${data.costo_unitario.toFixed(2)}<br>
+                    <strong>Método utilizado:</strong> ${data.metodo}
+                </p>
+            </div>
+        `;
+        
+        resumenCalculo.innerHTML = html;
+        
+        // Si es método PEPS, mostrar detalles de lotes
+        if (data.metodo === 'PEPS' && data.detalles) {
+            document.getElementById('detallesPepsContainer').style.display = 'block';
+            
+            // Generar tabla de detalles PEPS
+            let htmlPeps = '';
+            data.detalles.forEach((detalle, index) => {
+                htmlPeps += `
+                    <tr>
+                        <td>${detalle.lote_id || 'Último precio'}</td>
+                        <td>${detalle.fecha_compra || '-'}</td>
+                        <td>$${detalle.precio_unitario.toFixed(2)}</td>
+                        <td>${detalle.cantidad_tomada.toFixed(2)} ${data.insumo.unidad}</td>
+                        <td>$${detalle.costo_lote.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('tablaPeps').querySelector('tbody').innerHTML = htmlPeps;
+        } else {
+            document.getElementById('detallesPepsContainer').style.display = 'none';
+        }
+        
+        // Ocultar tabla de desglose para insumos individuales
+        document.getElementById('desgloseContainer').style.display = 'none';
+    }
+    
+    function mostrarResultadoReceta(data) {
+        // Actualizar tarjetas resumen
+        costoTotalCard.textContent = `$${data.costo_total.toFixed(2)}`;
+        costoUnitarioCard.textContent = `$${data.costo_unitario.toFixed(2)}`;
+        metodoCard.textContent = data.metodo;
+        
+        // Generar resumen
+        let html = `
+            <div class="alert alert-primary">
+                <h5 class="alert-heading mb-1">
+                    <i class="fas fa-utensils me-2"></i>
+                    Costo calculado: ${data.receta.nombre}
+                </h5>
+                <p class="mb-0">
+                    <strong>Rinde:</strong> ${data.receta.rinde} ${data.receta.unidad_medida}<br>
+                    <strong>Costo total:</strong> $${data.costo_total.toFixed(2)}<br>
+                    <strong>Costo unitario:</strong> $${data.costo_unitario.toFixed(2)}<br>
+                    <strong>Método utilizado:</strong> ${data.metodo}
+                </p>
+            </div>
+        `;
+        
+        // Si hay costos adicionales, mostrarlos
+        if (data.costos_adicionales && Object.keys(data.costos_adicionales).length > 0) {
+            html += `
+                <div class="alert alert-info mt-3">
+                    <h6 class="alert-heading mb-2">Costos adicionales incluidos</h6>
+                    <ul class="mb-0">
+            `;
+            
+            Object.entries(data.costos_adicionales).forEach(([tipo, valor]) => {
+                html += `<li><strong>${tipo}:</strong> $${valor.toFixed(2)}</li>`;
+            });
+            
+            html += `
+                    </ul>
+                </div>
+            `;
+        }
+        
+        resumenCalculo.innerHTML = html;
+        
+        // Mostrar desglose de insumos
+        document.getElementById('desgloseContainer').style.display = 'block';
+        
+        // Generar tabla de desglose
+        let htmlDesglose = '';
+        data.desglose.forEach(item => {
+            htmlDesglose += `
+                <tr>
+                    <td>
+                        <div>${item.insumo.nombre}</div>
+                        <small class="text-muted">${item.insumo.codigo}</small>
+                    </td>
+                    <td>${item.cantidad.toFixed(2)} ${item.insumo.unidad}</td>
+                    <td>$${item.precio_unitario.toFixed(2)}</td>
+                    <td>$${item.subtotal.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+        
+        // Agregar costos adicionales si existen
+        if (data.costos_adicionales) {
+            Object.entries(data.costos_adicionales).forEach(([tipo, valor]) => {
+                htmlDesglose += `
+                    <tr class="table-info">
+                        <td colspan="3">${tipo}</td>
+                        <td>$${valor.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        document.getElementById('tablaDesglose').querySelector('tbody').innerHTML = htmlDesglose;
+        
+        // Ocultar tabla PEPS para recetas (demasiado detalle)
+        document.getElementById('detallesPepsContainer').style.display = 'none';
+    }
+    
+    function mostrarError(mensaje) {
+        resumenCalculo.innerHTML = `
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error
+                </h5>
+                <p class="mb-0">${mensaje}</p>
+            </div>
+        `;
+        
+        document.getElementById('desgloseContainer').style.display = 'none';
+        document.getElementById('detallesPepsContainer').style.display = 'none';
+        
+        // Resetear tarjetas
+        costoTotalCard.textContent = '$0.00';
+        costoUnitarioCard.textContent = '$0.00';
+        metodoCard.textContent = 'Error';
+    }
+});
+</script>
+{% endblock %}

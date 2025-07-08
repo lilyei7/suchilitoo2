@@ -1,0 +1,240 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Cierre de Caja - {{ block.super }}{% endblock %}
+
+{% block custom_css %}
+<style>
+    .cierre-caja-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background-color: #fff;
+    }
+    
+    .cierre-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .cierre-header i {
+        font-size: 3rem;
+        color: #FF5722;
+        margin-bottom: 1rem;
+        display: block;
+    }
+    
+    .cierre-resumen {
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .cierre-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .cierre-info-item {
+        flex: 1;
+        min-width: 200px;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        background-color: #fff;
+    }
+    
+    .cierre-form .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .cierre-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+    }
+    
+    .info-label {
+        font-size: 0.9rem;
+        color: #777;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-value {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    
+    .diferencia-container {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+    
+    .diferencia-positiva {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+    }
+    
+    .diferencia-negativa {
+        background-color: #ffebee;
+        color: #c62828;
+    }
+    
+    .diferencia-cero {
+        background-color: #e3f2fd;
+        color: #1565c0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="cierre-caja-container">
+                <div class="cierre-header">
+                    <i class="fas fa-cash-register"></i>
+                    <h3>Cierre de Caja</h3>
+                    <p class="text-muted">{{ sucursal.nombre }} - {{ cajero.get_full_name }}</p>
+                    <p class="text-muted">Apertura: {{ caja_abierta.fecha_hora|date:"d/m/Y H:i" }}</p>
+                </div>
+                
+                <div class="cierre-resumen">
+                    <h5 class="mb-3">Resumen del Día</h5>
+                    <div class="cierre-info">
+                        <div class="cierre-info-item">
+                            <div class="info-label">Ventas Realizadas</div>
+                            <div class="info-value">{{ cantidad_ventas }}</div>
+                        </div>
+                        <div class="cierre-info-item">
+                            <div class="info-label">Monto Inicial</div>
+                            <div class="info-value">Q. {{ caja_abierta.monto_inicial|floatformat:2 }}</div>
+                        </div>
+                        <div class="cierre-info-item">
+                            <div class="info-label">Ventas en Efectivo</div>
+                            <div class="info-value">Q. {{ ventas_efectivo|floatformat:2 }}</div>
+                        </div>
+                        <div class="cierre-info-item">
+                            <div class="info-label">Ventas con Tarjeta</div>
+                            <div class="info-value">Q. {{ ventas_tarjeta|floatformat:2 }}</div>
+                        </div>
+                        <div class="cierre-info-item">
+                            <div class="info-label">Ventas Otros Métodos</div>
+                            <div class="info-value">Q. {{ ventas_otros|floatformat:2 }}</div>
+                        </div>
+                        <div class="cierre-info-item">
+                            <div class="info-label">Total Ventas</div>
+                            <div class="info-value">Q. {{ total_ventas|floatformat:2 }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="post" id="cierreForm" class="cierre-form">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="monto_sistema">Monto en Sistema (Inicial + Ventas Efectivo)</label>
+                        <input type="number" id="monto_sistema" name="monto_sistema" class="form-control" value="{{ monto_sistema|floatformat:2 }}" readonly>
+                        <small class="form-text text-muted">Este es el monto que debería tener en caja según el sistema.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="monto_fisico">Monto Físico en Caja (Q.)</label>
+                        <input type="number" id="monto_fisico" name="monto_fisico" class="form-control" step="0.01" min="0" required>
+                        <small class="form-text text-muted">Ingrese el monto que cuenta físicamente en su caja.</small>
+                    </div>
+                    
+                    <div id="diferenciaContainer" class="diferencia-container d-none">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-label">Diferencia</div>
+                                <div id="diferenciaValue" class="info-value">Q. 0.00</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="diferenciaExplicacion" class="mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mt-4">
+                        <label for="notas">Notas (opcional)</label>
+                        <textarea id="notas" name="notas" class="form-control" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="cierre-actions">
+                        <a href="{% url 'dashboard:cajero_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-lock"></i> Cerrar Caja
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const montoSistema = document.getElementById('monto_sistema');
+        const montoFisico = document.getElementById('monto_fisico');
+        const diferenciaContainer = document.getElementById('diferenciaContainer');
+        const diferenciaValue = document.getElementById('diferenciaValue');
+        const diferenciaExplicacion = document.getElementById('diferenciaExplicacion');
+        
+        // Focus en el campo de monto físico
+        montoFisico.focus();
+        
+        // Calcular diferencia cuando cambia el monto físico
+        montoFisico.addEventListener('input', calcularDiferencia);
+        
+        function calcularDiferencia() {
+            const sistema = parseFloat(montoSistema.value) || 0;
+            const fisico = parseFloat(montoFisico.value) || 0;
+            const diferencia = fisico - sistema;
+            
+            // Mostrar contenedor de diferencia
+            diferenciaContainer.classList.remove('d-none');
+            
+            // Formatear diferencia
+            diferenciaValue.textContent = `Q. ${diferencia.toFixed(2)}`;
+            
+            // Agregar clase según el resultado
+            diferenciaContainer.classList.remove('diferencia-positiva', 'diferencia-negativa', 'diferencia-cero');
+            
+            if (diferencia > 0) {
+                diferenciaContainer.classList.add('diferencia-positiva');
+                diferenciaExplicacion.textContent = 'Hay más dinero en caja que lo registrado en el sistema.';
+            } else if (diferencia < 0) {
+                diferenciaContainer.classList.add('diferencia-negativa');
+                diferenciaExplicacion.textContent = 'Falta dinero en caja según lo registrado en el sistema.';
+            } else {
+                diferenciaContainer.classList.add('diferencia-cero');
+                diferenciaExplicacion.textContent = 'La caja cuadra perfectamente.';
+            }
+        }
+        
+        // Validación del formulario
+        document.getElementById('cierreForm').addEventListener('submit', function(e) {
+            const fisico = parseFloat(montoFisico.value) || 0;
+            
+            if (fisico <= 0) {
+                e.preventDefault();
+                alert('Por favor ingrese un monto físico válido.');
+                montoFisico.focus();
+                return false;
+            }
+            
+            return true;
+        });
+    });
+</script>
+{% endblock %}

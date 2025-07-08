@@ -1,0 +1,370 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Historial de Precios - Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-history me-2 text-primary"></i>
+            Historial de Precios
+        </h1>
+        <p class="text-muted mb-0">Análisis histórico de costos de insumos</p>
+    </div>
+</div>
+
+<!-- Filtros de búsqueda -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form id="formFiltro" method="get">
+            <div class="row g-3">
+                {% if es_admin %}
+                <div class="col-md-3">
+                    <label class="form-label text-muted small mb-1">Sucursal</label>
+                    <select class="form-select" name="sucursal" id="sucursalSelect">
+                        <option value="todas" {% if not sucursal_seleccionada %}selected{% endif %}>Todas las sucursales</option>
+                        {% for sucursal in sucursales_disponibles %}
+                            <option value="{{ sucursal.id }}" {% if sucursal_seleccionada.id == sucursal.id %}selected{% endif %}>
+                                {{ sucursal.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                <div class="col-md-3">
+                    <label class="form-label text-muted small mb-1">Insumo</label>
+                    <select class="form-select" name="insumo" id="insumoSelect">
+                        <option value="">Todos los insumos</option>
+                        {% for insumo in insumos %}
+                            <option value="{{ insumo.id }}" {% if insumo_seleccionado_id == insumo.id|stringformat:"s" %}selected{% endif %}>
+                                {{ insumo.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Período</label>
+                    <select class="form-select" name="dias" id="diasSelect">
+                        <option value="30" {% if dias == 30 %}selected{% endif %}>Último mes</option>
+                        <option value="90" {% if dias == 90 %}selected{% endif %}>Últimos 3 meses</option>
+                        <option value="180" {% if dias == 180 %}selected{% endif %}>Últimos 6 meses</option>
+                        <option value="365" {% if dias == 365 %}selected{% endif %}>Último año</option>
+                        <option value="1095" {% if dias == 1095 %}selected{% endif %}>Últimos 3 años</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if estadisticas %}
+<!-- Estadísticas detalladas del insumo -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Análisis de precios: {{ estadisticas.insumo.nombre }}
+                </h5>
+                <span class="badge bg-primary">{{ estadisticas.insumo.codigo }}</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Información principal -->
+                    <div class="col-md-4">
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-2">Precio unitario actual</h6>
+                            <h3 class="mb-0">
+                                ${{ estadisticas.ultimo_precio.precio_unitario|floatformat:2 }}
+                                <small class="text-muted">/ {{ estadisticas.unidad }}</small>
+                            </h3>
+                            <small class="text-muted">
+                                Última compra: {{ estadisticas.ultimo_precio.fecha_compra|date:"d/m/Y" }}
+                            </small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-2">Precio promedio ponderado</h6>
+                            <h3 class="mb-0">${{ estadisticas.precio_promedio|floatformat:2 }}</h3>
+                            <small class="text-muted">
+                                Basado en {{ estadisticas.total_unidades|floatformat:2 }} {{ estadisticas.unidad }} en stock
+                            </small>
+                        </div>
+                        
+                        {% if estadisticas.variacion %}
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-2">Variación de precio (90 días)</h6>
+                            <h3 class="mb-0 d-flex align-items-center">
+                                {% if estadisticas.variacion.diferencia >= 0 %}
+                                <span class="text-danger">+${{ estadisticas.variacion.diferencia|floatformat:2 }}</span>
+                                <i class="fas fa-arrow-up ms-2 text-danger"></i>
+                                {% else %}
+                                <span class="text-success">${{ estadisticas.variacion.diferencia|floatformat:2 }}</span>
+                                <i class="fas fa-arrow-down ms-2 text-success"></i>
+                                {% endif %}
+                            </h3>
+                            <small class="text-muted">
+                                {% if estadisticas.variacion.porcentaje >= 0 %}
+                                Aumento del {{ estadisticas.variacion.porcentaje|floatformat:1 }}%
+                                {% else %}
+                                Reducción del {{ estadisticas.variacion.porcentaje|abs|floatformat:1 }}%
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Stock y valor -->
+                    <div class="col-md-4">
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-2">Stock actual</h6>
+                            <h3 class="mb-0">
+                                {{ estadisticas.stock_actual|floatformat:2 }} {{ estadisticas.unidad }}
+                            </h3>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-2">Valor en inventario</h6>
+                            <h3 class="mb-0">${{ estadisticas.valor_stock|floatformat:2 }}</h3>
+                            <small class="text-muted">
+                                Calculado con precio promedio ponderado
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfica de precios históricos -->
+                    <div class="col-md-4">
+                        <canvas id="preciosHistoricosChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabla de historial -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            Historial de precios
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if historial %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Insumo</th>
+                        <th>Precio Unitario</th>
+                        <th>Cantidad</th>
+                        <th>Valor Total</th>
+                        <th>Cantidad Restante</th>
+                        <th>Sucursal</th>
+                        <th>Registrado por</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in historial %}
+                    <tr>
+                        <td>{{ item.fecha_compra|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <span class="fw-medium">{{ item.insumo.nombre }}</span>
+                            <small class="d-block text-muted">{{ item.insumo.codigo }}</small>
+                        </td>
+                        <td>${{ item.precio_unitario|floatformat:2 }}</td>
+                        <td>{{ item.cantidad_comprada|floatformat:2 }} {{ item.insumo.unidad_medida.abreviacion }}</td>
+                        <td>${{ item.valor_inicial|floatformat:2 }}</td>
+                        <td>
+                            {% if item.cantidad_restante > 0 %}
+                            <span class="badge bg-success">
+                                {{ item.cantidad_restante|floatformat:2 }} {{ item.insumo.unidad_medida.abreviacion }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Agotado</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.sucursal.nombre|default:"N/A" }}</td>
+                        <td>{{ item.creado_por.username|default:"Sistema" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-box-open fa-4x text-muted"></i>
+            </div>
+            <h5 class="text-muted mb-2">No hay registros de precios</h5>
+            <p class="text-muted mb-4">
+                Aún no hay registros de precios de insumos en el período seleccionado
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #edf2f9;
+    padding: 16px 20px;
+}
+
+.form-label.small {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.btn-outline-primary {
+    border-color: #d1d5db;
+    color: #6b7280;
+}
+
+.btn-outline-primary:hover {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtener el canvas para la gráfica si existe
+    const chartCanvas = document.getElementById('preciosHistoricosChart');
+    if (chartCanvas) {
+        const ctx = chartCanvas.getContext('2d');
+        
+        // Datos para la gráfica (se rellenarían desde el backend)
+        const preciosHistoricos = [
+            // Estos datos vendrían del backend
+            {% for precio in estadisticas.precios_historicos %}
+            {
+                fecha: '{{ precio.fecha_compra__month }}/{{ precio.fecha_compra__year }}',
+                precio: {{ precio.precio_promedio|floatformat:2 }}
+            },
+            {% endfor %}
+        ];
+        
+        const labels = preciosHistoricos.map(item => item.fecha);
+        const datos = preciosHistoricos.map(item => item.precio);
+        
+        // Crear la gráfica
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Precio Unitario ($)',
+                    data: datos,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#3b82f6',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Evolución histórica del precio'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Inicializar filtros
+    const formFiltro = document.getElementById('formFiltro');
+    const sucursalSelect = document.getElementById('sucursalSelect');
+    const insumoSelect = document.getElementById('insumoSelect');
+    const diasSelect = document.getElementById('diasSelect');
+    
+    // Enviar formulario al cambiar valores
+    if (sucursalSelect) {
+        sucursalSelect.addEventListener('change', function() {
+            formFiltro.submit();
+        });
+    }
+    
+    if (insumoSelect) {
+        insumoSelect.addEventListener('change', function() {
+            formFiltro.submit();
+        });
+    }
+    
+    if (diasSelect) {
+        diasSelect.addEventListener('change', function() {
+            formFiltro.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

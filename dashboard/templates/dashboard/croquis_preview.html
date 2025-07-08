@@ -1,0 +1,669 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Vista Previa - Croquis {{ sucursal.nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1 d-flex align-items-center">
+            <i class="fas fa-eye me-2 text-primary"></i>
+            Vista Previa del Croquis
+        </h1>
+        <p class="text-muted mb-0">{{ sucursal.nombre }} - {{ sucursal.direccion }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'dashboard:croquis_editor' sucursal.id %}" class="btn btn-primary">
+            <i class="fas fa-edit me-1"></i>Editar Croquis
+        </a>
+        <a href="{% url 'dashboard:sucursales' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+</div>
+
+{% if layout_data %}
+<!-- Estadísticas del croquis -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-cubes fa-2x text-primary mb-2"></i>
+                <h4 class="mb-1" id="totalObjetos">0</h4>
+                <p class="text-muted mb-0 small">Total Objetos</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-chair fa-2x text-success mb-2"></i>
+                <h4 class="mb-1" id="totalMesas">0</h4>
+                <p class="text-muted mb-0 small">Mesas Ubicadas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-users fa-2x text-info mb-2"></i>
+                <h4 class="mb-1" id="capacidadTotal">0</h4>
+                <p class="text-muted mb-0 small">Capacidad Total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-percentage fa-2x text-warning mb-2"></i>
+                <h4 class="mb-1" id="porcentajeUbicacion">0%</h4>
+                <p class="text-muted mb-0 small">Mesas Ubicadas</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visualizador del croquis -->
+<div class="row">
+    <div class="col-lg-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-map me-2"></i>Layout del Restaurante
+                </h6>
+                <div class="d-flex gap-2">
+                    <small class="text-muted">Zoom:</small>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="zoomOut()">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <span id="zoomLevel" class="text-muted small">100%</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="zoomIn()">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" onclick="ajustarTamaño()">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="canvasContainer" class="position-relative overflow-auto" style="height: 600px; background: #f8f9fa;">
+                    <canvas id="previewCanvas" width="800" height="600" style="border: 1px solid #dee2e6;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Panel de información -->
+    <div class="col-lg-3">
+        <!-- Leyenda -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Leyenda
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <span class="badge" style="background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745;">■</span>
+                    <small class="ms-2">Mesas</small>
+                </div>
+                <div class="mb-2">
+                    <span class="badge" style="background: #6c757d; color: white;">■</span>
+                    <small class="ms-2">Paredes</small>
+                </div>
+                <div class="mb-2">
+                    <span class="badge" style="background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107;">■</span>
+                    <small class="ms-2">Puertas</small>
+                </div>
+                <div class="mb-2">
+                    <span class="badge" style="background: rgba(253, 126, 20, 0.2); color: #fd7e14; border: 1px solid #fd7e14;">■</span>
+                    <small class="ms-2">Barra</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista de mesas -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Mesas en el Croquis
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="listaMesasCroquis">
+                    <!-- Se carga dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Estado sin croquis -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-drafting-compass fa-4x text-muted mb-4" style="opacity: 0.3;"></i>
+                <h4 class="text-muted mb-3">No hay croquis diseñado</h4>
+                <p class="text-muted mb-4">Esta sucursal aún no tiene un croquis de distribución.</p>
+                <a href="{% url 'dashboard:croquis_editor' sucursal.id %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Crear Primer Croquis
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estilos para la vista previa */
+#previewCanvas {
+    cursor: grab;
+}
+
+#previewCanvas:active {
+    cursor: grabbing;
+}
+
+.mesa-preview {
+    border: 2px solid #28a745;
+    background: rgba(40, 167, 69, 0.1);
+    border-radius: 8px;
+}
+
+.pared-preview {
+    background: #6c757d;
+}
+
+.puerta-preview {
+    border: 2px solid #ffc107;
+    background: rgba(255, 193, 7, 0.2);
+}
+
+.barra-preview {
+    border: 2px solid #fd7e14;
+    background: rgba(253, 126, 20, 0.1);
+    border-radius: 4px;
+}
+
+/* Lista de mesas */
+.mesa-item-preview {
+    padding: 0.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    background: white;
+    transition: all 0.2s;
+}
+
+.mesa-item-preview:hover {
+    background: #f8f9fa;
+    border-color: #28a745;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    #canvasContainer {
+        height: 400px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let canvas, ctx;
+let zoom = 1;
+let panOffset = { x: 0, y: 0 };
+let layoutData = null;
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('👁️ Inicializando vista previa de croquis...');
+    
+    inicializarCanvas();
+    
+    {% if layout_json %}
+        try {
+            // Usar JSON pre-serializado desde el backend
+            layoutData = {{ layout_json|safe }};
+            console.log('✅ Layout cargado desde layout_json:', layoutData);
+            cargarCroquis();
+        } catch (error) {
+            console.error('❌ Error parseando layout_json:', error);
+            console.log('Layout JSON type:', typeof {{ layout_json|safe }});
+            console.log('Layout JSON content:', {{ layout_json|safe }});
+            
+            // Intentar fallback con layout_data
+            {% if layout_data %}
+                try {
+                    console.log('🔄 Intentando fallback con layout_data...');
+                    layoutData = {{ layout_data|safe }};
+                    cargarCroquis();
+                } catch (fallbackError) {
+                    console.error('❌ Error en fallback:', fallbackError);
+                    showError('Error cargando datos del croquis');
+                }
+            {% else %}
+                showError('Error cargando datos del croquis (JSON)');
+            {% endif %}
+        }
+    {% elif layout_data %}
+        try {
+            console.log('🔄 Usando layout_data directo...');
+            layoutData = {{ layout_data|safe }};
+            cargarCroquis();
+        } catch (error) {
+            console.error('❌ Error parseando layout_data directo:', error);
+            console.log('Raw data type:', typeof {{ layout_data|safe }});
+            console.log('Raw data:', {{ layout_data|safe }});
+            showError('Error cargando datos del croquis');
+        }
+    {% else %}
+        console.log('⚠️ No hay datos de layout disponibles');
+        showError('No hay datos de croquis disponibles');
+    {% endif %}
+    
+    console.log('✅ Vista previa inicializada');
+});
+
+// Inicialización del canvas
+function inicializarCanvas() {
+    canvas = document.getElementById('previewCanvas');
+    if (!canvas) return;
+    
+    ctx = canvas.getContext('2d');
+    
+    // Event listeners para pan
+    let isPanning = false;
+    let lastPos = { x: 0, y: 0 };
+    
+    canvas.addEventListener('mousedown', function(e) {
+        isPanning = true;
+        lastPos.x = e.clientX;
+        lastPos.y = e.clientY;
+        canvas.style.cursor = 'grabbing';
+    });
+    
+    canvas.addEventListener('mousemove', function(e) {
+        if (isPanning) {
+            const deltaX = e.clientX - lastPos.x;
+            const deltaY = e.clientY - lastPos.y;
+            
+            panOffset.x += deltaX;
+            panOffset.y += deltaY;
+            
+            lastPos.x = e.clientX;
+            lastPos.y = e.clientY;
+            
+            redibujar();
+        }
+    });
+    
+    canvas.addEventListener('mouseup', function() {
+        isPanning = false;
+        canvas.style.cursor = 'grab';
+    });
+    
+    canvas.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+        zoom *= zoomFactor;
+        zoom = Math.max(0.3, Math.min(3, zoom));
+        
+        document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+        redibujar();
+    });
+}
+
+// Cargar y mostrar croquis
+function cargarCroquis() {
+    if (!layoutData || !layoutData.objetos) return;
+    
+    const objetos = layoutData.objetos;
+    
+    // Calcular estadísticas
+    calcularEstadisticas(objetos);
+    
+    // Mostrar lista de mesas
+    mostrarListaMesas(objetos);
+    
+    // Dibujar croquis
+    redibujar();
+}
+
+// Calcular estadísticas del croquis
+function calcularEstadisticas(objetos) {
+    const totalObjetos = objetos.length;
+    const mesas = objetos.filter(obj => obj.tipo === 'mesa');
+    const mesasConId = mesas.filter(mesa => mesa.mesaId);
+    
+    let capacidadTotal = 0;
+    mesas.forEach(mesa => {
+        if (mesa.propiedades && mesa.propiedades.capacidad) {
+            capacidadTotal += parseInt(mesa.propiedades.capacidad) || 0;
+        }
+    });
+    
+    // Obtener total de mesas de la sucursal desde el servidor
+    fetch(`/dashboard/api/sucursales/{{ sucursal.id }}/mesas/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const totalMesasDB = data.mesas.length;
+                const porcentaje = totalMesasDB > 0 ? Math.round((mesasConId.length / totalMesasDB) * 100) : 0;
+                
+                document.getElementById('porcentajeUbicacion').textContent = porcentaje + '%';
+            }
+        })
+        .catch(error => console.error('Error cargando mesas:', error));
+    
+    // Actualizar estadísticas en la UI
+    document.getElementById('totalObjetos').textContent = totalObjetos;
+    document.getElementById('totalMesas').textContent = mesas.length;
+    document.getElementById('capacidadTotal').textContent = capacidadTotal;
+}
+
+// Mostrar lista de mesas en el panel lateral
+function mostrarListaMesas(objetos) {
+    const listaMesas = document.getElementById('listaMesasCroquis');
+    if (!listaMesas) return;
+    
+    const mesas = objetos.filter(obj => obj.tipo === 'mesa');
+    
+    if (mesas.length === 0) {
+        listaMesas.innerHTML = `
+            <p class="text-muted text-center small">
+                <i class="fas fa-info-circle me-1"></i>
+                No hay mesas en el croquis
+            </p>
+        `;
+        return;
+    }
+    
+    let html = '';
+    mesas.forEach(mesa => {
+        const numero = mesa.propiedades?.numero || 'S/N';
+        const capacidad = mesa.propiedades?.capacidad || 0;
+        const vinculada = mesa.mesaId ? 'text-success' : 'text-muted';
+        
+        html += `
+            <div class="mesa-item-preview" onclick="enfocarMesa(${mesa.id})">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="${vinculada}">Mesa ${numero}</strong>
+                        <br>
+                        <small class="text-muted">${capacidad} personas</small>
+                    </div>
+                    <div>
+                        <i class="fas fa-map-marker-alt ${vinculada}"></i>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    listaMesas.innerHTML = html;
+}
+
+// Enfocar mesa específica en el canvas
+function enfocarMesa(mesaId) {
+    if (!layoutData?.objetos) return;
+    
+    const mesa = layoutData.objetos.find(obj => obj.id === mesaId);
+    if (!mesa) return;
+    
+    // Centrar la vista en la mesa
+    const centerX = mesa.x + mesa.width / 2;
+    const centerY = mesa.y + mesa.height / 2;
+    
+    panOffset.x = canvas.width / 2 - centerX * zoom;
+    panOffset.y = canvas.height / 2 - centerY * zoom;
+    
+    redibujar();
+    
+    // Highlight temporal de la mesa
+    setTimeout(() => {
+        destacarObjeto(mesa);
+    }, 100);
+}
+
+// Destacar objeto temporalmente
+function destacarObjeto(objeto) {
+    ctx.save();
+    ctx.translate(panOffset.x, panOffset.y);
+    ctx.scale(zoom, zoom);
+    
+    // Dibujar highlight
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 4 / zoom;
+    ctx.setLineDash([10 / zoom, 5 / zoom]);
+    ctx.strokeRect(objeto.x - 5, objeto.y - 5, objeto.width + 10, objeto.height + 10);
+    
+    ctx.restore();
+    
+    // Remover highlight después de 2 segundos
+    setTimeout(() => {
+        redibujar();
+    }, 2000);
+}
+
+// Redibujar canvas
+function redibujar() {
+    if (!canvas || !ctx) return;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Dibujar grid de fondo
+    dibujarGrid();
+    
+    if (layoutData?.objetos) {
+        ctx.save();
+        ctx.translate(panOffset.x, panOffset.y);
+        ctx.scale(zoom, zoom);
+        
+        // Dibujar objetos
+        layoutData.objetos.forEach(objeto => {
+            dibujarObjeto(objeto);
+        });
+        
+        ctx.restore();
+    }
+}
+
+// Dibujar grid de fondo
+function dibujarGrid() {
+    ctx.save();
+    ctx.translate(panOffset.x, panOffset.y);
+    ctx.scale(zoom, zoom);
+    
+    ctx.strokeStyle = '#e9ecef';
+    ctx.lineWidth = 1 / zoom;
+    
+    const gridSize = 20;
+    const width = canvas.width / zoom;
+    const height = canvas.height / zoom;
+    
+    // Líneas verticales
+    for (let x = 0; x <= width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+    }
+    
+    // Líneas horizontales
+    for (let y = 0; y <= height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+}
+
+// Dibujar un objeto específico
+function dibujarObjeto(objeto) {
+    ctx.save();
+    
+    switch (objeto.tipo) {
+        case 'mesa':
+            dibujarMesa(objeto);
+            break;
+        case 'pared':
+            dibujarPared(objeto);
+            break;
+        case 'puerta':
+            dibujarPuerta(objeto);
+            break;
+        case 'barra':
+            dibujarBarra(objeto);
+            break;
+    }
+    
+    ctx.restore();
+}
+
+function dibujarMesa(objeto) {
+    // Fondo
+    ctx.fillStyle = 'rgba(40, 167, 69, 0.1)';
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Borde
+    ctx.strokeStyle = '#28a745';
+    ctx.lineWidth = 2 / zoom;
+    ctx.strokeRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Número de mesa
+    if (objeto.propiedades?.numero) {
+        ctx.fillStyle = '#28a745';
+        ctx.font = `${14 / zoom}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(
+            objeto.propiedades.numero,
+            objeto.x + objeto.width / 2,
+            objeto.y + objeto.height / 2 + 5 / zoom
+        );
+    }
+    
+    // Indicador de capacidad
+    if (objeto.propiedades?.capacidad) {
+        ctx.fillStyle = '#28a745';
+        ctx.font = `${10 / zoom}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(
+            objeto.propiedades.capacidad + 'p',
+            objeto.x + objeto.width / 2,
+            objeto.y + objeto.height / 2 - 8 / zoom
+        );
+    }
+}
+
+function dibujarPared(objeto) {
+    ctx.fillStyle = '#6c757d';
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+}
+
+function dibujarPuerta(objeto) {
+    // Fondo
+    ctx.fillStyle = 'rgba(255, 193, 7, 0.2)';
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Borde
+    ctx.strokeStyle = '#ffc107';
+    ctx.lineWidth = 2 / zoom;
+    ctx.strokeRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Arco de apertura
+    ctx.beginPath();
+    ctx.arc(objeto.x, objeto.y + objeto.height / 2, objeto.width / 2, -Math.PI / 2, Math.PI / 2);
+    ctx.stroke();
+}
+
+function dibujarBarra(objeto) {
+    // Fondo
+    ctx.fillStyle = 'rgba(253, 126, 20, 0.1)';
+    ctx.fillRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Borde
+    ctx.strokeStyle = '#fd7e14';
+    ctx.lineWidth = 2 / zoom;
+    ctx.strokeRect(objeto.x, objeto.y, objeto.width, objeto.height);
+    
+    // Texto
+    ctx.fillStyle = '#fd7e14';
+    ctx.font = `${12 / zoom}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('BARRA', objeto.x + objeto.width / 2, objeto.y + objeto.height / 2 + 4 / zoom);
+}
+
+// Controles de zoom
+function zoomIn() {
+    zoom *= 1.2;
+    zoom = Math.min(3, zoom);
+    document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+    redibujar();
+}
+
+function zoomOut() {
+    zoom *= 0.8;
+    zoom = Math.max(0.3, zoom);
+    document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+    redibujar();
+}
+
+function ajustarTamaño() {
+    if (!layoutData?.objetos || layoutData.objetos.length === 0) return;
+    
+    // Calcular bounds de todos los objetos
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    layoutData.objetos.forEach(obj => {
+        minX = Math.min(minX, obj.x);
+        minY = Math.min(minY, obj.y);
+        maxX = Math.max(maxX, obj.x + obj.width);
+        maxY = Math.max(maxY, obj.y + obj.height);
+    });
+    
+    // Calcular zoom y offset para ajustar todo el contenido
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    const padding = 50;
+    
+    const zoomX = (canvas.width - padding * 2) / contentWidth;
+    const zoomY = (canvas.height - padding * 2) / contentHeight;
+    
+    zoom = Math.min(zoomX, zoomY, 2);
+    
+    panOffset.x = (canvas.width - contentWidth * zoom) / 2 - minX * zoom;
+    panOffset.y = (canvas.height - contentHeight * zoom) / 2 - minY * zoom;
+    
+    document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+    redibujar();
+}
+
+// Función para mostrar errores
+function showError(message) {
+    console.error(message);
+    const container = document.getElementById('canvasContainer');
+    if (container) {
+        container.innerHTML = `
+            <div class="d-flex align-items-center justify-content-center h-100">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-muted">${message}</h5>
+                    <button class="btn btn-outline-primary mt-2" onclick="location.reload()">
+                        <i class="fas fa-refresh me-1"></i>Recargar
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,341 @@
+{% extends 'cocina/base.html' %}
+{% load static %}
+
+{% block title %}Estadísticas - Cocina{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="bi bi-graph-up"></i> Estadísticas de Cocina
+            </h1>
+            <div>
+                <button class="btn btn-outline-primary" onclick="actualizarEstadisticas()">
+                    <i class="bi bi-arrow-clockwise"></i> Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas en tiempo real -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card border-primary">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-history fs-1 text-primary"></i>
+                <h6 class="card-title mt-2">Pendientes</h6>
+                <h3 class="text-primary mb-0" id="stat-pendientes">{{ pendientes }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <i class="bi bi-gear fs-1 text-warning"></i>
+                <h6 class="card-title mt-2">En Preparación</h6>
+                <h3 class="text-warning mb-0" id="stat-preparacion">{{ en_preparacion }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle fs-1 text-success"></i>
+                <h6 class="card-title mt-2">Listas</h6>
+                <h3 class="text-success mb-0" id="stat-listas">{{ listas }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <i class="bi bi-stopwatch fs-1 text-info"></i>
+                <h6 class="card-title mt-2">Tiempo Prom.</h6>
+                <h3 class="text-info mb-0" id="stat-tiempo">{{ tiempo_promedio|floatformat:0 }}<small>min</small></h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-dark">
+            <div class="card-body text-center">
+                <i class="bi bi-people fs-1 text-dark"></i>
+                <h6 class="card-title mt-2">Cocineros</h6>
+                <h3 class="text-dark mb-0" id="stat-cocineros">{{ cocineros_activos }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-secondary">
+            <div class="card-body text-center">
+                <i class="bi bi-speedometer2 fs-1 text-secondary"></i>
+                <h6 class="card-title mt-2">Eficiencia</h6>
+                <h3 class="text-secondary mb-0" id="stat-eficiencia">{{ eficiencia|floatformat:1 }}<small>%</small></h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Gráfico de tiempo real -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity"></i> Actividad en Tiempo Real
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="tiempoRealChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cocineros activos -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-badge"></i> Cocineros Activos
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for cocinero in cocineros_con_actividad %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <strong>{{ cocinero.first_name }} {{ cocinero.last_name }}</strong>
+                        <br>
+                        <small class="text-muted">{{ cocinero.ordenes_asignadas }} órdenes</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-primary">{{ cocinero.ordenes_asignadas }}</span>
+                        <br>
+                        <small class="text-muted">{{ cocinero.tiempo_promedio|floatformat:0 }}min</small>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted">
+                    <i class="bi bi-person-x"></i>
+                    <br>
+                    No hay cocineros activos
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rendimiento por productos -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart"></i> Productos Más Preparados
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="productosChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock"></i> Tiempos de Preparación
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Tiempo Est.</th>
+                                <th>Tiempo Real</th>
+                                <th>Diferencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tiempo in tiempos_productos %}
+                            <tr>
+                                <td>{{ tiempo.producto.nombre|truncatechars:20 }}</td>
+                                <td>{{ tiempo.tiempo_estimado }}min</td>
+                                <td>{{ tiempo.tiempo_promedio|floatformat:0 }}min</td>
+                                <td>
+                                    {% if tiempo.tiempo_promedio > tiempo.tiempo_estimado %}
+                                        <span class="text-danger">+{{ tiempo.tiempo_promedio|floatformat:0|add:"-"|add:tiempo.tiempo_estimado }}min</span>
+                                    {% else %}
+                                        <span class="text-success">-{{ tiempo.tiempo_estimado|add:"-"|add:tiempo.tiempo_promedio|floatformat:0 }}min</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No hay datos disponibles</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Métricas de rendimiento -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-down"></i> Métricas de Rendimiento
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-primary">{{ ordenes_hoy }}</h4>
+                            <p class="text-muted">Órdenes Hoy</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-success">{{ pico_hora }}</h4>
+                            <p class="text-muted">Hora Pico</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-warning">{{ items_pendientes }}</h4>
+                            <p class="text-muted">Items Pendientes</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-info">{{ capacidad_utilizada|floatformat:1 }}%</h4>
+                            <p class="text-muted">Capacidad Utilizada</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Gráfico de tiempo real
+    const ctxReal = document.getElementById('tiempoRealChart').getContext('2d');
+    const tiempoRealChart = new Chart(ctxReal, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Órdenes Completadas',
+                data: [],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Órdenes Completadas por Hora'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Gráfico de productos
+    const ctxProductos = document.getElementById('productosChart').getContext('2d');
+    const productosChart = new Chart(ctxProductos, {
+        type: 'doughnut',
+        data: {
+            labels: {{ productos_labels|safe }},
+            datasets: [{
+                data: {{ productos_data|safe }},
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF',
+                    '#FF9F40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Distribución de Productos'
+                }
+            }
+        }
+    });
+    
+    // Actualizar estadísticas cada 30 segundos
+    function actualizarEstadisticas() {
+        fetch('/cocina/api/estadisticas/')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('stat-pendientes').textContent = data.pendientes;
+                document.getElementById('stat-preparacion').textContent = data.en_preparacion;
+                document.getElementById('stat-listas').textContent = data.listas;
+                document.getElementById('stat-tiempo').innerHTML = Math.round(data.tiempo_promedio) + '<small>min</small>';
+                document.getElementById('stat-eficiencia').innerHTML = data.eficiencia.toFixed(1) + '<small>%</small>';
+                
+                // Actualizar gráfico de tiempo real
+                const now = new Date();
+                const timeLabel = now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0');
+                
+                tiempoRealChart.data.labels.push(timeLabel);
+                tiempoRealChart.data.datasets[0].data.push(data.ordenes_completadas_ultima_hora);
+                
+                // Mantener solo las últimas 20 actualizaciones
+                if (tiempoRealChart.data.labels.length > 20) {
+                    tiempoRealChart.data.labels.shift();
+                    tiempoRealChart.data.datasets[0].data.shift();
+                }
+                
+                tiempoRealChart.update();
+            })
+            .catch(error => {
+                console.error('Error actualizando estadísticas:', error);
+            });
+    }
+    
+    // Inicializar datos del gráfico de tiempo real
+    function inicializarGraficoTiempoReal() {
+        const now = new Date();
+        for (let i = 19; i >= 0; i--) {
+            const time = new Date(now.getTime() - i * 60000); // Cada minuto
+            const timeLabel = time.getHours() + ':' + time.getMinutes().toString().padStart(2, '0');
+            tiempoRealChart.data.labels.push(timeLabel);
+            tiempoRealChart.data.datasets[0].data.push(Math.floor(Math.random() * 5)); // Datos simulados
+        }
+        tiempoRealChart.update();
+    }
+    
+    // Inicializar
+    inicializarGraficoTiempoReal();
+    setInterval(actualizarEstadisticas, 30000); // Actualizar cada 30 segundos
+</script>
+{% endblock %}
