@@ -25,13 +25,14 @@ SECRET_KEY = 'django-insecure-525rban!z$ekqe=eas__zzx5wnqk5*spf1s1^)cysz$dsw(fp_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1', '192.168.1.98', '0.0.0.0', '*']
+ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1', '187.33.150.152', '0.0.0.0', '*']
 
 # CSRF Configuration for ngrok and external domains
 CSRF_TRUSTED_ORIGINS = [
     'https://0e3d14efa2a4.ngrok-free.app',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
+    'http://187.33.150.152:8000',
     'http://192.168.1.98:8000',
     'https://006b1de17402.ngrok-free.app',
     'https://neat-specially-whippet.ngrok-free.app',
