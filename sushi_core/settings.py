@@ -33,6 +33,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
     'http://192.168.1.98:8000',
+    'https://006b1de17402.ngrok-free.app',
 ]
 
 # Configuración adicional de CSRF para desarrollo
