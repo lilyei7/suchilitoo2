@@ -19,10 +19,47 @@ from ..utils.permissions import (
 @login_required
 @require_module_access('usuarios')
 def usuarios_view(request):
-    """Vista principal para gestión de usuarios"""
-    # Obtener todos los usuarios con sus relaciones
-    usuarios = Usuario.objects.select_related('sucursal', 'rol').all().order_by('-date_joined')
-    
+    """Vista principal para gestión de usuarios con filtros"""
+    user = request.user
+    # Filtros desde GET
+    filtro_sucursal = request.GET.get('filtroSucursal')
+    filtro_rol = request.GET.get('filtroRol')
+    filtro_estado = request.GET.get('filtroEstado')
+    filtro_busqueda = request.GET.get('filtroBusqueda')
+
+    # Base queryset
+    usuarios = Usuario.objects.select_related('sucursal', 'rol').all()
+
+    # Si no es superuser ni admin, filtrar por sucursal asignada
+    if not user.is_superuser and (not hasattr(user, 'rol') or user.rol is None or user.rol.nombre != 'admin'):
+        if hasattr(user, 'sucursal') and user.sucursal:
+            usuarios = usuarios.filter(sucursal=user.sucursal)
+
+    # Filtro por sucursal (solo si el admin o gerente quiere filtrar)
+    if filtro_sucursal:
+        usuarios = usuarios.filter(sucursal_id=filtro_sucursal)
+
+    # Filtro por rol
+    if filtro_rol and filtro_rol != '':
+        usuarios = usuarios.filter(rol__nombre=filtro_rol)
+
+    # Filtro por estado
+    if filtro_estado == 'activo':
+        usuarios = usuarios.filter(is_active=True)
+    elif filtro_estado == 'inactivo':
+        usuarios = usuarios.filter(is_active=False)
+
+    # Filtro por búsqueda
+    if filtro_busqueda:
+        usuarios = usuarios.filter(
+            Q(username__icontains=filtro_busqueda) |
+            Q(first_name__icontains=filtro_busqueda) |
+            Q(last_name__icontains=filtro_busqueda) |
+            Q(email__icontains=filtro_busqueda)
+        )
+
+    usuarios = usuarios.order_by('-date_joined')
+
     # Calcular estadísticas
     total_usuarios = usuarios.count()
     usuarios_activos = usuarios.filter(is_active=True).count()
@@ -32,19 +69,11 @@ def usuarios_view(request):
     usuarios_recientes = usuarios.filter(
         date_joined__gte=timezone.now() - timezone.timedelta(days=30)
     ).count()
-    
+
     # Obtener roles y sucursales para los formularios
     roles = Rol.objects.filter(activo=True)
     sucursales = Sucursal.objects.filter(activa=True)
-    
-    # Asegurarse de que hay roles disponibles
-    if not roles.exists():
-        print("⚠️ ADVERTENCIA: No hay roles activos en el sistema.")
-    else:
-        print(f"✅ Roles activos encontrados: {roles.count()}")
-        for rol in roles:
-            print(f"  - Rol: {rol.id}, Nombre: {rol.nombre}, Activo: {rol.activo}")
-    
+
     context = {
         'usuarios': usuarios,
         'total_usuarios': total_usuarios,
@@ -53,9 +82,12 @@ def usuarios_view(request):
         'usuarios_recientes': usuarios_recientes,
         'roles': roles,
         'sucursales': sucursales,
+        'filtro_sucursal': filtro_sucursal or '',
+        'filtro_rol': filtro_rol or '',
+        'filtro_estado': filtro_estado or '',
+        'filtro_busqueda': filtro_busqueda or '',
         **get_sidebar_context('usuarios')
     }
-    
     return render(request, 'dashboard/usuarios.html', context)
 
 @login_required

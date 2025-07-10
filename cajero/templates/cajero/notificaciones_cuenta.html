@@ -1,0 +1,416 @@
+{% extends 'cajero/base.html' %}
+{% load static %}
+
+{% block title %}Notificaciones de Cuenta - Cajero{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notificaciones-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+    
+    .notificaciones-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 32px;
+        border-radius: 20px;
+        margin-bottom: 32px;
+        text-align: center;
+    }
+    
+    .notificaciones-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    
+    .notificaciones-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    .notificacion-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        border: 2px solid #f8f9fa;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .notificacion-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+        border-color: #3498db;
+    }
+    
+    .notificacion-header {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        padding: 20px 24px;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .notificacion-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    
+    .notificacion-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+    
+    .notificacion-details h4 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+    
+    .notificacion-details p {
+        margin: 4px 0 0 0;
+        color: #6c757d;
+        font-size: 0.95rem;
+    }
+    
+    .notificacion-estado {
+        background: #e74c3c;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .notificacion-body {
+        padding: 24px;
+    }
+    
+    .orden-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+    
+    .info-item {
+        text-align: center;
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 12px;
+    }
+    
+    .info-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    
+    .info-value {
+        font-size: 1.2rem;
+        color: #2c3e50;
+        font-weight: 700;
+    }
+    
+    .items-list {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .items-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .item-row:last-child {
+        border-bottom: none;
+    }
+    
+    .item-name {
+        font-weight: 500;
+        color: #2c3e50;
+    }
+    
+    .item-quantity {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-left: 8px;
+    }
+    
+    .item-price {
+        font-weight: 600;
+        color: #27ae60;
+    }
+    
+    .total-section {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .total-label {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 4px;
+    }
+    
+    .total-amount {
+        font-size: 2.2rem;
+        font-weight: 700;
+    }
+    
+    .btn-procesar {
+        background: linear-gradient(135deg, #27ae60, #229954);
+        border: none;
+        color: white;
+        padding: 16px 32px;
+        border-radius: 16px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        width: 100%;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(39, 174, 96, 0.3);
+    }
+    
+    .btn-procesar:hover {
+        background: linear-gradient(135deg, #229954, #1e8449);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(39, 174, 96, 0.4);
+    }
+    
+    .btn-procesar:active {
+        transform: translateY(0);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        color: #e9ecef;
+        margin-bottom: 20px;
+    }
+    
+    .empty-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .empty-desc {
+        font-size: 1rem;
+        margin: 0;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .orden-info {
+            grid-template-columns: 1fr;
+        }
+        
+        .notificaciones-container {
+            padding: 1rem;
+        }
+        
+        .notificacion-header {
+            flex-direction: column;
+            gap: 16px;
+            text-align: center;
+        }
+    }
+    
+    /* Animation */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .notificacion-card {
+        animation: slideInUp 0.6s ease forwards;
+    }
+    
+    .notificacion-card:nth-child(1) { animation-delay: 0.1s; }
+    .notificacion-card:nth-child(2) { animation-delay: 0.2s; }
+    .notificacion-card:nth-child(3) { animation-delay: 0.3s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notificaciones-container">
+    <div class="notificaciones-header">
+        <h1 class="notificaciones-title">
+            <i class="fas fa-bell me-3"></i>
+            Solicitudes de Cuenta
+        </h1>
+        <p class="notificaciones-subtitle">
+            Procesa los pagos solicitados por los meseros
+        </p>
+    </div>
+    
+    {% if notificaciones %}
+        {% for notificacion in notificaciones %}
+        <div class="notificacion-card">
+            <div class="notificacion-header">
+                <div class="notificacion-info">
+                    <div class="notificacion-icon">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <div class="notificacion-details">
+                        <h4>Orden #{{ notificacion.orden.numero_orden }}</h4>
+                        <p>Mesa {{ notificacion.orden.mesa.numero }} • Mesero: {{ notificacion.mesero.first_name|default:notificacion.mesero.username }}</p>
+                    </div>
+                </div>
+                <div class="notificacion-estado">
+                    {{ notificacion.get_estado_display }}
+                </div>
+            </div>
+            
+            <div class="notificacion-body">
+                <div class="orden-info">
+                    <div class="info-item">
+                        <div class="info-label">Mesa</div>
+                        <div class="info-value">#{{ notificacion.orden.mesa.numero }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Hora Solicitud</div>
+                        <div class="info-value">{{ notificacion.fecha_creacion|time:"H:i" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Mesero</div>
+                        <div class="info-value">{{ notificacion.mesero.first_name|default:notificacion.mesero.username }}</div>
+                    </div>
+                </div>
+                
+                <div class="items-list">
+                    <div class="items-title">
+                        <i class="fas fa-list"></i>
+                        Items de la Orden
+                    </div>
+                    {% for item in notificacion.orden.items.all %}
+                    <div class="item-row">
+                        <div>
+                            <span class="item-name">{{ item.producto.nombre }}</span>
+                            <span class="item-quantity">x{{ item.cantidad }}</span>
+                        </div>
+                        <div class="item-price">${{ item.subtotal|floatformat:2 }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="total-section">
+                    <div class="total-label">Total a Cobrar</div>
+                    <div class="total-amount">${{ notificacion.orden.total|floatformat:2 }}</div>
+                </div>
+                
+                <a href="{% url 'cajero:procesar_cuenta' notificacion.id %}" class="btn btn-procesar">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Procesar Pago
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-bell-slash"></i>
+            </div>
+            <h3 class="empty-title">No hay solicitudes pendientes</h3>
+            <p class="empty-desc">
+                Las solicitudes de cuenta de los meseros aparecerán aquí cuando se generen.
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh cada 30 segundos para nuevas notificaciones
+    setInterval(function() {
+        // Solo hacer refresh si no hay modales abiertos
+        if (!document.querySelector('.modal.show')) {
+            location.reload();
+        }
+    }, 30000);
+    
+    // Sonido de notificación (opcional)
+    function playNotificationSound() {
+        if ('AudioContext' in window || 'webkitAudioContext' in window) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+    }
+    
+    // Verificar si hay nuevas notificaciones (comparar con sessionStorage)
+    const currentCount = {{ notificaciones.count }};
+    const previousCount = sessionStorage.getItem('notificacionesCount') || 0;
+    
+    if (currentCount > previousCount && previousCount > 0) {
+        playNotificationSound();
+    }
+    
+    sessionStorage.setItem('notificacionesCount', currentCount);
+});
+</script>
+{% endblock %}

@@ -124,6 +124,19 @@ class Orden(models.Model):
     fecha_entrega = models.DateTimeField(null=True, blank=True)
     fecha_cierre = models.DateTimeField(null=True, blank=True)
     
+    # Campos para sistema de cuentas
+    cuenta_solicitada = models.BooleanField(default=False)
+    fecha_solicitud_cuenta = models.DateTimeField(null=True, blank=True)
+    usuario_solicita_cuenta = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='cuentas_solicitadas')
+    cuenta_procesada = models.BooleanField(default=False)
+    fecha_procesamiento_cuenta = models.DateTimeField(null=True, blank=True)
+    cajero_procesa_cuenta = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='cuentas_procesadas')
+    metodo_pago_cuenta = models.CharField(max_length=20, choices=[('efectivo', 'Efectivo'), ('tarjeta', 'Tarjeta'), ('transferencia', 'Transferencia')], null=True, blank=True)
+    monto_recibido = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cambio_dado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    referencia_pago = models.CharField(max_length=100, null=True, blank=True)
+    ticket_generado = models.BooleanField(default=False)
+    
     def __str__(self):
         mesa_info = f"Mesa {self.mesa.numero}" if self.mesa else "Sin mesa"
         return f"Orden {self.numero_orden} - {mesa_info}"
@@ -136,7 +149,7 @@ class Orden(models.Model):
             ultimo_numero = Orden.objects.filter(
                 fecha_creacion__date=fecha.date()
             ).count() + 1
-            self.numero_orden = f"{fecha.strftime('%Y%m%d')}-{ultimo_numero:04d}"
+            self.numero_orden = f"ORD-{fecha.strftime('%Y%m%d')}-{ultimo_numero:04d}"
         
         super().save(*args, **kwargs)
         
@@ -317,3 +330,29 @@ class OrdenItemPersonalizacion(models.Model):
     class Meta:
         verbose_name = "Personalización del item"
         verbose_name_plural = "Personalizaciones de items"
+
+
+class NotificacionCuenta(models.Model):
+    """Modelo para notificaciones de cuenta solicitada"""
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('procesando', 'Procesando'),
+        ('completada', 'Completada'),
+        ('cancelada', 'Cancelada'),
+    ]
+    
+    orden = models.ForeignKey(Orden, on_delete=models.CASCADE, related_name='notificaciones_cuenta')
+    mesero = models.ForeignKey('accounts.Usuario', on_delete=models.CASCADE, related_name='notificaciones_enviadas')
+    cajero = models.ForeignKey('accounts.Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='notificaciones_recibidas')
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_procesamiento = models.DateTimeField(null=True, blank=True)
+    notas = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Notificación de Cuenta"
+        verbose_name_plural = "Notificaciones de Cuenta"
+        ordering = ['-fecha_creacion']
+    
+    def __str__(self):
+        return f"Cuenta solicitada - Orden {self.orden.numero_orden} - Mesa {self.orden.mesa.numero if self.orden.mesa else 'Sin mesa'}"

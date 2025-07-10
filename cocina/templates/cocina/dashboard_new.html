@@ -78,7 +78,7 @@
                     {% for orden in ordenes_retrasadas_list %}
                     <div class="order-card delayed">
                         <div class="order-header">
-                            <div class="order-number">Pedido #{{ orden.numero_orden }}</div>
+                            <div class="order-number">Orden #{{ orden.numero_orden }}</div>
                             <div class="order-time delayed">
                                 <i class="bi bi-clock"></i>
                                 Tiempo de Retraso: {{ orden.tiempo_retraso|default:"30+" }} minutos
@@ -128,7 +128,7 @@
                     {% for orden in ordenes_en_proceso_list %}
                     <div class="order-card processing">
                         <div class="order-header">
-                            <div class="order-number">Pedido #{{ orden.numero_orden }}</div>
+                            <div class="order-number">Orden #{{ orden.numero_orden }}</div>
                             <div class="order-time processing">
                                 <i class="bi bi-clock"></i>
                                 Tiempo Estimado de Preparación: {{ orden.tiempo_estimado|default:"10" }} minutos
@@ -178,7 +178,7 @@
                     {% for orden in ordenes_nuevas_list %}
                     <div class="order-card new">
                         <div class="order-header">
-                            <div class="order-number">Pedido #{{ orden.numero_orden }}</div>
+                            <div class="order-number">Orden #{{ orden.numero_orden }}</div>
                             <div class="order-time new">
                                 <i class="bi bi-clock"></i>
                                 Nuevo
@@ -228,7 +228,7 @@
                     {% for orden in ordenes_completadas_list %}
                     <div class="order-card completed">
                         <div class="order-header">
-                            <div class="order-number">Pedido #{{ orden.numero_orden }}</div>
+                            <div class="order-number">Orden #{{ orden.numero_orden }}</div>
                             <div class="order-time completed">
                                 <i class="bi bi-check-circle"></i>
                                 Completado a las {{ orden.fecha_final|date:"H:i" }}

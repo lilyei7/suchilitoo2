@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Debug Endpoints</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #1976d2;
+        }
+        .btn.success {
+            background: #4caf50;
+        }
+        .btn.danger {
+            background: #f44336;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ Debug - Endpoints de Mesero</h1>
+        
+        <div class="section">
+            <h3>⚙️ Configuración</h3>
+            <label for="baseUrl">Base URL:</label>
+            <input type="text" id="baseUrl" value="http://localhost:8000" style="width: 300px;">
+            <button class="btn" onclick="testServer()">🔍 Test Servidor</button>
+        </div>
+        
+        <div class="grid">
+            <div class="section">
+                <h3>🧪 Tests Básicos</h3>
+                <button class="btn" onclick="testDebugEndpoint()">Debug Endpoint</button>
+                <button class="btn success" onclick="testDebugAuth()">Debug Auth</button>
+                <button class="btn danger" onclick="testSolicitarCuenta()">Solicitar Cuenta</button>
+                <button class="btn" onclick="testOrdersPage()">Página Orders</button>
+            </div>
+            
+            <div class="section">
+                <h3>🔧 Utilidades</h3>
+                <button class="btn" onclick="showCookies()">Ver Cookies</button>
+                <button class="btn" onclick="showCSRF()">Ver CSRF</button>
+                <button class="btn" onclick="clearResults()">Limpiar</button>
+                <button class="btn" onclick="testAllEndpoints()">Test All</button>
+            </div>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let resultCounter = 0;
+        
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `
+                <strong>${++resultCounter}. ${title}</strong>
+                <br>
+                <small>${new Date().toLocaleTimeString()}</small>
+                <br><br>
+                ${content}
+            `;
+            resultsDiv.appendChild(resultDiv);
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            resultCounter = 0;
+        }
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        async function testServer() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            addResult('🔍 Testando Servidor', `Probando conexión a: ${baseUrl}`, 'info');
+            
+            try {
+                const response = await fetch(`${baseUrl}/admin/`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                addResult('✅ Servidor Responde', 
+                    `Status: ${response.status}
+URL: ${response.url}
+Redirected: ${response.redirected}`, 
+                    response.ok ? 'success' : 'error');
+                    
+            } catch (error) {
+                addResult('❌ Error de Servidor', `Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDebugEndpoint() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const url = `${baseUrl}/mesero/debug/`;
+            
+            addResult('🧪 Test Debug Endpoint', `URL: ${url}`, 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                const contentType = response.headers.get('Content-Type') || '';
+                addResult('📨 Respuesta Debug', 
+                    `Status: ${response.status}
+Content-Type: ${contentType}`, 
+                    response.ok ? 'success' : 'error');
+                
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    addResult('📄 Datos JSON', JSON.stringify(data, null, 2), 'success');
+                } else {
+                    const text = await response.text();
+                    addResult('📄 Respuesta Texto', text.substring(0, 500), 'error');
+                }
+                
+            } catch (error) {
+                addResult('❌ Error Debug', `Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDebugAuth() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const url = `${baseUrl}/mesero/debug-auth/`;
+            
+            addResult('🔐 Test Debug Auth', `URL: ${url}`, 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || 'no-csrf'
+                    },
+                    credentials: 'include'
+                });
+                
+                const contentType = response.headers.get('Content-Type') || '';
+                addResult('🔐 Respuesta Auth', 
+                    `Status: ${response.status}
+Content-Type: ${contentType}`, 
+                    response.ok ? 'success' : 'error');
+                
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    addResult('🔐 Datos Auth', JSON.stringify(data, null, 2), 'success');
+                } else {
+                    const text = await response.text();
+                    addResult('🔐 Respuesta Auth Text', text.substring(0, 500), 'error');
+                }
+                
+            } catch (error) {
+                addResult('❌ Error Auth', `Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testSolicitarCuenta() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const url = `${baseUrl}/mesero/solicitar-cuenta/1/`;
+            
+            addResult('💰 Test Solicitar Cuenta', `URL: ${url}`, 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || 'no-csrf'
+                    },
+                    credentials: 'include'
+                });
+                
+                const contentType = response.headers.get('Content-Type') || '';
+                addResult('💰 Respuesta Solicitar', 
+                    `Status: ${response.status}
+Content-Type: ${contentType}
+URL: ${response.url}
+Redirected: ${response.redirected}`, 
+                    response.ok ? 'success' : 'error');
+                
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    addResult('💰 Datos Solicitar', JSON.stringify(data, null, 2), 'success');
+                } else {
+                    const text = await response.text();
+                    addResult('💰 Respuesta Solicitar Text', text.substring(0, 500), 'error');
+                }
+                
+            } catch (error) {
+                addResult('❌ Error Solicitar', `Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testOrdersPage() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const url = `${baseUrl}/mesero/orders/`;
+            
+            addResult('📋 Test Orders Page', `URL: ${url}`, 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                addResult('📋 Respuesta Orders', 
+                    `Status: ${response.status}
+URL: ${response.url}
+Redirected: ${response.redirected}`, 
+                    response.ok ? 'success' : 'error');
+                    
+            } catch (error) {
+                addResult('❌ Error Orders', `Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function showCookies() {
+            const cookies = document.cookie || 'No hay cookies';
+            addResult('🍪 Cookies', cookies, 'info');
+        }
+        
+        function showCSRF() {
+            const csrf = getCookie('csrftoken') || 'No CSRF token';
+            addResult('🔐 CSRF Token', csrf, 'info');
+        }
+        
+        async function testAllEndpoints() {
+            clearResults();
+            addResult('🚀 Iniciando Tests Completos', 'Probando todos los endpoints...', 'info');
+            
+            await testServer();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDebugEndpoint();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDebugAuth();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testSolicitarCuenta();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testOrdersPage();
+            
+            addResult('✅ Tests Completados', 'Todos los tests han terminado', 'success');
+        }
+        
+        // Información inicial
+        addResult('ℹ️ Información Inicial', 
+            `URL: ${window.location.href}
+User-Agent: ${navigator.userAgent}
+Cookies: ${document.cookie ? 'Disponibles' : 'No disponibles'}
+CSRF: ${getCookie('csrftoken') ? 'Disponible' : 'No disponible'}`, 'info');
+    </script>
+</body>
+</html>

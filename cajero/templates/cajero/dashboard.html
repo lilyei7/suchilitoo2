@@ -309,6 +309,25 @@
             </a>
         </div>
         
+        <!-- Notificaciones de Cuenta -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <a href="{% url 'cajero:notificaciones_cuenta' %}" class="quick-action-card position-relative">
+                <div class="card-body text-center">
+                    <div class="quick-action-icon warning mx-auto">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <h3 class="quick-action-title">Notificaciones</h3>
+                    <p class="quick-action-desc">Solicitudes de cuenta de meseros</p>
+                    <!-- Badge para mostrar cantidad de notificaciones pendientes -->
+                    {% if notificaciones_pendientes > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ notificaciones_pendientes }}
+                    </span>
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+        
         {% if user_permissions.can_view_sales %}
         <div class="col-lg-3 col-md-6 mb-4">
             <a href="{% url 'cajero:ventas' %}" class="quick-action-card">

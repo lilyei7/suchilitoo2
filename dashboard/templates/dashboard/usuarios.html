@@ -86,48 +86,51 @@
 <!-- Filtros de búsqueda -->
 <div class="card mb-4">
     <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label text-muted small mb-1">Buscar usuario</label>
-                <div class="position-relative">
-                    <input type="text" class="form-control" placeholder="Nombre, usuario o email...">
-                    <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+        <form method="get" id="formFiltrosUsuarios">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-muted small mb-1">Buscar usuario</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control" name="filtroBusqueda" placeholder="Nombre, usuario o email..." value="{{ filtro_busqueda }}">
+                        <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Rol</label>
+                    <select class="form-select" name="filtroRol">
+                        <option value="" {% if not filtro_rol %}selected{% endif %}>Todos los roles</option>
+                        <option value="admin" {% if filtro_rol == 'admin' %}selected{% endif %}>Administrador</option>
+                        <option value="gerente" {% if filtro_rol == 'gerente' %}selected{% endif %}>Gerente</option>
+                        <option value="supervisor" {% if filtro_rol == 'supervisor' %}selected{% endif %}>Supervisor</option>
+                        <option value="cajero" {% if filtro_rol == 'cajero' %}selected{% endif %}>Cajero</option>
+                        <option value="cocinero" {% if filtro_rol == 'cocinero' %}selected{% endif %}>Cocinero</option>
+                        <option value="mesero" {% if filtro_rol == 'mesero' %}selected{% endif %}>Mesero</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Estado</label>
+                    <select class="form-select" name="filtroEstado">
+                        <option value="" {% if not filtro_estado %}selected{% endif %}>Todos</option>
+                        <option value="activo" {% if filtro_estado == 'activo' %}selected{% endif %}>Activos</option>
+                        <option value="inactivo" {% if filtro_estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-1">Sucursal</label>
+                    <select class="form-select" id="filtroSucursal" name="filtroSucursal">
+                        <option value="" {% if not filtro_sucursal %}selected{% endif %}>Todas</option>
+                        {% for sucursal in sucursales %}
+                            <option value="{{ sucursal.id }}" {% if filtro_sucursal == sucursal.id|stringformat:'s' %}selected{% endif %}>{{ sucursal.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
                 </div>
             </div>
-            <div class="col-md-2">
-                <label class="form-label text-muted small mb-1">Rol</label>
-                <select class="form-select">
-                    <option selected>Todos los roles</option>
-                    <option value="admin">Administrador</option>
-                    <option value="gerente">Gerente</option>
-                    <option value="supervisor">Supervisor</option>
-                    <option value="cajero">Cajero</option>
-                    <option value="cocinero">Cocinero</option>
-                    <option value="mesero">Mesero</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label text-muted small mb-1">Estado</label>
-                <select class="form-select">
-                    <option selected>Todos</option>
-                    <option value="activo">Activos</option>
-                    <option value="inactivo">Inactivos</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label text-muted small mb-1">Sucursal</label>
-                <select class="form-select">
-                    <option selected>Todas</option>
-                    <option value="1">Principal</option>
-                    <option value="2">Sucursal Norte</option>
-                </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button class="btn btn-outline-primary w-100">
-                    <i class="fas fa-filter me-2"></i>Filtrar
-                </button>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 
@@ -933,7 +936,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Función para cargar sucursales y roles
 function cargarSucursalesRoles() {
-    fetch('/dashboard/api/sucursales-roles/', {
+    fetch('/dashboard/usuarios/sucursales-roles/', {
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
     .then(response => response.json())
@@ -968,7 +971,7 @@ function cargarSucursalesRoles() {
                 }
             });
             
-            // Cargar roles solo si no existen ya en el HTML
+            // Cargar roles solo si no existen en el HTML
             const rolSelects = [
                 document.getElementById('rol'),
                 document.getElementById('editar_rol')

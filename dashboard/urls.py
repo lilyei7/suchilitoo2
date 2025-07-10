@@ -10,6 +10,7 @@ from .views import sucursales_views
 from .views import croquis_views
 from .views import productos_venta_moderna_views
 from .views import api_views
+from .views import usuarios_views
 from django.conf import settings
 from django.conf.urls.static import static
 

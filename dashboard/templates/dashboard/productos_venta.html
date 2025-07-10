@@ -256,6 +256,9 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
             
             currentProductId = this.dataset.productId;
+            console.log(`🔍 Dataset del botón:`, this.dataset);
+            console.log(`🆔 ID del producto capturado: ${currentProductId} (tipo: ${typeof currentProductId})`);
+            
             // Mejorar la selección del elemento a eliminar
             currentProductCard = this.closest('.col-12.col-sm-6.col-lg-4');
             // Fallback si el selector específico no funciona
@@ -278,6 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Configurar URL del formulario
             const deleteUrl = `/dashboard/productos-venta/${currentProductId}/eliminar/`;
+            console.log(`🔗 URL configurada para eliminación: ${deleteUrl}`);
             deleteForm.action = deleteUrl;
             
             // Actualizar mensaje del modal
@@ -307,88 +311,101 @@ document.addEventListener('DOMContentLoaded', function() {
         // Obtener CSRF token
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         
-        // Crear FormData
-        const formData = new FormData();
-        formData.append('csrfmiddlewaretoken', csrfToken);
-        
-        fetch(this.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            console.log(`📨 Respuesta: ${response.status}`);
+        // Función para enviar la petición (normal o forzada)
+        function enviarEliminacion(forzado) {
+            console.log(`📦 Enviando eliminación para producto ID: ${currentProductId}, forzado: ${forzado}`);
+            console.log(`📍 URL de eliminación: ${deleteForm.action}`);
             
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            // SIEMPRE crear un nuevo FormData limpio
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            if (forzado) {
+                formData.append('force', 'true');
+                console.log('🔨 Agregando parámetro force=true');
             }
             
-            return response.json();
-        })
-        .then(data => {
-            console.log('✅ Respuesta del servidor:', data);
-            
-            if (data.success) {
-                console.log('🎉 Producto eliminado exitosamente');
-                
-                // Cerrar modal
-                modalInstance.hide();
-                
-                // Eliminar tarjeta del DOM con animación
-                if (currentProductCard) {
-                    currentProductCard.style.transition = 'all 0.3s ease';
-                    currentProductCard.style.transform = 'scale(0.8)';
-                    currentProductCard.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        try {
-                            currentProductCard.remove();
-                            console.log('🗑️ Producto removido del DOM');
-                        } catch (err) {
-                            console.error('❌ Error al remover la tarjeta del DOM:', err);
-                            console.log('🔄 Recargando página...');
-                            location.reload();
-                            return;
-                        }
-                        
-                        // Verificar si quedan productos
-                        const remainingProducts = document.querySelectorAll('.product-card').length;
-                        console.log(`📊 Productos restantes: ${remainingProducts}`);
-                        
-                        if (remainingProducts === 0) {
-                            console.log('🔄 No quedan productos, recargando...');
-                            setTimeout(() => location.reload(), 1000);
-                        }
-                    }, 300);
-                } else {
-                    // Si no se puede encontrar el elemento a eliminar, recargar la página
-                    console.log('⚠️ No se pudo encontrar la tarjeta del producto, recargando página...');
-                    setTimeout(() => location.reload(), 1000);
+            // Logs de debug
+            console.log('📋 Contenido del FormData:');
+            for (let pair of formData.entries()) {
+                console.log(`  ${pair[0]}: ${pair[1]}`);
+            }
+            fetch(deleteForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
-                
-                // Mostrar toast de éxito
-                showToast(data.message || 'Producto eliminado exitosamente', 'success');
-                
-            } else {
-                console.error('❌ Error del servidor:', data.message);
-                showToast(data.message || 'Error al eliminar el producto', 'error');
+            })
+            .then(response => {
+                // Procesar SIEMPRE el body como JSON, aunque sea error
+                return response.json().then(data => {
+                    return { ok: response.ok, status: response.status, data };
+                }).catch(() => {
+                    // Si no es JSON válido
+                    return { ok: response.ok, status: response.status, data: { success: false, message: 'Respuesta inválida del servidor' } };
+                });
+            })
+            .then(({ ok, status, data }) => {
+                console.log('✅ Respuesta del servidor:', data);
+                if (ok && data.success) {
+                    console.log('🎉 Producto eliminado exitosamente');
+                    modalInstance.hide();
+                    if (currentProductCard) {
+                        currentProductCard.classList.add('animate__fadeOut');
+                        setTimeout(() => {
+                            currentProductCard.remove();
+                        }, 300);
+                    } else {
+                        window.location.reload();
+                    }
+                    showToast(data.message || 'Producto eliminado exitosamente', 'success');
+                    // Limpiar variables solo cuando sea exitoso
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.innerHTML = originalText;
+                    currentProductId = null;
+                    currentProductCard = null;
+                } else if (data.requiere_forzado) {
+                    // Preguntar al usuario si desea forzar
+                    if (confirm(data.message + '\n¿Desea forzar la eliminación y borrar también los registros relacionados?')) {
+                        enviarEliminacion(true);
+                        return;
+                    } else {
+                        showToast('Eliminación cancelada por el usuario.', 'warning');
+                        // Restaurar botón cuando el usuario cancela
+                        confirmDeleteBtn.disabled = false;
+                        confirmDeleteBtn.innerHTML = originalText;
+                    }
+                } else {
+                    // NO cerrar el modal ni recargar la página en caso de error
+                    console.error('❌ Error del servidor:', data.message);
+                    showToast(data.message || 'Error al eliminar el producto', 'error');
+                    // Restaurar botón pero NO limpiar variables para permitir reintento
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error de conexión:', error);
+                showToast('Error de conexión al eliminar el producto', 'error');
+                // Restaurar botón pero NO limpiar variables para permitir reintento
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.innerHTML = originalText;
+            });
+        }
+        
+        // Limpiar variables cuando el modal se cierra (sin éxito)
+        deleteModal.addEventListener('hidden.bs.modal', function() {
+            if (currentProductId !== null) {
+                console.log('🧹 Limpiando variables al cerrar modal');
+                currentProductId = null;
+                currentProductCard = null;
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.innerHTML = originalText;
             }
-        })
-        .catch(error => {
-            console.error('❌ Error de conexión:', error);
-            showToast('Error de conexión al eliminar el producto', 'error');
-        })
-        .finally(() => {
-            // Restaurar estado del botón
-            confirmDeleteBtn.disabled = false;
-            confirmDeleteBtn.innerHTML = originalText;
-            
-            // Limpiar variables
-            currentProductId = null;
-            currentProductCard = null;
         });
+        
+        // Llamar a la función de envío normal
+        enviarEliminacion(false);
     });
     
     // Función para mostrar toast

@@ -30,7 +30,7 @@ def sucursales_view(request):
     # Agregar estadísticas de mesas para cada sucursal
     for sucursal in sucursales:
         # Contar mesas disponibles
-        mesas_disponibles = sucursal.mesas.filter(estado='disponible', activa=True).count()
+        mesas_disponibles = sucursal.mesas.filter(estado='disponible', activo=True).count()  # <-- Cambiado 'activa' por 'activo'
         sucursal.mesas_disponibles_count = mesas_disponibles
     
     context = {

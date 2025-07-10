@@ -9,10 +9,11 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from restaurant.models import ProductoVenta, CategoriaProducto
 # Usar el modelo Mesa de mesero, no el de dashboard
-from .models import Orden, OrdenItem, HistorialMesa, HistorialOrden, Mesa
+from .models import Orden, OrdenItem, HistorialMesa, HistorialOrden, Mesa, NotificacionCuenta
 from collections import defaultdict
 import json
 from inventario_automatico import InventarioAutomatico
+from decimal import Decimal
 
 def obtener_productos_menu():
     """
@@ -160,6 +161,7 @@ def orders(request):
         
         pedidos.append({
             'id': orden.id,
+            'numero_orden': orden.numero_orden,
             'mesa': orden.mesa.numero,
             'estado': orden.get_estado_display(),
             'estado_code': orden.estado,
@@ -168,6 +170,8 @@ def orders(request):
             'total': float(orden.total),
             'items': items,
             'notas': orden.observaciones or '',
+            'cuenta_solicitada': orden.cuenta_solicitada,
+            'cuenta_procesada': orden.cuenta_procesada,
         })
     
     return render(request, 'mesero/orders.html', {'pedidos': pedidos})
@@ -727,3 +731,221 @@ def verificar_stock_producto(request, producto_id):
             'success': False,
             'error': str(e)
         })
+
+@login_required
+@login_required
+def solicitar_cuenta(request, orden_id):
+    """Vista para que el mesero solicite la cuenta de una orden"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"=== SOLICITAR CUENTA INICIADA ===")
+    logger.info(f"Orden ID: {orden_id}")
+    logger.info(f"Método: {request.method}")
+    logger.info(f"Usuario: {request.user}")
+    logger.info(f"Es AJAX: {request.headers.get('X-Requested-With') == 'XMLHttpRequest'}")
+    
+    try:
+        orden = get_object_or_404(Orden, id=orden_id)
+        logger.info(f"Orden encontrada: {orden}")
+        
+        # Verificar que la orden pertenece al mesero o que el usuario tiene permisos
+        if orden.mesero != request.user and not request.user.is_superuser:
+            logger.warning(f"Usuario sin permisos para la orden {orden_id}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': 'No tienes permisos para solicitar la cuenta de esta orden.'
+                })
+            messages.error(request, 'No tienes permisos para solicitar la cuenta de esta orden.')
+            return redirect('mesero:orders')
+        
+        if request.method == 'POST':
+            try:
+                # Verificar que la orden no tenga ya una cuenta solicitada
+                if orden.cuenta_solicitada:
+                    logger.warning(f"Cuenta ya solicitada para orden {orden_id}")
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return JsonResponse({
+                            'success': False,
+                            'message': 'La cuenta ya ha sido solicitada para esta orden.'
+                        })
+                    messages.warning(request, 'La cuenta ya ha sido solicitada para esta orden.')
+                    return redirect('mesero:orders')
+                
+                # Crear notificación para el cajero
+                notificacion = NotificacionCuenta.objects.create(
+                    orden=orden,
+                    mesero=request.user,
+                    estado='pendiente'
+                )
+                logger.info(f"Notificación creada: {notificacion}")
+                
+                # Actualizar la orden
+                orden.cuenta_solicitada = True
+                orden.fecha_solicitud_cuenta = timezone.now()
+                orden.usuario_solicita_cuenta = request.user
+                orden.save()
+                logger.info(f"Orden actualizada: cuenta_solicitada={orden.cuenta_solicitada}")
+                
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    logger.info("Enviando respuesta JSON exitosa")
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Cuenta solicitada exitosamente. El cajero será notificado.'
+                    })
+                
+                messages.success(request, 'Cuenta solicitada exitosamente. El cajero será notificado.')
+                return redirect('mesero:orders')
+                
+            except Exception as e:
+                logger.error(f"Error al procesar solicitud: {str(e)}", exc_info=True)
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Error al solicitar cuenta: {str(e)}'
+                    })
+                messages.error(request, f'Error al solicitar cuenta: {str(e)}')
+                return redirect('mesero:orders')
+        
+        # Si no es POST, devolver método no permitido
+        logger.warning(f"Método no permitido: {request.method}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': 'Método no permitido'
+            }, status=405)
+        
+        return redirect('mesero:orders')
+        
+    except Exception as e:
+        logger.error(f"Error general en solicitar_cuenta: {str(e)}", exc_info=True)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': f'Error interno: {str(e)}'
+            }, status=500)
+        messages.error(request, f'Error interno: {str(e)}')
+        return redirect('mesero:orders')
+    
+    # Calcular total de la orden
+    total = sum(item.subtotal for item in orden.items.all())
+    
+    context = {
+        'orden': orden,
+        'total': total,
+        'items': orden.items.all(),
+    }
+    
+    return render(request, 'mesero/solicitar_cuenta.html', context)
+
+@login_required
+def estado_cuenta(request, orden_id):
+    """Vista para que el mesero vea el estado de la cuenta solicitada"""
+    orden = get_object_or_404(Orden, id=orden_id)
+    
+    # Verificar permisos
+    if orden.mesero != request.user and not request.user.is_superuser:
+        messages.error(request, 'No tienes permisos para ver esta orden.')
+        return redirect('mesero:orders')
+    
+    # Obtener la notificación de cuenta si existe
+    notificacion = None
+    if orden.cuenta_solicitada:
+        notificacion = NotificacionCuenta.objects.filter(orden=orden).first()
+    
+    # Calcular total
+    total = sum(item.subtotal for item in orden.items.all())
+    
+    context = {
+        'orden': orden,
+        'notificacion': notificacion,
+        'total': total,
+        'items': orden.items.all(),
+    }
+    
+    return render(request, 'mesero/estado_cuenta.html', context)
+
+@csrf_exempt
+@login_required
+def api_solicitar_cuenta(request):
+    """API para solicitar cuenta"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        orden_id = data.get('orden_id')
+        
+        orden = Orden.objects.get(id=orden_id)
+        
+        # Verificar permisos
+        if orden.mesero != request.user and not request.user.is_superuser:
+            return JsonResponse({'error': 'Sin permisos'}, status=403)
+        
+        # Verificar que no esté ya solicitada
+        if orden.cuenta_solicitada:
+            return JsonResponse({'error': 'La cuenta ya ha sido solicitada'}, status=400)
+        
+        # Crear notificación
+        notificacion = NotificacionCuenta.objects.create(
+            orden=orden,
+            mesero=request.user,
+            estado='pendiente'
+        )
+        
+        # Actualizar orden
+        orden.cuenta_solicitada = True
+        orden.fecha_solicitud_cuenta = timezone.now()
+        orden.usuario_solicita_cuenta = request.user
+        orden.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Cuenta solicitada exitosamente',
+            'notificacion_id': notificacion.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@login_required
+def api_estado_cuenta(request, orden_id):
+    """API para obtener el estado de una cuenta"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        orden = Orden.objects.get(id=orden_id)
+        
+        # Verificar permisos
+        if orden.mesero != request.user and not request.user.is_superuser:
+            return JsonResponse({'error': 'Sin permisos'}, status=403)
+        
+        # Obtener información de la cuenta
+        data = {
+            'orden_id': orden.id,
+            'numero_orden': orden.numero_orden,
+            'cuenta_solicitada': orden.cuenta_solicitada,
+            'cuenta_procesada': orden.cuenta_procesada,
+            'total': float(sum(item.subtotal for item in orden.items.all())),
+        }
+        
+        if orden.cuenta_solicitada:
+            data['fecha_solicitud'] = orden.fecha_solicitud_cuenta.isoformat() if orden.fecha_solicitud_cuenta else None
+        
+        if orden.cuenta_procesada:
+            data.update({
+                'fecha_procesamiento': orden.fecha_procesamiento_cuenta.isoformat() if orden.fecha_procesamiento_cuenta else None,
+                'metodo_pago': orden.metodo_pago_cuenta,
+                'monto_recibido': float(orden.monto_recibido) if orden.monto_recibido else None,
+                'cambio_dado': float(orden.cambio_dado) if orden.cambio_dado else None,
+                'referencia_pago': orden.referencia_pago,
+                'cajero': orden.cajero_procesa_cuenta.get_full_name() if orden.cajero_procesa_cuenta else None,
+            })
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

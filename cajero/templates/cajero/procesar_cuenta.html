@@ -1,0 +1,532 @@
+{% extends 'cajero/base.html' %}
+{% load static %}
+
+{% block title %}Procesar Cuenta - Cajero{% endblock %}
+
+{% block extra_css %}
+<style>
+    .procesar-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+    
+    .procesar-header {
+        background: linear-gradient(135deg, #27ae60, #229954);
+        color: white;
+        padding: 32px;
+        border-radius: 20px 20px 0 0;
+        text-align: center;
+    }
+    
+    .procesar-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    
+    .procesar-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    .procesar-card {
+        background: white;
+        border-radius: 0 0 20px 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+    
+    .orden-summary {
+        background: #f8f9fa;
+        padding: 24px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .summary-item {
+        text-align: center;
+        padding: 16px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .summary-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    
+    .summary-value {
+        font-size: 1.3rem;
+        color: #2c3e50;
+        font-weight: 700;
+    }
+    
+    .items-section {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 20px;
+    }
+    
+    .items-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+    
+    .item-row:last-child {
+        border-bottom: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #27ae60;
+        border-top: 2px solid #e9ecef;
+        margin-top: 8px;
+        padding-top: 16px;
+    }
+    
+    .payment-form {
+        padding: 32px;
+    }
+    
+    .form-section {
+        margin-bottom: 32px;
+    }
+    
+    .section-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .payment-methods {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .payment-method {
+        position: relative;
+    }
+    
+    .payment-method input[type="radio"] {
+        display: none;
+    }
+    
+    .payment-method label {
+        display: block;
+        padding: 20px;
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+    
+    .payment-method label:hover {
+        background: #e9ecef;
+        transform: translateY(-2px);
+    }
+    
+    .payment-method input[type="radio"]:checked + label {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border-color: #3498db;
+        box-shadow: 0 6px 20px rgba(52,152,219,0.3);
+    }
+    
+    .payment-method i {
+        font-size: 1.8rem;
+        margin-bottom: 8px;
+        display: block;
+    }
+    
+    .amount-section {
+        background: #f8f9fa;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .amount-display {
+        text-align: center;
+        margin-bottom: 24px;
+    }
+    
+    .amount-label {
+        font-size: 1rem;
+        color: #6c757d;
+        margin-bottom: 8px;
+    }
+    
+    .amount-value {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #27ae60;
+    }
+    
+    .form-floating {
+        margin-bottom: 20px;
+    }
+    
+    .form-control {
+        min-height: 58px;
+        font-size: 1.2rem;
+        border-radius: 12px;
+        border: 2px solid #e9ecef;
+    }
+    
+    .form-control:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.1);
+    }
+    
+    .change-display {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+        padding: 20px;
+        border-radius: 16px;
+        text-align: center;
+        margin-bottom: 24px;
+        display: none;
+    }
+    
+    .change-label {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 8px;
+    }
+    
+    .change-amount {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    .btn-procesar-pago {
+        background: linear-gradient(135deg, #27ae60, #229954);
+        border: none;
+        color: white;
+        padding: 20px 40px;
+        border-radius: 16px;
+        font-size: 1.3rem;
+        font-weight: 600;
+        width: 100%;
+        transition: all 0.3s ease;
+        box-shadow: 0 6px 20px rgba(39, 174, 96, 0.3);
+    }
+    
+    .btn-procesar-pago:hover {
+        background: linear-gradient(135deg, #229954, #1e8449);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(39, 174, 96, 0.4);
+    }
+    
+    .btn-volver {
+        background: #6c757d;
+        border: none;
+        color: white;
+        padding: 16px 32px;
+        border-radius: 16px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-right: 16px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-volver:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .summary-grid,
+        .payment-methods {
+            grid-template-columns: 1fr;
+        }
+        
+        .procesar-container {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="procesar-container">
+    <div class="procesar-header">
+        <h1 class="procesar-title">
+            <i class="fas fa-credit-card me-3"></i>
+            Procesar Pago
+        </h1>
+        <p class="procesar-subtitle">
+            Orden #{{ orden.numero_orden }} - Mesa {{ orden.mesa.numero }}
+        </p>
+    </div>
+    
+    <div class="procesar-card">
+        <div class="orden-summary">
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Mesa</div>
+                    <div class="summary-value">#{{ orden.mesa.numero }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Mesero</div>
+                    <div class="summary-value">{{ notificacion.mesero.first_name|default:notificacion.mesero.username }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Hora</div>
+                    <div class="summary-value">{{ notificacion.fecha_creacion|time:"H:i" }}</div>
+                </div>
+            </div>
+            
+            <div class="items-section">
+                <div class="items-title">
+                    <i class="fas fa-list"></i>
+                    Detalle de la Orden
+                </div>
+                {% for item in items %}
+                <div class="item-row">
+                    <div>{{ item.cantidad }}x {{ item.producto.nombre }}</div>
+                    <div>${{ item.subtotal|floatformat:2 }}</div>
+                </div>
+                {% endfor %}
+                <div class="item-row">
+                    <div><strong>TOTAL</strong></div>
+                    <div><strong>${{ total|floatformat:2 }}</strong></div>
+                </div>
+            </div>
+        </div>
+        
+        <form method="post" class="payment-form" id="paymentForm">
+            {% csrf_token %}
+            
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="fas fa-wallet"></i>
+                    Método de Pago
+                </h3>
+                
+                <div class="payment-methods">
+                    <div class="payment-method">
+                        <input type="radio" id="efectivo" name="metodo_pago" value="efectivo" required>
+                        <label for="efectivo">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Efectivo
+                        </label>
+                    </div>
+                    <div class="payment-method">
+                        <input type="radio" id="tarjeta" name="metodo_pago" value="tarjeta" required>
+                        <label for="tarjeta">
+                            <i class="fas fa-credit-card"></i>
+                            Tarjeta
+                        </label>
+                    </div>
+                    <div class="payment-method">
+                        <input type="radio" id="transferencia" name="metodo_pago" value="transferencia" required>
+                        <label for="transferencia">
+                            <i class="fas fa-mobile-alt"></i>
+                            Transferencia
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="amount-section">
+                <div class="amount-display">
+                    <div class="amount-label">Total a Cobrar</div>
+                    <div class="amount-value" id="totalAmount">${{ total|floatformat:2 }}</div>
+                </div>
+                
+                <div class="form-floating" id="montoRecibidoSection" style="display: none;">
+                    <input type="number" class="form-control" id="monto_recibido" name="monto_recibido" 
+                           placeholder="0.00" step="0.01" min="{{ total }}">
+                    <label for="monto_recibido">Monto Recibido</label>
+                </div>
+                
+                <div class="form-floating" id="referenciaSection" style="display: none;">
+                    <input type="text" class="form-control" id="referencia" name="referencia" 
+                           placeholder="Ingrese número de referencia">
+                    <label for="referencia">Número de Referencia</label>
+                </div>
+                
+                <div class="change-display" id="changeDisplay">
+                    <div class="change-label">Cambio a Entregar</div>
+                    <div class="change-amount" id="changeAmount">$0.00</div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <a href="{% url 'cajero:notificaciones_cuenta' %}" class="btn btn-volver">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Volver
+                </a>
+                <button type="submit" class="btn btn-procesar-pago" id="submitBtn">
+                    <i class="fas fa-check me-2"></i>
+                    Procesar Pago
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const totalAmount = {{ total }};
+    const paymentMethods = document.querySelectorAll('input[name="metodo_pago"]');
+    const montoRecibidoSection = document.getElementById('montoRecibidoSection');
+    const referenciaSection = document.getElementById('referenciaSection');
+    const montoRecibidoInput = document.getElementById('monto_recibido');
+    const changeDisplay = document.getElementById('changeDisplay');
+    const changeAmount = document.getElementById('changeAmount');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Manejar cambio de método de pago
+    paymentMethods.forEach(method => {
+        method.addEventListener('change', function() {
+            const selectedMethod = this.value;
+            
+            // Reset sections
+            montoRecibidoSection.style.display = 'none';
+            referenciaSection.style.display = 'none';
+            changeDisplay.style.display = 'none';
+            
+            // Clear inputs
+            montoRecibidoInput.value = '';
+            document.getElementById('referencia').value = '';
+            
+            if (selectedMethod === 'efectivo') {
+                montoRecibidoSection.style.display = 'block';
+                montoRecibidoInput.required = true;
+                montoRecibidoInput.focus();
+            } else if (selectedMethod === 'transferencia') {
+                referenciaSection.style.display = 'block';
+                document.getElementById('referencia').required = true;
+            }
+            
+            updateSubmitButton(selectedMethod);
+        });
+    });
+    
+    // Calcular cambio para efectivo
+    montoRecibidoInput.addEventListener('input', function() {
+        const montoRecibido = parseFloat(this.value) || 0;
+        const cambio = montoRecibido - totalAmount;
+        
+        if (cambio >= 0) {
+            changeAmount.textContent = `$${cambio.toFixed(2)}`;
+            changeDisplay.style.display = 'block';
+            this.style.borderColor = '#27ae60';
+        } else {
+            changeDisplay.style.display = 'none';
+            this.style.borderColor = '#e74c3c';
+        }
+    });
+    
+    // Actualizar texto del botón según método de pago
+    function updateSubmitButton(method) {
+        const btnText = {
+            'efectivo': '<i class="fas fa-money-bill-wave me-2"></i>Procesar Pago en Efectivo',
+            'tarjeta': '<i class="fas fa-credit-card me-2"></i>Procesar Pago con Tarjeta',
+            'transferencia': '<i class="fas fa-mobile-alt me-2"></i>Confirmar Transferencia'
+        };
+        
+        submitBtn.innerHTML = btnText[method] || '<i class="fas fa-check me-2"></i>Procesar Pago';
+    }
+    
+    // Validación del formulario
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+        const selectedMethod = document.querySelector('input[name="metodo_pago"]:checked');
+        
+        if (!selectedMethod) {
+            e.preventDefault();
+            alert('Por favor seleccione un método de pago');
+            return;
+        }
+        
+        if (selectedMethod.value === 'efectivo') {
+            const montoRecibido = parseFloat(montoRecibidoInput.value) || 0;
+            if (montoRecibido < totalAmount) {
+                e.preventDefault();
+                alert('El monto recibido debe ser mayor o igual al total de la cuenta');
+                montoRecibidoInput.focus();
+                return;
+            }
+        }
+        
+        if (selectedMethod.value === 'transferencia') {
+            const referencia = document.getElementById('referencia').value.trim();
+            if (!referencia) {
+                e.preventDefault();
+                alert('Por favor ingrese el número de referencia de la transferencia');
+                document.getElementById('referencia').focus();
+                return;
+            }
+        }
+        
+        // Mostrar loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+    });
+    
+    // Auto-focus en el primer radio button
+    if (paymentMethods.length > 0) {
+        paymentMethods[0].focus();
+    }
+    
+    // Sonido de confirmación
+    function playSuccessSound() {
+        if ('AudioContext' in window || 'webkitAudioContext' in window) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 600;
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+    }
+});
+</script>
+{% endblock %}

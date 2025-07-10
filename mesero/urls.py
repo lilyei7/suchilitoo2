@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import debug_views
 
 app_name = 'mesero'
 
@@ -21,5 +22,18 @@ urlpatterns = [
     path('orden/<int:orden_id>/actualizar/', views.actualizar_estado_orden, name='actualizar_estado_orden'),  # Actualizar estado
     path('liberar-mesa/<int:orden_id>/', views.liberar_mesa, name='liberar_mesa'),
     path('cancelar-orden/<int:orden_id>/', views.cancelar_orden, name='cancelar_orden'),
+    
+    # URLs para sistema de cuentas
+    path('solicitar-cuenta/<int:orden_id>/', views.solicitar_cuenta, name='solicitar_cuenta'),
+    path('estado-cuenta/<int:orden_id>/', views.estado_cuenta, name='estado_cuenta'),
+    
+    # APIs para sistema de cuentas
+    path('api/solicitar-cuenta/', views.api_solicitar_cuenta, name='api_solicitar_cuenta'),
+    path('api/estado-cuenta/<int:orden_id>/', views.api_estado_cuenta, name='api_estado_cuenta'),
+    
+    # Debug endpoints
+    path('debug/', debug_views.debug_endpoint, name='debug_endpoint'),
+    path('debug-auth/', debug_views.debug_auth_endpoint, name='debug_auth_endpoint'),
+    
     path('', views.seleccionar_mesa, name='index'),  # Ahora la ruta raíz va a selección de mesa
 ]

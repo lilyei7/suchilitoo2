@@ -140,6 +140,41 @@
         transform: translateY(-1px);
     }
 
+    .btn-solicitar-cuenta {
+        background: #2196f3;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .btn-solicitar-cuenta:hover {
+        background: #1976d2;
+        transform: translateY(-1px);
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .badge-info {
+        background: #e3f2fd;
+        color: #1976d2;
+        border: 1px solid #bbdefb;
+    }
+
     @media (max-width: 600px) {
         .orders-container {
             padding: 1rem 0.3rem;
@@ -153,12 +188,12 @@
 
 {% block content %}
 <div class="orders-container">
-    <div class="orders-title">Pedidos Actuales</div>
+    <div class="orders-title">Órdenes Actuales</div>
     {% if pedidos %}
         {% for pedido in pedidos %}
             <div class="order-card">
                 <div class="order-header">
-                    <span class="order-id">Pedido #{{ pedido.id }}</span>
+                    <span class="order-id">Orden #{{ pedido.numero_orden }}</span>
                     <span class="order-state estado-{{ pedido.estado_code }}">{{ pedido.estado }}</span>
                 </div>
                 <div class="order-table">Mesa: {{ pedido.mesa }}</div>
@@ -175,12 +210,26 @@
                 
                 <!-- Acciones de la orden -->
                 <div class="order-actions">
-                    {% if pedido.estado_code in 'entregada,lista' %}
+                    {% if pedido.estado_code in 'entregada,lista' and not pedido.cuenta_procesada %}
+                        {% if not pedido.cuenta_solicitada %}
+                            <button class="btn-solicitar-cuenta" onclick="solicitarCuenta({{ pedido.id }})" 
+                                    title="Solicitar cuenta al cajero">
+                                <i class="fas fa-receipt"></i> Solicitar Cuenta
+                            </button>
+                        {% else %}
+                            <span class="badge badge-info">
+                                <i class="fas fa-clock"></i> Cuenta solicitada
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if pedido.cuenta_procesada %}
                         <button class="btn-liberar-mesa" onclick="liberarMesa({{ pedido.id }}, '{{ pedido.mesa }}')" 
                                 title="Finalizar servicio y liberar mesa">
                             <i class="fas fa-check-circle"></i> Finalizar Servicio
                         </button>
                     {% endif %}
+                    
                     {% if pedido.estado_code == 'pendiente' %}
                         <button class="btn-cancelar" onclick="cancelarOrden({{ pedido.id }})" 
                                 title="Cancelar orden">
@@ -193,7 +242,7 @@
     {% else %}
         <div style="text-align:center; color:#789; padding: 3rem 0;">
             <i class="fas fa-clipboard-list" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-            <br>No hay pedidos activos.
+            <br>No hay órdenes activas.
         </div>
     {% endif %}
 </div>
@@ -201,6 +250,85 @@
 
 {% block extra_js %}
 <script>
+function solicitarCuenta(ordenId) {
+    console.log('🔄 Iniciando solicitud de cuenta para orden:', ordenId);
+    
+    if (!confirm('¿Solicitar cuenta al cajero?\n\nEsto notificará al cajero para que procese el pago.')) {
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Solicitando...';
+    button.disabled = true;
+    
+    console.log('📡 Enviando petición AJAX...');
+    
+    fetch(`/mesero/solicitar-cuenta/${ordenId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('📨 Respuesta recibida:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Array.from(response.headers.entries()),
+            url: response.url,
+            redirected: response.redirected
+        });
+        
+        // Verificar el Content-Type
+        const contentType = response.headers.get('Content-Type') || '';
+        console.log('🏷️ Content-Type:', contentType);
+        
+        if (contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            // Si no es JSON, leer como texto para debugging
+            return response.text().then(text => {
+                console.error('❌ Respuesta no es JSON:', text.substring(0, 200) + '...');
+                throw new Error(`Respuesta no es JSON. Content-Type: ${contentType}. Contenido: ${text.substring(0, 100)}...`);
+            });
+        }
+    })
+    .then(data => {
+        console.log('✅ Datos recibidos:', data);
+        
+        if (data.success) {
+            alert('Cuenta solicitada exitosamente.\nEl cajero será notificado para procesar el pago.');
+            
+            // Recargar la página para actualizar el estado
+            console.log('🔄 Recargando página...');
+            window.location.reload();
+        } else {
+            console.error('❌ Solicitud falló:', data);
+            alert(data.message || 'Error al solicitar cuenta');
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('💥 Error completo:', error);
+        console.error('📍 Stack trace:', error.stack);
+        
+        let errorMessage = 'Error de conexión al solicitar cuenta';
+        if (error.message.includes('not valid JSON')) {
+            errorMessage = 'Error del servidor (respuesta no válida). Verifica que estés logueado correctamente.';
+        } else if (error.message.includes('Content-Type')) {
+            errorMessage = 'Error del servidor: ' + error.message;
+        }
+        
+        alert(errorMessage);
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+    });
+}
+
 function liberarMesa(ordenId, mesaNumero) {
     if (!confirm(`¿Finalizar servicio y liberar Mesa ${mesaNumero}?\n\nEsto marcará la orden como cerrada y la mesa como disponible.`)) {
         return;

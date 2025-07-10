@@ -14,7 +14,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('dashboard/', include('dashboard.urls')),
     path('cajero/', include('cajero.urls')),
-    path('mesero/', include('mesero.urls', namespace='mesero')),
+    path('mesero/', include('mesero.urls')),
     path('cocina/', include('cocina.urls', namespace='cocina')),
     path('accounts/', include('accounts.urls')),
     path('', redirect_to_dashboard),

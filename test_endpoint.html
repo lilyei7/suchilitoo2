@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Endpoint Solicitar Cuenta</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #1976d2;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .error {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test - Endpoint Solicitar Cuenta</h1>
+        
+        <div>
+            <h3>Configuración</h3>
+            <label for="ordenId">Orden ID:</label>
+            <input type="number" id="ordenId" value="1" min="1">
+            
+            <label for="baseUrl">Base URL:</label>
+            <input type="text" id="baseUrl" value="http://localhost:8000" style="width: 200px;">
+        </div>
+        
+        <div>
+            <h3>Acciones</h3>
+            <button class="btn" onclick="testEndpoint()">🧪 Test Endpoint</button>
+            <button class="btn" onclick="testWithoutLogin()">🔒 Test Sin Login</button>
+            <button class="btn" onclick="testPageLoad()">📄 Test Cargar Página</button>
+            <button class="btn" onclick="clearResults()">🧹 Limpiar</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let resultCounter = 0;
+        
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `
+                <strong>${++resultCounter}. ${title}</strong>
+                <br>
+                <small>${new Date().toLocaleTimeString()}</small>
+                <br><br>
+                ${content}
+            `;
+            resultsDiv.appendChild(resultDiv);
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            resultCounter = 0;
+        }
+        
+        async function testEndpoint() {
+            const ordenId = document.getElementById('ordenId').value;
+            const baseUrl = document.getElementById('baseUrl').value;
+            const url = `${baseUrl}/mesero/solicitar-cuenta/${ordenId}/`;
+            
+            addResult('Probando Endpoint con AJAX', `URL: ${url}`, 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || 'dummy-token'
+                    },
+                    credentials: 'include'
+                });
+                
+                const statusText = response.status === 200 ? 'success' : 'error';
+                const contentType = response.headers.get('Content-Type') || 'No especificado';
+                
+                addResult(`Respuesta Recibida`, 
+                    `Status: ${response.status} ${response.statusText}
+Content-Type: ${contentType}
+URL: ${response.url}
+Redirected: ${response.redirected}`, statusText === 'success' ? 'success' : 'error');
+                
+                // Intentar leer como JSON
+                try {
+                    const data = await response.json();
+                    addResult('Datos JSON', JSON.stringify(data, null, 2), 'success');
+                } catch (e) {
+                    // Si no es JSON, leer como texto
+                    const text = await response.text();
+                    addResult('Respuesta como Texto', 
+                        `Error parseando JSON: ${e.message}
+
+Contenido recibido (primeros 1000 caracteres):
+${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`, 'error');
+                }
+                
+            } catch (error) {
+                addResult('Error de Red', `Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testWithoutLogin() {
+            const ordenId = document.getElementById('ordenId').value;
+            const baseUrl = document.getElementById('baseUrl').value;
+            const url = `${baseUrl}/mesero/solicitar-cuenta/${ordenId}/`;
+            
+            addResult('Probando Sin Login', `URL: ${url}`, 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'omit'  // No enviar cookies
+                });
+                
+                const statusText = response.status === 200 ? 'success' : 'error';
+                const contentType = response.headers.get('Content-Type') || 'No especificado';
+                
+                addResult(`Respuesta Sin Login`, 
+                    `Status: ${response.status} ${response.statusText}
+Content-Type: ${contentType}
+URL: ${response.url}
+Redirected: ${response.redirected}`, statusText === 'success' ? 'success' : 'error');
+                
+                const text = await response.text();
+                addResult('Contenido Respuesta', 
+                    `Primeros 500 caracteres:
+${text.substring(0, 500)}${text.length > 500 ? '...' : ''}`, 'info');
+                    
+            } catch (error) {
+                addResult('Error de Red', `Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testPageLoad() {
+            const ordenId = document.getElementById('ordenId').value;
+            const baseUrl = document.getElementById('baseUrl').value;
+            const url = `${baseUrl}/mesero/solicitar-cuenta/${ordenId}/`;
+            
+            addResult('Probando Carga de Página', `URL: ${url}`, 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const statusText = response.status === 200 ? 'success' : 'error';
+                const contentType = response.headers.get('Content-Type') || 'No especificado';
+                
+                addResult(`Respuesta GET`, 
+                    `Status: ${response.status} ${response.statusText}
+Content-Type: ${contentType}
+URL: ${response.url}
+Redirected: ${response.redirected}`, statusText === 'success' ? 'success' : 'error');
+                
+                const text = await response.text();
+                addResult('Contenido GET', 
+                    `Primeros 500 caracteres:
+${text.substring(0, 500)}${text.length > 500 ? '...' : ''}`, 'info');
+                    
+            } catch (error) {
+                addResult('Error de Red', `Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Agregar información inicial
+        addResult('Información del Browser', 
+            `User-Agent: ${navigator.userAgent}
+URL actual: ${window.location.href}
+Cookies disponibles: ${document.cookie ? 'Sí' : 'No'}`, 'info');
+    </script>
+</body>
+</html>

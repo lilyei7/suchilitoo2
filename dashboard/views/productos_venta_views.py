@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q, Sum, F, Value, DecimalField
 from django.urls import reverse
-from restaurant.models import ProductoVenta, CategoriaProducto, Receta, ProductoReceta, ProductoCategoria
+from restaurant.models import ProductoVenta, CategoriaProducto, Receta, ProductoReceta, ProductoCategoria, RecetaInsumo
 from decimal import Decimal
 import json
 import logging
@@ -131,6 +131,33 @@ def crear_producto_venta(request):
                     receta=receta
                 )
             
+            # 🆕 CREAR RECETA DIRECTA (OneToOneField) SI HAY RECETAS ASIGNADAS
+            # Esto asegura que el sistema del mesero pueda encontrar la receta
+            if recetas_ids:
+                # Usar la primera receta como receta directa
+                primera_receta = Receta.objects.get(id=recetas_ids[0])
+                
+                # Crear una copia de la receta directamente asociada al producto
+                receta_directa = Receta.objects.create(
+                    producto=producto,
+                    tiempo_preparacion=primera_receta.tiempo_preparacion,
+                    porciones=primera_receta.porciones,
+                    instrucciones=primera_receta.instrucciones,
+                    notas=primera_receta.notas,
+                    activo=primera_receta.activo
+                )
+                
+                # Copiar los insumos de la primera receta a la receta directa
+                for receta_insumo in primera_receta.insumos.all():
+                    RecetaInsumo.objects.create(
+                        receta=receta_directa,
+                        insumo=receta_insumo.insumo,
+                        cantidad=receta_insumo.cantidad,
+                        orden=receta_insumo.orden,
+                        opcional=receta_insumo.opcional,
+                        notas=receta_insumo.notas
+                    )
+            
             # Calcular costo basado en las recetas
             producto.calcular_costo_desde_recetas()
             
@@ -218,6 +245,8 @@ def editar_producto_venta(request, producto_id):
 @login_required
 def eliminar_producto_venta(request, producto_id, force=False):
     """Vista para eliminar un producto de venta"""
+    # Leer el parámetro force desde el POST si viene por AJAX o formulario
+    force = request.POST.get('force', 'false').lower() == 'true'
     logger = logging.getLogger(__name__)
     
     # Logs inmediatos al inicio de la función
@@ -460,30 +489,34 @@ def eliminar_producto_venta(request, producto_id, force=False):
             with connection.cursor() as cursor:
                 # Lista de tablas conocidas que podrían tener referencias huérfanas
                 tablas_huerfanas = ['mesero_ordenitem', 'mesero_orden']
-                
                 for tabla in tablas_huerfanas:
                     try:
                         cursor.execute(f'SELECT COUNT(*) FROM {tabla} WHERE producto_id = %s', [producto.id])
                         count = cursor.fetchone()[0]
                         if count > 0:
                             logger.warning(f"   Encontradas {count} referencias huérfanas en {tabla}")
-                            
-                            # Preguntar al usuario si desea eliminar los datos huérfanos
-                            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                                return JsonResponse({
-                                    'success': False,
-                                    'message': f'El producto tiene {count} referencias en una tabla huérfana ({tabla}). Contacte al administrador para limpiar estos datos antes de eliminar el producto.',
-                                    'dependencias': {
-                                        'tipo': 'huerfana',
-                                        'tabla': tabla,
-                                        'cantidad': count,
-                                        'producto_id': producto.id,
-                                        'producto_nombre': nombre_producto
-                                    },
-                                    'requiere_forzado': True
-                                }, status=400)
-                            messages.error(request, f'El producto tiene referencias en una tabla huérfana ({tabla}). Contacte al administrador.')
-                            return redirect('dashboard:lista_productos_venta')
+                            if not force:
+                                # Si no es forzado, bloquear y avisar
+                                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                                    return JsonResponse({
+                                        'success': False,
+                                        'message': f'El producto tiene {count} referencias en una tabla huérfana ({tabla}). Contacte al administrador para limpiar estos datos antes de eliminar el producto.',
+                                        'dependencias': {
+                                            'tipo': 'huerfana',
+                                            'tabla': tabla,
+                                            'cantidad': count,
+                                            'producto_id': producto.id,
+                                            'producto_nombre': nombre_producto
+                                        },
+                                        'requiere_forzado': True
+                                    }, status=400)
+                                messages.error(request, f'El producto tiene referencias en una tabla huérfana ({tabla}). Contacte al administrador.')
+                                return redirect('dashboard:lista_productos_venta')
+                            else:
+                                # Si es forzado, eliminar los registros huérfanos
+                                logger.warning(f"   Eliminando {count} registros huérfanos en {tabla} (FORZADO)")
+                                cursor.execute(f'DELETE FROM {tabla} WHERE producto_id = %s', [producto.id])
+                                logger.info(f"   Eliminados {count} registros huérfanos en {tabla}")
                         else:
                             logger.debug(f"   Tabla {tabla}: sin referencias ({count})")
                     except Exception as e:
