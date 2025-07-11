@@ -1303,7 +1303,8 @@ def admin_mesas(request):
                     numero=numero,
                     nombre=nombre,
                     capacidad=capacidad,
-                    estado='disponible'
+                    estado='disponible',
+                    activa=True
                 )
                 messages.success(request, 'Mesa creada exitosamente')
         

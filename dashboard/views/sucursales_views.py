@@ -30,7 +30,7 @@ def sucursales_view(request):
     # Agregar estadísticas de mesas para cada sucursal
     for sucursal in sucursales:
         # Contar mesas disponibles
-        mesas_disponibles = sucursal.mesas.filter(estado='disponible', activo=True).count()  # <-- Cambiado 'activa' por 'activo'
+        mesas_disponibles = sucursal.mesas.filter(estado='disponible', activa=True).count()
         sucursal.mesas_disponibles_count = mesas_disponibles
     
     context = {
@@ -432,7 +432,7 @@ def editar_mesa(request, mesa_id):
         mesa.capacidad = int(capacidad)
         mesa.estado = data.get('estado', mesa.estado)
         mesa.nombre = data.get('ubicacion', mesa.nombre)
-        mesa.activa = data.get('activo', mesa.activa)
+        mesa.activa = data.get('activa', mesa.activa)
         mesa.save()
         
         return JsonResponse({

@@ -1309,7 +1309,7 @@ function mostrarMesas(mesas) {
     
     grid.innerHTML = mesas.map(mesa => `
         <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card mesa-card h-100 ${!mesa.activo ? 'border-secondary' : ''}">
+            <div class="card mesa-card h-100 ${!mesa.activa ? 'border-secondary' : ''}">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
@@ -1357,7 +1357,7 @@ function mostrarMesas(mesas) {
                         </div>
                     </div>
                 </div>
-                ${!mesa.activo ? '<div class="card-footer bg-light"><small class="text-muted"><i class="fas fa-pause me-1"></i>Mesa inactiva</small></div>' : ''}
+                ${!mesa.activa ? '<div class="card-footer bg-light"><small class="text-muted"><i class="fas fa-pause me-1"></i>Mesa inactiva</small></div>' : ''}
             </div>
         </div>
     `).join('');
@@ -1406,7 +1406,7 @@ function editarMesa(mesaId) {
                 document.getElementById('capacidadMesaEditar').value = mesa.capacidad;
                 document.getElementById('ubicacionMesaEditar').value = mesa.ubicacion || '';
                 document.getElementById('estadoMesaEditar').value = mesa.estado;
-                document.getElementById('activaMesaEditar').checked = mesa.activo;
+                document.getElementById('activaMesaEditar').checked = mesa.activa;
                 
                 // Mostrar modal
                 const modal = new bootstrap.Modal(document.getElementById('modalEditarMesa'));
