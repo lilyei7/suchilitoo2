@@ -903,3 +903,47 @@
     background-color: #3b82f6;
     border-color: #3b82f6;
 }
+/* Fix para botones outline-primary en modo claro */
+.btn-outline-primary {
+    background: #fff !important;
+    color: #2563eb !important;
+    border-color: #2563eb !important;
+}
+
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+    background: #2563eb !important;
+    color: #fff !important;
+    border-color: #2563eb !important;
+}
+/* === FORZAR MODO BLANCO EN TODO EL DASHBOARD === */
+body, #page-content-wrapper, .card, .card-stats, .card-header, .table, .navbar, .dropdown-menu {
+    background: #fff !important;
+    color: #222 !important;
+}
+
+/* Sidebar modo oscuro */
+.sidebar-dark, .sidebar-heading {
+    background: #1f2937 !important;
+    color: #fff !important;
+}
+
+.sidebar-item, .sidebar-subitem {
+    color: rgba(255,255,255,0.85) !important;
+}
+
+.sidebar-item.active, .sidebar-subitem.active {
+    color: #fff !important;
+}
+
+.table thead th, .table tbody tr, .table td {
+    background: #fff !important;
+    color: #222 !important;
+}
+
+.btn, .btn-primary, .btn-success, .btn-warning, .btn-danger {
+    color: #fff !important;
+}
+
+.text-primary {
+    color: #2563eb !important;
+}
