@@ -323,7 +323,7 @@ def listar_mesas_sucursal(request, sucursal_id):
                 'estado': mesa.estado,
                 'ubicacion': mesa.ubicacion if hasattr(mesa, 'ubicacion') else '',
                 'codigo_qr': mesa.codigo_qr,
-                'activo': mesa.activa
+                'activa': mesa.activa
             })
         
         return JsonResponse({
