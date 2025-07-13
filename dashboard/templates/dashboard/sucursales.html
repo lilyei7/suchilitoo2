@@ -1209,31 +1209,43 @@ function toggleEstadoSucursal(sucursalId, nombre, estadoActual) {
 
 // Función para eliminar sucursal
 function eliminarSucursal(sucursalId, nombre) {
-    if (confirm(`¿Estás seguro de eliminar la sucursal "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
-        fetch(`/dashboard/sucursales/eliminar/${sucursalId}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                'X-Requested-With': 'XMLHttpRequest'
+    if (!confirm(`¿Seguro que deseas eliminar la sucursal "${nombre}"?`)) return;
+    fetch(`/dashboard/sucursales/${sucursalId}/eliminar/`, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('❌ Error de conexión', 'error');
+    });
+}
+
+// Función para obtener el CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('✅ ' + data.message, 'success');
-                // Recargar la página para mostrar los cambios
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            } else {
-                showToast('❌ ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('❌ Error de conexión', 'error');
-        });
+        }
     }
+    return cookieValue;
+}
 }
 
 // Toast para mensajes
