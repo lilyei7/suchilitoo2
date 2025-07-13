@@ -16,7 +16,20 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
     
-    {% block extra_css %}{% endblock %}
+    {% block extra_css %}
+    <style>
+    .sidebar-item i,
+    .sidebar-subitem i {
+        margin-right: 0.35em;
+        vertical-align: middle;
+    }
+    .sidebar-item span,
+    .sidebar-subitem {
+        display: flex;
+        align-items: center;
+    }
+    </style>
+    {% endblock %}
 </head>
 <body>
     <div class="d-flex" id="wrapper">
