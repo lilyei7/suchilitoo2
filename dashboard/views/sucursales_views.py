@@ -1,3 +1,4 @@
+
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
@@ -7,10 +8,39 @@ from decimal import Decimal
 from datetime import date
 import json
 
+
 from accounts.models import Sucursal, Usuario
 from .base_views import get_sidebar_context, is_admin_or_manager
 from dashboard.utils.permissions import require_module_access
 from dashboard.models_ventas import Mesa
+
+def is_admin_only(user):
+    """Función para verificar que solo admin y superuser tengan acceso"""
+    return user.is_superuser or (user.rol and user.rol.nombre == 'admin')
+
+@login_required
+@user_passes_test(is_admin_only)
+def toggle_activa_mesa(request, mesa_id):
+    """Vista para alternar el campo activa de una mesa"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método no permitido'})
+    try:
+        mesa = get_object_or_404(Mesa, id=mesa_id)
+        mesa.activa = not mesa.activa
+        mesa.save()
+        estado = 'activada' if mesa.activa else 'inactivada'
+        return JsonResponse({
+            'success': True,
+            'message': f'Mesa "{mesa.numero}" {estado} exitosamente',
+            'nueva_activa': mesa.activa
+        })
+    except Exception as e:
+        print(f"Error alternando activa mesa: {e}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Error interno: {str(e)}'
+        })
+
 
 def is_admin_only(user):
     """Función para verificar que solo admin y superuser tengan acceso"""

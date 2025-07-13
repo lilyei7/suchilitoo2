@@ -120,6 +120,7 @@ urlpatterns = [
     path('api/mesas/<int:mesa_id>/editar/', sucursales_views.editar_mesa, name='editar_mesa'),
     path('api/mesas/<int:mesa_id>/estado/', sucursales_views.cambiar_estado_mesa, name='cambiar_estado_mesa'),
     path('api/mesas/<int:mesa_id>/eliminar/', sucursales_views.eliminar_mesa, name='eliminar_mesa'),
+    path('api/mesas/<int:mesa_id>/toggle-activa/', sucursales_views.toggle_activa_mesa, name='toggle_activa_mesa'),
 
     # Croquis Editor
     path('sucursales/<int:sucursal_id>/croquis/', croquis_views.croquis_editor_view, name='croquis_editor'),
