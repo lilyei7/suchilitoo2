@@ -940,9 +940,7 @@ body, #page-content-wrapper, .card, .card-stats, .card-header, .table, .navbar, 
     color: #222 !important;
 }
 
-.btn, .btn-primary, .btn-success, .btn-warning, .btn-danger {
-    color: #fff !important;
-}
+/* Eliminar color forzado en todos los botones para restaurar visibilidad y estilos correctos */
 
 .text-primary {
     color: #2563eb !important;
