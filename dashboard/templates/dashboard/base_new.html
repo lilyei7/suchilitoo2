@@ -16,7 +16,16 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
     
-    {% block extra_css %}{% endblock %}
+    {% block extra_css %}
+    <style>
+    .sidebar-item i,
+    .sidebar-subitem i {
+        margin-right: 0.18em; /* Menor separación entre icono y texto */
+        vertical-align: middle;
+    }
+    /* display: flex removido para que el texto esté más cerca del icono */
+    </style>
+    {% endblock %}
 </head>
 <body>
     <div class="d-flex" id="wrapper">
@@ -150,7 +159,7 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom JS -->
-    <script src="{% static 'dashboard/js/script.js' %}"></script>
+    <script src="{% static 'dashboard/js/scridpt.js' %}"></script>
     
     {% block extra_js %}{% endblock %}
 </body>
