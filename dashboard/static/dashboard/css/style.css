@@ -1,4 +1,14 @@
 /* Dashboard Custom Styles */
+/* Forzar modo claro y evitar modo oscuro automático del navegador */
+body, .sidebar-dark, #sidebar-wrapper {
+    background: #1f2937 !important;
+    color: #fff !important;
+}
+
+.list-group-flush, .sidebar-item, .sidebar-subitem {
+    background: transparent !important;
+    color: #fff !important;
+}
 
 /* Sidebar */
 #sidebar-wrapper {
