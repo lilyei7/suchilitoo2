@@ -105,7 +105,7 @@ def crear_insumo_elaborado(request):
                     # Permitir tanto insumos básicos como compuestos para elaborados
                     insumo_componente = Insumo.objects.get(
                         id=insumo_id, 
-                        tipo__in=['basico', 'compuesto'],
+                        tipo__in=['basico', 'compuesto', 'elaborado'],
                         activo=True
                     )
                     cantidad_decimal = Decimal(str(cantidad))
