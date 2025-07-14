@@ -206,16 +206,17 @@ def crear_insumo_elaborado(request):
 def obtener_insumos_para_elaborados(request):
     """Vista para obtener insumos disponibles para elaborados"""
     try:
-        # Obtener insumos básicos y compuestos activos
+        # Obtener insumos básicos, compuestos y elaborados activos
         insumos = Insumo.objects.filter(
-            tipo__in=['basico', 'compuesto'], 
+            tipo__in=['basico', 'compuesto', 'elaborado'],
             activo=True
         ).select_related('categoria', 'unidad_medida').order_by('tipo', 'nombre')
-        
+
         insumos_data = []
         total_basicos = 0
         total_compuestos = 0
-        
+        total_elaborados = 0
+
         for insumo in insumos:
             insumos_data.append({
                 'id': insumo.id,
@@ -226,22 +227,25 @@ def obtener_insumos_para_elaborados(request):
                 'unidad_medida_nombre': str(insumo.unidad_medida) if insumo.unidad_medida else 'Sin unidad',
                 'precio_unitario': float(insumo.precio_unitario)
             })
-            
+
             if insumo.tipo == 'basico':
                 total_basicos += 1
             elif insumo.tipo == 'compuesto':
                 total_compuestos += 1
-        
-        print(f"📊 Insumos cargados: {total_basicos} básicos, {total_compuestos} compuestos")
-        
+            elif insumo.tipo == 'elaborado':
+                total_elaborados += 1
+
+        print(f"📊 Insumos cargados: {total_basicos} básicos, {total_compuestos} compuestos, {total_elaborados} elaborados")
+
         return JsonResponse({
             'success': True,
             'insumos': insumos_data,
             'total_basicos': total_basicos,
             'total_compuestos': total_compuestos,
+            'total_elaborados': total_elaborados,
             'total': len(insumos_data)
         })
-        
+
     except Exception as e:
         print(f"Error obteniendo insumos para elaborados: {e}")
         return JsonResponse({

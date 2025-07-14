@@ -1088,21 +1088,15 @@ window.editarCompuesto = function(id) {
                         const componenteDiv = componentesContainer.lastElementChild;
                         
                         // Precargar el select de insumo
-                        const insumoSelect = componenteDiv.querySelector('.insumo-select');
+                        const insumoSelect = componenteDiv.querySelector('select[name="componente_insumo[]"]');
                         if (insumoSelect) {
                             insumoSelect.value = comp.insumo_id;
-                            console.log(`✅ Insumo ${index + 1} seleccionado:`, comp.insumo_id);
-                            
-                            // Disparar evento change para actualizar la unidad
-                            const changeEvent = new Event('change', { bubbles: true });
-                            insumoSelect.dispatchEvent(changeEvent);
+                            insumoSelect.dispatchEvent(new Event('change', { bubbles: true }));
                         }
-                        
-                        // Precargar cantidad
-                        const cantidadInput = componenteDiv.querySelector('.cantidad-input');
+                        const cantidadInput = componenteDiv.querySelector('input[name="componente_cantidad[]"]');
                         if (cantidadInput) {
                             cantidadInput.value = comp.cantidad;
-                            console.log(`✅ Cantidad ${index + 1} establecida:`, comp.cantidad);
+                            cantidadInput.dispatchEvent(new Event('input', { bubbles: true }));
                         }
                     });
                     

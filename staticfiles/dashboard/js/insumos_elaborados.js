@@ -734,9 +734,10 @@ function agregarComponenteExistenteEdicion(componente) {
     // Agrupar insumos por tipo
     const insumosPorTipo = {
         'basico': insumosDisponibles.filter(i => i.tipo === 'basico'),
-        'compuesto': insumosDisponibles.filter(i => i.tipo === 'compuesto')
+        'compuesto': insumosDisponibles.filter(i => i.tipo === 'compuesto'),
+        'elaborado': insumosDisponibles.filter(i => i.tipo === 'elaborado')
     };
-    
+
     // Agregar insumos básicos
     if (insumosPorTipo.basico && insumosPorTipo.basico.length > 0) {
         opcionesInsumos += '<optgroup label="📦 Insumos Básicos">';
@@ -751,7 +752,7 @@ function agregarComponenteExistenteEdicion(componente) {
         });
         opcionesInsumos += '</optgroup>';
     }
-    
+
     // Agregar insumos compuestos
     if (insumosPorTipo.compuesto && insumosPorTipo.compuesto.length > 0) {
         opcionesInsumos += '<optgroup label="🔧 Insumos Compuestos">';
@@ -761,6 +762,21 @@ function agregarComponenteExistenteEdicion(componente) {
                 data-precio="${insumo.precio_unitario}" 
                 data-unidad="${insumo.unidad_medida_nombre || ''}"
                 data-tipo="compuesto" ${selected}>
+                ${insumo.nombre} (${insumo.categoria_nombre || 'Sin categoría'})
+            </option>`;
+        });
+        opcionesInsumos += '</optgroup>';
+    }
+
+    // Agregar insumos elaborados
+    if (insumosPorTipo.elaborado && insumosPorTipo.elaborado.length > 0) {
+        opcionesInsumos += '<optgroup label="🍳 Insumos Elaborados">';
+        insumosPorTipo.elaborado.forEach(insumo => {
+            const selected = componente.insumo_id == insumo.id ? 'selected' : '';
+            opcionesInsumos += `<option value="${insumo.id}" 
+                data-precio="${insumo.precio_unitario}" 
+                data-unidad="${insumo.unidad_medida_nombre || ''}"
+                data-tipo="elaborado" ${selected}>
                 ${insumo.nombre} (${insumo.categoria_nombre || 'Sin categoría'})
             </option>`;
         });
@@ -833,14 +849,16 @@ function agregarComponenteEdicion() {
     // Agrupar insumos por tipo
     const insumosPorTipo = {
         'basico': insumosDisponibles.filter(i => i.tipo === 'basico'),
-        'compuesto': insumosDisponibles.filter(i => i.tipo === 'compuesto')
+        'compuesto': insumosDisponibles.filter(i => i.tipo === 'compuesto'),
+        'elaborado': insumosDisponibles.filter(i => i.tipo === 'elaborado')
     };
-    
+
     // Mostrar conteos en la consola para debuggear
     console.log(`🔍 Filtrando insumos para select:`); 
     console.log(`   - Básicos: ${insumosPorTipo.basico ? insumosPorTipo.basico.length : 0}`);
     console.log(`   - Compuestos: ${insumosPorTipo.compuesto ? insumosPorTipo.compuesto.length : 0}`);
-    
+    console.log(`   - Elaborados: ${insumosPorTipo.elaborado ? insumosPorTipo.elaborado.length : 0}`);
+
     // Agregar insumos básicos
     if (insumosPorTipo.basico && insumosPorTipo.basico.length > 0) {
         opcionesInsumos += '<optgroup label="📦 Insumos Básicos">';
@@ -854,7 +872,7 @@ function agregarComponenteEdicion() {
         });
         opcionesInsumos += '</optgroup>';
     }
-    
+
     // Agregar insumos compuestos
     if (insumosPorTipo.compuesto && insumosPorTipo.compuesto.length > 0) {
         opcionesInsumos += '<optgroup label="🔧 Insumos Compuestos">';
@@ -863,6 +881,20 @@ function agregarComponenteEdicion() {
                 data-precio="${insumo.precio_unitario}" 
                 data-unidad="${insumo.unidad_medida_nombre || ''}"
                 data-tipo="compuesto">
+                ${insumo.nombre} (${insumo.categoria_nombre || 'Sin categoría'})
+            </option>`;
+        });
+        opcionesInsumos += '</optgroup>';
+    }
+
+    // Agregar insumos elaborados
+    if (insumosPorTipo.elaborado && insumosPorTipo.elaborado.length > 0) {
+        opcionesInsumos += '<optgroup label="🍳 Insumos Elaborados">';
+        insumosPorTipo.elaborado.forEach(insumo => {
+            opcionesInsumos += `<option value="${insumo.id}" 
+                data-precio="${insumo.precio_unitario}" 
+                data-unidad="${insumo.unidad_medida_nombre || ''}"
+                data-tipo="elaborado">
                 ${insumo.nombre} (${insumo.categoria_nombre || 'Sin categoría'})
             </option>`;
         });
@@ -1004,14 +1036,16 @@ function agregarComponenteElaborado() {
     // Agrupar insumos por tipo
     const insumosPorTipo = {
         'basico': insumosDisponibles.filter(i => i.tipo === 'basico'),
-        'compuesto': insumosDisponibles.filter(i => i.tipo === 'compuesto')
+        'compuesto': insumosDisponibles.filter(i => i.tipo === 'compuesto'),
+        'elaborado': insumosDisponibles.filter(i => i.tipo === 'elaborado')
     };
-    
+
     // Mostrar conteos en la consola para debuggear
     console.log(`🔍 Filtrando insumos para select:`); 
     console.log(`   - Básicos: ${insumosPorTipo.basico ? insumosPorTipo.basico.length : 0}`);
     console.log(`   - Compuestos: ${insumosPorTipo.compuesto ? insumosPorTipo.compuesto.length : 0}`);
-    
+    console.log(`   - Elaborados: ${insumosPorTipo.elaborado ? insumosPorTipo.elaborado.length : 0}`);
+
     // Agregar insumos básicos
     if (insumosPorTipo.basico && insumosPorTipo.basico.length > 0) {
         opcionesInsumos += '<optgroup label="📦 Insumos Básicos">';
@@ -1025,7 +1059,7 @@ function agregarComponenteElaborado() {
         });
         opcionesInsumos += '</optgroup>';
     }
-    
+
     // Agregar insumos compuestos
     if (insumosPorTipo.compuesto && insumosPorTipo.compuesto.length > 0) {
         opcionesInsumos += '<optgroup label="🔧 Insumos Compuestos">';
@@ -1034,6 +1068,20 @@ function agregarComponenteElaborado() {
                 data-precio="${insumo.precio_unitario}" 
                 data-unidad="${insumo.unidad_medida_nombre || ''}"
                 data-tipo="compuesto">
+                ${insumo.nombre} (${insumo.categoria_nombre || 'Sin categoría'})
+            </option>`;
+        });
+        opcionesInsumos += '</optgroup>';
+    }
+
+    // Agregar insumos elaborados
+    if (insumosPorTipo.elaborado && insumosPorTipo.elaborado.length > 0) {
+        opcionesInsumos += '<optgroup label="🍳 Insumos Elaborados">';
+        insumosPorTipo.elaborado.forEach(insumo => {
+            opcionesInsumos += `<option value="${insumo.id}" 
+                data-precio="${insumo.precio_unitario}" 
+                data-unidad="${insumo.unidad_medida_nombre || ''}"
+                data-tipo="elaborado">
                 ${insumo.nombre} (${insumo.categoria_nombre || 'Sin categoría'})
             </option>`;
         });
@@ -2043,7 +2091,7 @@ function configurarFormularioUnidades() {
             btnCrearUnidad.addEventListener('click', function(e) {
                 e.preventDefault();
                 crearUnidad();
-            });
+            }); 
         }
     }
     
