@@ -404,46 +404,12 @@ def crear_receta(request):
         import random
         
         with transaction.atomic():
-            # Crear el producto con código único basado en timestamp y número aleatorio
-            timestamp = int(time.time())
-            random_suffix = random.randint(100, 999)
-            codigo = f"REC{timestamp}{random_suffix}"
-            
-            # Verificar que el código no exista ya (aunque es muy improbable)
-            while ProductoVenta.objects.filter(codigo=codigo).exists():
-                random_suffix = random.randint(100, 999)
-                codigo = f"REC{timestamp}{random_suffix}"
-            
+            # Crear la receta SIN crear producto de venta
             try:
-                logger.info(f"Creando producto con código único: {codigo}")
-                producto = ProductoVenta.objects.create(
-                    codigo=codigo,
+                receta = Receta.objects.create(
                     nombre=nombre,
                     descripcion=descripcion,
                     categoria=categoria,
-                    precio=Decimal(str(precio_venta)),
-                    costo=Decimal(str(costo_total)),
-                    tipo='plato',
-                    disponible=True
-                )
-                logger.info(f"Producto creado: {producto}")
-            except Exception as e:
-                logger.error(f"Error al crear producto: {e}")
-                # Dar un mensaje más amigable para el error de código duplicado
-                if "UNIQUE constraint failed" in str(e) and "codigo" in str(e):
-                    return JsonResponse({
-                        'success': False,
-                        'message': 'Error: Ya existe un producto con el mismo código. Intente nuevamente.'
-                    })
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Error al crear el producto: {str(e)}'
-                })
-            
-            # Crear la receta
-            try:
-                receta = Receta.objects.create(
-                    producto=producto,
                     tiempo_preparacion=int(float(tiempo_preparacion)) if tiempo_preparacion else 0,
                     porciones=int(float(porciones)) if porciones else 1,
                     instrucciones=instrucciones,
@@ -452,27 +418,26 @@ def crear_receta(request):
                 logger.info(f"Receta creada: {receta}")
             except Exception as e:
                 logger.error(f"Error al crear receta: {e}")
-                # La transacción manejará el rollback si falla
                 return JsonResponse({
                     'success': False,
                     'message': f'Error al crear la receta: {str(e)}'
                 })
-            
+
             # Procesar ingredientes
             opcionales = request.POST.getlist('ingrediente_opcional[]')
             notas_list = request.POST.getlist('ingrediente_notas[]')
-            
+
             logger.info(f"Procesando {len(ingredientes_validos)} ingredientes")
-            
+
             for item in ingredientes_validos:
                 insumo = item['insumo']
                 cantidad = item['cantidad']
                 index = item['index']
-                
+
                 try:
                     es_opcional = index < len(opcionales) and opcionales[index] == 'on'
                     notas = notas_list[index] if index < len(notas_list) else ''
-                    
+
                     RecetaInsumo.objects.create(
                         receta=receta,
                         insumo=insumo,
@@ -484,12 +449,11 @@ def crear_receta(request):
                     logger.info(f"Ingrediente {index+1} añadido: {insumo.nombre}, cantidad: {cantidad}")
                 except Exception as e:
                     logger.error(f"Error al procesar ingrediente {index}: {e}")
-                    # La transacción manejará el rollback si falla
                     return JsonResponse({
                         'success': False,
                         'message': f'Error al añadir el ingrediente {insumo.nombre}: {str(e)}'
                     })
-            
+
             # Todo se guardó correctamente
             return JsonResponse({
                 'success': True,
