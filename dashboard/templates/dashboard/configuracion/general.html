@@ -1,0 +1,68 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Configuración General | Sushi Restaurant{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4">Configuración General del Sistema</h1>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Opciones Generales</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Desde aquí puedes personalizar diversas opciones generales del sistema.</p>
+                    
+                    <!-- Configuración general futura -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> Esta sección está en desarrollo. Próximamente podrás configurar más aspectos del sistema.
+                    </div>
+                    
+                    <p>Algunas opciones que estarán disponibles próximamente:</p>
+                    <ul>
+                        <li>Opciones de correo electrónico</li>
+                        <li>Ajustes de seguridad</li>
+                        <li>Configuración de copias de seguridad</li>
+                        <li>Personalización de informes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Navegación Rápida</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{% url 'dashboard:configuracion_temas' %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                            <i class="fas fa-palette me-2"></i> Temas y Colores
+                        </a>
+                        <a href="{% url 'dashboard:principal' %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard Principal
+                        </a>
+                        <a href="{% url 'dashboard:usuarios' %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                            <i class="fas fa-users-cog me-2"></i> Administrar Usuarios
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Información del Sistema</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Versión:</strong> 2.5.0</p>
+                    <p class="mb-2"><strong>Fecha de actualización:</strong> 14/07/2025</p>
+                    <p class="mb-0"><strong>Desarrollado por:</strong> Sushi Restaurant Team</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

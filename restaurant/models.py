@@ -276,6 +276,7 @@ class ProductoCategoria(models.Model):
 
 class Receta(models.Model):
     """Modelo para recetas de los productos"""
+    nombre = models.CharField(max_length=200)
     producto = models.OneToOneField(ProductoVenta, on_delete=models.SET_NULL, related_name='receta', null=True)
     tiempo_preparacion = models.IntegerField(default=0, help_text="Tiempo en minutos")
     porciones = models.IntegerField(default=1)
@@ -375,6 +376,23 @@ class InsumoElaborado(models.Model):
     class Meta:
         verbose_name = "Insumo elaborado"
         verbose_name_plural = "Insumos elaborados"
+
+
+class ConfiguracionSistema(models.Model):
+    """Modelo para almacenar configuraciones generales del sistema"""
+    nombre = models.CharField(max_length=100, unique=True, help_text="Nombre único para identificar la configuración")
+    valor = models.TextField(blank=True, null=True, help_text="Valor de la configuración (puede ser JSON)")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la configuración")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = "Configuración del sistema"
+        verbose_name_plural = "Configuraciones del sistema"
+        ordering = ['nombre']
 
 # Importar el modelo ProductoReceta
 from .models_producto_receta import ProductoReceta

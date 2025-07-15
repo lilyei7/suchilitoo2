@@ -5,7 +5,7 @@
 from .auth_views import login_view, logout_view
 
 # Base views
-from .base_views import principal_view, get_sidebar_context, is_admin_or_manager, is_admin
+from .base_views import principal_view, get_sidebar_context, is_admin_or_manager, is_admin, checklist_redirect_view
 
 # Inventario views
 from .inventario_views import inventario_view, entradas_salidas_view, insumo_detalle_api
@@ -79,4 +79,12 @@ from .productos_venta_views import (
     lista_productos_venta, crear_producto_venta, editar_producto_venta,
     eliminar_producto_venta, desactivar_producto_venta, ver_detalle_producto,
     cambiar_estado_producto, obtener_recetas, diagnostico_view
+)
+
+# Checklist views
+from .checklist_views import (
+    checklist_dashboard, generate_task_instances, complete_task, 
+    upload_evidence, bulk_complete_tasks, incident_list, 
+    report_incident, update_incident_status, notifications_list,
+    mark_notification_read, mark_all_notifications_read
 )

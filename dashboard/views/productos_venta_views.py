@@ -8,6 +8,7 @@ from restaurant.models import ProductoVenta, CategoriaProducto, Receta, Producto
 from decimal import Decimal
 import json
 import logging
+from dashboard.views.base_views import get_sidebar_context
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -77,6 +78,7 @@ def lista_productos_venta(request):
             'total_activos': activos,
             'total_inactivos': inactivos,
             'total_productos': total_productos,
+            **get_sidebar_context('productos_venta')
         }
         
         return render(request, 'dashboard/productos_venta/lista.html', context)
@@ -86,8 +88,6 @@ def lista_productos_venta(request):
         logger.error(f"Traceback:", exc_info=True)
         messages.error(request, f"Error al cargar la lista de productos: {str(e)}")
         return redirect('dashboard:principal')
-    
-    return render(request, 'dashboard/productos_venta/lista.html', context)
 
 @login_required
 @permission_required('restaurant.add_productoventa', raise_exception=True)
@@ -170,6 +170,7 @@ def crear_producto_venta(request):
     context = {
         'categorias': categorias,
         'recetas_disponibles': recetas_disponibles,
+        **get_sidebar_context('productos_venta')
     }
     
     return render(request, 'dashboard/productos_venta/crear.html', context)
@@ -238,6 +239,7 @@ def editar_producto_venta(request, producto_id):
         'categorias': categorias,
         'recetas_disponibles': recetas_disponibles,
         'recetas_asociadas': list(recetas_asociadas),
+        **get_sidebar_context('productos_venta')
     }
     
     return render(request, 'dashboard/productos_venta/editar.html', context)
@@ -654,6 +656,7 @@ def ver_detalle_producto(request, producto_id):
     context = {
         'producto': producto,
         'recetas': recetas,
+        **get_sidebar_context('productos_venta')
     }
     
     return render(request, 'dashboard/productos_venta/detalle.html', context)
@@ -930,5 +933,5 @@ def diagnostico_view(request):
     logger.info("Cargando página de diagnóstico de JavaScript")
     
     return render(request, 'dashboard/productos_venta/diagnostico.html', {
-        'sidebar_active': 'productos_venta',
+        **get_sidebar_context('productos_venta')
     })

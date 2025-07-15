@@ -1,0 +1,733 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Configuración de Temas | Sushi Restaurant{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .color-swatch {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 10px;
+        cursor: pointer;
+        border: 2px solid #ddd;
+    }
+    
+    .color-preview {
+        width: 100%;
+        height: 40px;
+        border-radius: 5px;
+        margin-top: 5px;
+    }
+    
+    .theme-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .theme-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .theme-preview {
+        height: 120px;
+        border-radius: 5px 5px 0 0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .theme-sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 30%;
+    }
+    
+    .theme-content {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 70%;
+    }
+    
+    .theme-navbar {
+        position: absolute;
+        right: 0;
+        top: 0;
+        height: 20%;
+        width: 70%;
+    }
+    
+    .theme-main {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        height: 80%;
+        width: 70%;
+    }
+    
+    .theme-accent {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+    
+    .logo-preview {
+        width: 100%;
+        max-height: 100px;
+        object-fit: contain;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+        background-color: #f8f9fa;
+    }
+    
+    .logo-option {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        border-radius: 5px;
+        padding: 10px;
+    }
+    
+    .logo-option:hover {
+        border-color: #0d6efd;
+    }
+    
+    .logo-option.selected {
+        border-color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+    
+    .logo-option img {
+        width: 100%;
+        height: 80px;
+        object-fit: contain;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4">Configuración de Temas y Colores</h1>
+    
+    <div class="row">
+        <!-- Panel de temas predefinidos -->
+        <div class="col-md-5 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Temas Predefinidos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for key, tema in temas_predefinidos.items %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card theme-card" data-theme="{{ key }}">
+                                <div class="theme-preview">
+                                    <div class="theme-sidebar" style="background-color: {{ tema.sidebar_bg }}"></div>
+                                    <div class="theme-navbar" style="background-color: {{ tema.navbar_bg }}"></div>
+                                    <div class="theme-main" style="background-color: #f8f9fa"></div>
+                                    <div class="theme-accent" style="background-color: {{ tema.primary_color }}"></div>
+                                </div>
+                                <div class="card-body py-2">
+                                    <p class="mb-0 text-center">{{ tema.nombre }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Tema actual -->
+                        <div class="col-md-6 mb-3">
+                            <div class="card theme-card active-theme">
+                                <div class="theme-preview">
+                                    <div class="theme-sidebar" style="background-color: {{ colores.sidebar_bg }}"></div>
+                                    <div class="theme-navbar" style="background-color: {{ colores.navbar_bg }}"></div>
+                                    <div class="theme-main" style="background-color: #f8f9fa"></div>
+                                    <div class="theme-accent" style="background-color: {{ colores.primary_color }}"></div>
+                                </div>
+                                <div class="card-body py-2">
+                                    <p class="mb-0 text-center">Tema Actual</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Panel de logos -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Personalización del Logo</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Logo Actual</h6>
+                    <div class="text-center mb-3">
+                        <img src="{% static logo_actual %}" class="logo-preview" id="currentLogoPreview" alt="Logo Actual">
+                    </div>
+                    
+                    <form id="formLogo" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="logo_file" class="form-label">Subir nuevo logo</label>
+                            <input type="file" class="form-control" id="logo_file" name="logo_file" accept="image/*">
+                            <div class="form-text">Formatos recomendados: PNG o SVG con fondo transparente</div>
+                        </div>
+                        
+                        <h6 class="mt-4">Logos disponibles</h6>
+                        <div class="row">
+                            {% for logo in logos_disponibles %}
+                            <div class="col-md-4 mb-3">
+                                <div class="logo-option {% if logo.path == logo_actual %}selected{% endif %}" data-logo-path="{{ logo.path }}">
+                                    <img src="{% static logo.path %}" alt="{{ logo.nombre }}">
+                                    <p class="text-center mb-0 small">{{ logo.nombre }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Guardar Logo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel de personalización -->
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Personalizar Colores</h5>
+                </div>
+                <div class="card-body">
+                    <form id="formTema" method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <!-- Colores de la barra lateral -->
+                            <div class="col-md-6 mb-3">
+                                <h6>Barra Lateral</h6>
+                                <div class="mb-3">
+                                    <label for="sidebar_bg" class="form-label">Color de fondo</label>
+                                    <input type="color" class="form-control form-control-color" id="sidebar_bg" name="sidebar_bg" value="{{ colores.sidebar_bg }}">
+                                    <div class="color-preview mt-1" style="background-color: {{ colores.sidebar_bg }}"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="sidebar_text" class="form-label">Color de texto</label>
+                                    <input type="color" class="form-control form-control-color" id="sidebar_text" name="sidebar_text" value="{{ colores.sidebar_text }}">
+                                    <div class="color-preview mt-1" style="background-color: {{ colores.sidebar_text }}"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Colores de la barra de navegación -->
+                            <div class="col-md-6 mb-3">
+                                <h6>Barra de Navegación</h6>
+                                <div class="mb-3">
+                                    <label for="navbar_bg" class="form-label">Color de fondo</label>
+                                    <input type="color" class="form-control form-control-color" id="navbar_bg" name="navbar_bg" value="{{ colores.navbar_bg }}">
+                                    <div class="color-preview mt-1" style="background-color: {{ colores.navbar_bg }}"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="navbar_text" class="form-label">Color de texto</label>
+                                    <input type="color" class="form-control form-control-color" id="navbar_text" name="navbar_text" value="{{ colores.navbar_text }}">
+                                    <div class="color-preview mt-1" style="background-color: {{ colores.navbar_text }}"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Colores principales del sistema -->
+                            <div class="col-12">
+                                <h6>Colores del Sistema</h6>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="primary_color" class="form-label">Color Primario</label>
+                                        <input type="color" class="form-control form-control-color" id="primary_color" name="primary_color" value="{{ colores.primary_color }}">
+                                        <div class="color-preview mt-1" style="background-color: {{ colores.primary_color }}"></div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="secondary_color" class="form-label">Color Secundario</label>
+                                        <input type="color" class="form-control form-control-color" id="secondary_color" name="secondary_color" value="{{ colores.secondary_color }}">
+                                        <div class="color-preview mt-1" style="background-color: {{ colores.secondary_color }}"></div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="accent_color" class="form-label">Color de Acento</label>
+                                        <input type="color" class="form-control form-control-color" id="accent_color" name="accent_color" value="{{ colores.accent_color }}">
+                                        <div class="color-preview mt-1" style="background-color: {{ colores.accent_color }}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end mt-3">
+                            <button type="button" id="btnPrevisualizar" class="btn btn-secondary me-2">
+                                <i class="fas fa-eye me-1"></i> Previsualizar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Guardar Tema
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Instrucciones de uso -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Instrucciones de Uso</h5>
+                </div>
+                <div class="card-body">
+                    <p>Para personalizar los colores y logo del sistema:</p>
+                    <ol>
+                        <li>Selecciona un tema predefinido o ajusta manualmente los colores</li>
+                        <li>Usa el botón "Previsualizar" para ver los cambios sin guardarlos</li>
+                        <li>Selecciona un logo existente o sube uno nuevo</li>
+                        <li>Cuando estés satisfecho con los cambios, haz clic en "Guardar Tema" o "Guardar Logo"</li>
+                        <li>Los cambios se aplicarán inmediatamente a todo el sistema</li>
+                    </ol>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> Los cambios de tema y logo afectan a todos los usuarios del sistema.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Aplicar tema actual
+    aplicarTemaActual();
+    
+    // Escuchar cambios en los inputs de color
+    document.querySelectorAll('input[type="color"]').forEach(input => {
+        input.addEventListener('input', function() {
+            const previewDiv = this.parentElement.querySelector('.color-preview');
+            if (previewDiv) {
+                previewDiv.style.backgroundColor = this.value;
+            }
+        });
+    });
+    
+    // Manejar clic en temas predefinidos
+    document.querySelectorAll('.theme-card[data-theme]').forEach(card => {
+        card.addEventListener('click', function() {
+            const themeKey = this.dataset.theme;
+            const themes = {
+                'azul_oscuro': {
+                    'sidebar_bg': '#1a2942',
+                    'sidebar_text': '#ffffff',
+                    'navbar_bg': '#f8f9fa',
+                    'navbar_text': '#212529',
+                    'primary_color': '#3c6cde',
+                    'secondary_color': '#6c757d',
+                    'accent_color': '#fd7e14'
+                },
+                'verde_claro': {
+                    'sidebar_bg': '#2d572c',
+                    'sidebar_text': '#ffffff',
+                    'navbar_bg': '#f8f9fa',
+                    'navbar_text': '#212529',
+                    'primary_color': '#4caf50',
+                    'secondary_color': '#6c757d',
+                    'accent_color': '#ff9800'
+                },
+                'morado_elegante': {
+                    'sidebar_bg': '#4a235a',
+                    'sidebar_text': '#ffffff',
+                    'navbar_bg': '#f8f9fa',
+                    'navbar_text': '#212529',
+                    'primary_color': '#8e44ad',
+                    'secondary_color': '#6c757d',
+                    'accent_color': '#f39c12'
+                },
+                'rojo_clasico': {
+                    'sidebar_bg': '#7d1a1a',
+                    'sidebar_text': '#ffffff',
+                    'navbar_bg': '#f8f9fa',
+                    'navbar_text': '#212529',
+                    'primary_color': '#dc3545',
+                    'secondary_color': '#6c757d',
+                    'accent_color': '#ffc107'
+                },
+                'oscuro_elegante': {
+                    'sidebar_bg': '#121212',
+                    'sidebar_text': '#e0e0e0',
+                    'navbar_bg': '#1e1e1e',
+                    'navbar_text': '#e0e0e0',
+                    'primary_color': '#bb86fc',
+                    'secondary_color': '#4a4a4a',
+                    'accent_color': '#03dac6'
+                },
+                'marino_fresco': {
+                    'sidebar_bg': '#00334e',
+                    'sidebar_text': '#ffffff',
+                    'navbar_bg': '#f8f9fa',
+                    'navbar_text': '#212529',
+                    'primary_color': '#0077b6',
+                    'secondary_color': '#6c757d',
+                    'accent_color': '#00b4d8'
+                },
+                'amanecer': {
+                    'sidebar_bg': '#ff7b00',
+                    'sidebar_text': '#ffffff',
+                    'navbar_bg': '#ffecd1',
+                    'navbar_text': '#4f4f4f',
+                    'primary_color': '#ff4800',
+                    'secondary_color': '#6c757d',
+                    'accent_color': '#ffd000'
+                },
+                'verde_azulado': {
+                    'sidebar_bg': '#1b4332',
+                    'sidebar_text': '#ffffff',
+                    'navbar_bg': '#f8f9fa',
+                    'navbar_text': '#212529',
+                    'primary_color': '#2d6a4f',
+                    'secondary_color': '#6c757d',
+                    'accent_color': '#40916c'
+                }
+            };
+            
+            if (themes[themeKey]) {
+                const theme = themes[themeKey];
+                // Actualizar valores de formulario
+                for (const [key, value] of Object.entries(theme)) {
+                    const input = document.getElementById(key);
+                    if (input) {
+                        input.value = value;
+                        const previewDiv = input.parentElement.querySelector('.color-preview');
+                        if (previewDiv) {
+                            previewDiv.style.backgroundColor = value;
+                        }
+                    }
+                }
+                
+                // Previsualizar tema
+                previsualizarTema();
+            }
+        });
+    });
+    
+    // Botón de previsualización
+    document.getElementById('btnPrevisualizar').addEventListener('click', function() {
+        previsualizarTema();
+    });
+    
+    // Manejar cambio en el input de logo
+    document.getElementById('logo_file').addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('currentLogoPreview').src = e.target.result;
+                // Deseleccionar cualquier logo previamente seleccionado
+                document.querySelectorAll('.logo-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+    
+    // Manejar clic en opciones de logo
+    document.querySelectorAll('.logo-option').forEach(option => {
+        option.addEventListener('click', function() {
+            // Desmarcar todos los logos
+            document.querySelectorAll('.logo-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Marcar el logo seleccionado
+            this.classList.add('selected');
+            
+            // Actualizar la vista previa del logo
+            const logoPath = this.dataset.logoPath;
+            document.getElementById('currentLogoPreview').src = `/static/${logoPath}`;
+            
+            // Limpiar el input de archivo
+            document.getElementById('logo_file').value = '';
+            
+            // Crear un input hidden para enviar el path del logo seleccionado
+            let hiddenInput = document.getElementById('selected_logo_path');
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.id = 'selected_logo_path';
+                hiddenInput.name = 'selected_logo_path';
+                document.getElementById('formLogo').appendChild(hiddenInput);
+            }
+            hiddenInput.value = logoPath;
+        });
+    });
+    
+    // Manejar envío del formulario de tema
+    document.getElementById('formTema').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        // Crear objeto con los datos del tema
+        const temaData = {
+            sidebar_bg: formData.get('sidebar_bg'),
+            sidebar_text: formData.get('sidebar_text'),
+            navbar_bg: formData.get('navbar_bg'),
+            navbar_text: formData.get('navbar_text'),
+            primary_color: formData.get('primary_color'),
+            secondary_color: formData.get('secondary_color'),
+            accent_color: formData.get('accent_color')
+        };
+        
+        // Aplicar el tema mientras se guarda
+        aplicarTema(temaData);
+        
+        // Enviar formulario normalmente
+        this.submit();
+    });
+    
+    // Manejar envío del formulario de logo
+    document.getElementById('formLogo').addEventListener('submit', function(e) {
+        // No necesitamos prevenir el envío del formulario ya que es un formulario multipart/form-data
+    });
+});
+
+// Función para previsualizar el tema
+function previsualizarTema() {
+    const formData = new FormData(document.getElementById('formTema'));
+    
+    // Crear objeto con los datos del tema
+    const temaData = {
+        sidebar_bg: formData.get('sidebar_bg'),
+        sidebar_text: formData.get('sidebar_text'),
+        navbar_bg: formData.get('navbar_bg'),
+        navbar_text: formData.get('navbar_text'),
+        primary_color: formData.get('primary_color'),
+        secondary_color: formData.get('secondary_color'),
+        accent_color: formData.get('accent_color')
+    };
+    
+    // Aplicar el tema temporalmente
+    aplicarTema(temaData);
+    
+    // Actualizar la vista previa del tema actual
+    const activeThemePreview = document.querySelector('.active-theme .theme-sidebar');
+    if (activeThemePreview) {
+        activeThemePreview.style.backgroundColor = temaData.sidebar_bg;
+    }
+    
+    const activeThemeNavbar = document.querySelector('.active-theme .theme-navbar');
+    if (activeThemeNavbar) {
+        activeThemeNavbar.style.backgroundColor = temaData.navbar_bg;
+    }
+    
+    const activeThemeAccent = document.querySelector('.active-theme .theme-accent');
+    if (activeThemeAccent) {
+        activeThemeAccent.style.backgroundColor = temaData.primary_color;
+    }
+    
+    // Mostrar mensaje de previsualización
+    mostrarMensaje('Tema aplicado temporalmente. Guarda los cambios para mantenerlos.', 'info');
+}
+
+// Función para aplicar el tema actual
+function aplicarTemaActual() {
+    // Obtener tema actual desde la API
+    fetch('/dashboard/api/configuracion/temas/actual/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.tema) {
+                aplicarTema(data.tema);
+            }
+        })
+        .catch(error => {
+            console.error('Error al obtener tema actual:', error);
+        });
+    
+    // Obtener logo actual desde la API
+    fetch('/dashboard/api/configuracion/logo/actual/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.logo) {
+                aplicarLogo(data.logo);
+            }
+        })
+        .catch(error => {
+            console.error('Error al obtener logo actual:', error);
+        });
+}
+
+// Función para aplicar un tema
+function aplicarTema(tema) {
+    // Crear o actualizar la hoja de estilo personalizada
+    let styleElement = document.getElementById('custom-theme-style');
+    if (!styleElement) {
+        styleElement = document.createElement('style');
+        styleElement.id = 'custom-theme-style';
+        document.head.appendChild(styleElement);
+    }
+    
+    // Crear las reglas CSS
+    const cssRules = `
+        /* Sidebar */
+        #sidebar-wrapper {
+            background-color: ${tema.sidebar_bg} !important;
+        }
+        
+        .sidebar-item, .sidebar-subitem {
+            color: ${tema.sidebar_text} !important;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background-color: ${tema.navbar_bg} !important;
+            color: ${tema.navbar_text} !important;
+        }
+        
+        /* Primary Color */
+        .btn-primary {
+            background-color: ${tema.primary_color} !important;
+            border-color: ${tema.primary_color} !important;
+        }
+        
+        .btn-outline-primary {
+            color: ${tema.primary_color} !important;
+            border-color: ${tema.primary_color} !important;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: ${tema.primary_color} !important;
+            color: #fff !important;
+        }
+        
+        /* Links */
+        a {
+            color: ${tema.primary_color};
+        }
+        
+        a:hover {
+            color: ${adjustColor(tema.primary_color, -20)};
+        }
+        
+        /* Active items */
+        .sidebar-item.active, .sidebar-subitem.active {
+            background-color: ${adjustColor(tema.primary_color, 0, 0.8)} !important;
+            color: white !important;
+        }
+    `;
+    
+    styleElement.innerHTML = cssRules;
+}
+
+// Función para aplicar el logo
+function aplicarLogo(logoData) {
+    // Actualizar todas las instancias del logo en la página
+    if (logoData && logoData.logo_path) {
+        const logoPath = logoData.logo_path;
+        const logoElements = document.querySelectorAll('img.sidebar-logo, img.navbar-logo');
+        logoElements.forEach(element => {
+            element.src = `/static/${logoPath}`;
+        });
+    }
+}
+
+// Función para ajustar un color (más claro o más oscuro)
+function adjustColor(hex, amount = 0, opacity = 1) {
+    if (amount === 0 && opacity === 1) return hex;
+    
+    // Si incluye el símbolo #, quitarlo
+    if (hex.startsWith('#')) {
+        hex = hex.slice(1);
+    }
+    
+    // Convertir a RGB
+    let r = parseInt(hex.slice(0, 2), 16);
+    let g = parseInt(hex.slice(2, 4), 16);
+    let b = parseInt(hex.slice(4, 6), 16);
+    
+    // Ajustar luminosidad
+    r = Math.max(0, Math.min(255, r + amount));
+    g = Math.max(0, Math.min(255, g + amount));
+    b = Math.max(0, Math.min(255, b + amount));
+    
+    // Aplicar opacidad si es distinta de 1
+    if (opacity !== 1) {
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    
+    // Convertir de vuelta a hexadecimal
+    const rHex = r.toString(16).padStart(2, '0');
+    const gHex = g.toString(16).padStart(2, '0');
+    const bHex = b.toString(16).padStart(2, '0');
+    
+    return `#${rHex}${gHex}${bHex}`;
+}
+
+// Función para mostrar mensajes
+function mostrarMensaje(mensaje, tipo = 'success', duracion = 3000) {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${tipo} show`;
+    toast.role = 'alert';
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="toast-header">
+            <strong class="me-auto">${tipo === 'success' ? 'Éxito' : tipo === 'error' ? 'Error' : 'Información'}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            ${mensaje}
+        </div>
+    `;
+    
+    // Aplicar estilo según el tipo
+    if (tipo === 'success') {
+        toast.style.backgroundColor = '#d4edda';
+        toast.style.color = '#155724';
+        toast.style.borderColor = '#c3e6cb';
+    } else if (tipo === 'error') {
+        toast.style.backgroundColor = '#f8d7da';
+        toast.style.color = '#721c24';
+        toast.style.borderColor = '#f5c6cb';
+    } else if (tipo === 'info') {
+        toast.style.backgroundColor = '#d1ecf1';
+        toast.style.color = '#0c5460';
+        toast.style.borderColor = '#bee5eb';
+    } else if (tipo === 'warning') {
+        toast.style.backgroundColor = '#fff3cd';
+        toast.style.color = '#856404';
+        toast.style.borderColor = '#ffeeba';
+    }
+    
+    // Obtener o crear el contenedor de toasts
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.style.zIndex = '5000';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Agregar el toast al contenedor
+    toastContainer.appendChild(toast);
+    
+    // Eliminar el toast después de la duración especificada
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 500);
+    }, duracion);
+}
+</script>
+{% endblock %}

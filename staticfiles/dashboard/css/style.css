@@ -17,6 +17,20 @@
     padding: 1.5rem 1.25rem !important;
     background: #1f2937 !important;
     border-bottom: none !important;
+    overflow: hidden;
+}
+
+/* Estilos para el logo */
+.sidebar-logo {
+    max-width: 80%;
+    max-height: 60px;
+    transition: transform 0.3s ease;
+}
+
+.navbar-logo {
+    height: 40px;
+    max-width: 120px;
+    transition: transform 0.3s ease;
 }
 
 /* Logo en el sidebar */
@@ -30,7 +44,7 @@
 
 /* Items del sidebar */
 .sidebar-item {
-    display: flex;
+    display: block;
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1.25rem;
@@ -345,15 +359,6 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     background-color: white !important;
     border-bottom: 1px solid #e5e7eb;
-}
-
-/* Logo en la navbar */
-.navbar-logo {
-    max-width: 35px;
-    max-height: 35px;
-    width: auto;
-    height: auto;
-    border-radius: 6px;
 }
 
 /* Search Bar */
@@ -902,4 +907,46 @@
 .btn-outline-primary:hover {
     background-color: #3b82f6;
     border-color: #3b82f6;
+}
+/* Fix para botones outline-primary en modo claro */
+.btn-outline-primary {
+    background: #fff !important;
+    color: #2563eb !important;
+    border-color: #2563eb !important;
+}
+
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+    background: #2563eb !important;
+    color: #fff !important;
+    border-color: #2563eb !important;
+}
+/* === FORZAR MODO BLANCO EN TODO EL DASHBOARD === */
+body, #page-content-wrapper, .card, .card-stats, .card-header, .table, .navbar, .dropdown-menu {
+    background: #fff !important;
+    color: #222 !important;
+}
+
+/* Sidebar modo oscuro */
+.sidebar-dark, .sidebar-heading {
+    background: #1f2937 !important;
+    color: #fff !important;
+}
+
+.sidebar-item, .sidebar-subitem {
+    color: rgba(255,255,255,0.85) !important;
+}
+
+.sidebar-item.active, .sidebar-subitem.active {
+    color: #fff !important;
+}
+
+.table thead th, .table tbody tr, .table td {
+    background: #fff !important;
+    color: #222 !important;
+}
+
+/* Eliminar color forzado en todos los botones para restaurar visibilidad y estilos correctos */
+
+.text-primary {
+    color: #2563eb !important;
 }

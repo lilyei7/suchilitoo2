@@ -1,0 +1,541 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load dashboard_extras %}
+
+{% block title %}Detalle de Incidente{% endblock %}
+
+{% block extra_css %}
+<style>
+    .evidence-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    .evidence-item {
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px;
+        background-color: #fff;
+    }
+    .evidence-image {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    .evidence-pdf {
+        width: 100%;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    .evidence-pdf i {
+        font-size: 48px;
+        color: #dc3545;
+    }
+    .evidence-details {
+        font-size: 0.9em;
+    }
+    .evidence-comment {
+        margin-top: 5px;
+        font-style: italic;
+        color: #6c757d;
+        max-height: 60px;
+        overflow-y: auto;
+    }
+    .status-badge {
+        font-size: 1.1em;
+        padding: 5px 10px;
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 45px;
+        margin-bottom: 20px;
+    }
+    .timeline-item:before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        height: 100%;
+        width: 2px;
+        background-color: #dee2e6;
+    }
+    .timeline-item:last-child:before {
+        height: 15px;
+    }
+    .timeline-badge {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        z-index: 1;
+    }
+    .timeline-content {
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Detalle de Incidente</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:principal' %}">Principal</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:checklist_incidents' %}">Incidentes</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Detalle de Incidente</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{% url 'dashboard:checklist_incidents' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver a lista
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Detalles del incidente -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ incident.title }}</h6>
+                    {% if incident.status == 'abierto' %}
+                        <span class="badge bg-danger status-badge">Abierto</span>
+                    {% elif incident.status == 'en_proceso' %}
+                        <span class="badge bg-warning status-badge">En proceso</span>
+                    {% elif incident.status == 'cerrado' %}
+                        <span class="badge bg-success status-badge">Cerrado</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="text-muted">Detalles</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                    <span class="text-muted">Sucursal:</span>
+                                    <strong>{{ incident.branch.nombre }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                    <span class="text-muted">Categoría:</span>
+                                    <strong>{{ incident.get_category_display }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                    <span class="text-muted">Reportado por:</span>
+                                    <strong>{{ incident.reported_by.get_full_name }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                    <span class="text-muted">Fecha de reporte:</span>
+                                    <strong>{{ incident.reported_at|date:"d/m/Y H:i" }}</strong>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted">Estado</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                    <span class="text-muted">Estado actual:</span>
+                                    <strong>{{ incident.get_status_display }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                    <span class="text-muted">Asignado a:</span>
+                                    <strong>{% if incident.assigned_to %}{{ incident.assigned_to.get_full_name }}{% else %}No asignado{% endif %}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                    <span class="text-muted">Última actualización:</span>
+                                    <strong>{{ incident.updated_at|date:"d/m/Y H:i" }}</strong>
+                                </li>
+                                {% if incident.resolved_at %}
+                                <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                    <span class="text-muted">Fecha de resolución:</span>
+                                    <strong>{{ incident.resolved_at|date:"d/m/Y H:i" }}</strong>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <h5 class="text-muted">Descripción</h5>
+                    <div class="bg-light p-3 mb-4 rounded">
+                        <p class="mb-0">{{ incident.description|linebreaks }}</p>
+                    </div>
+                    
+                    {% if incident.resolution_note %}
+                    <h5 class="text-muted">Nota de Resolución</h5>
+                    <div class="bg-light p-3 rounded">
+                        <p class="mb-0">{{ incident.resolution_note|linebreaks }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Evidencias -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Evidencias</h6>
+                    {% if incident.status != 'cerrado' or user.is_staff or user.rol.nombre in 'admin,gerente,supervisor' %}
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#uploadEvidenceModal">
+                        <i class="fas fa-upload me-2"></i>Subir Evidencia
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if incident.evidence_files.exists %}
+                    <div class="evidence-gallery">
+                        {% for evidence in incident.evidence_files.all %}
+                        <div class="evidence-item">
+                            {% if evidence.file.url|lower|endswith:'.pdf' %}
+                            <a href="{{ evidence.file.url }}" target="_blank" class="evidence-pdf">
+                                <i class="far fa-file-pdf"></i>
+                            </a>
+                            {% else %}
+                            <a href="{{ evidence.file.url }}" target="_blank">
+                                <img src="{{ evidence.file.url }}" alt="Evidencia" class="evidence-image">
+                            </a>
+                            {% endif %}
+                            <div class="evidence-details">
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ evidence.uploaded_by.get_full_name }}
+                                </small>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>{{ evidence.uploaded_at|date:"d/m/Y H:i" }}
+                                </small>
+                                {% if evidence.comment %}
+                                <div class="evidence-comment">{{ evidence.comment }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">No hay evidencias adjuntas a este incidente.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel lateral: Acciones y Timeline -->
+        <div class="col-lg-4">
+            <!-- Acciones -->
+            {% if incident.status != 'cerrado' or user.is_staff or user.rol.nombre in 'admin,gerente,supervisor' %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Acciones</h6>
+                </div>
+                <div class="card-body">
+                    <form id="updateStatusForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="statusSelect" class="form-label">Cambiar estado</label>
+                            <select class="form-select" id="statusSelect" name="status">
+                                <option value="abierto" {% if incident.status == 'abierto' %}selected{% endif %}>Abierto</option>
+                                <option value="en_proceso" {% if incident.status == 'en_proceso' %}selected{% endif %}>En proceso</option>
+                                <option value="cerrado" {% if incident.status == 'cerrado' %}selected{% endif %}>Cerrado</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="assignedToSelect" class="form-label">Asignar a</label>
+                            <select class="form-select" id="assignedToSelect" name="assigned_to">
+                                <option value="">No asignado</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {% if incident.assigned_to.id == user.id %}selected{% endif %}>
+                                    {{ user.get_full_name }} ({{ user.rol.nombre|default:'Sin rol' }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3" id="resolutionNoteContainer" {% if incident.status != 'cerrado' %}style="display: none;"{% endif %}>
+                            <label for="resolutionNote" class="form-label">Nota de resolución</label>
+                            <textarea class="form-control" id="resolutionNote" name="resolution_note" rows="3">{{ incident.resolution_note }}</textarea>
+                            <div class="form-text">Obligatorio para cerrar el incidente</div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-save me-2"></i>Guardar cambios
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Timeline -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Historial</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% if incident.status == 'cerrado' and incident.resolved_at %}
+                        <div class="timeline-item">
+                            <div class="timeline-badge bg-success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <p class="mb-1"><strong>Incidente cerrado</strong></p>
+                                <p class="mb-1">{{ incident.resolved_at|date:"d/m/Y H:i" }}</p>
+                                <small class="text-muted">Por {{ incident.assigned_to.get_full_name|default:"Un administrador" }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if incident.status == 'en_proceso' or incident.status == 'cerrado' %}
+                        <div class="timeline-item">
+                            <div class="timeline-badge bg-warning">
+                                <i class="fas fa-tools"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <p class="mb-1"><strong>En proceso</strong></p>
+                                <p class="mb-1">{{ incident.updated_at|date:"d/m/Y H:i" }}</p>
+                                <small class="text-muted">Asignado a {{ incident.assigned_to.get_full_name|default:"No asignado" }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-badge bg-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <p class="mb-1"><strong>Incidente reportado</strong></p>
+                                <p class="mb-1">{{ incident.reported_at|date:"d/m/Y H:i" }}</p>
+                                <small class="text-muted">Por {{ incident.reported_by.get_full_name }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para subir evidencia -->
+<div class="modal fade" id="uploadEvidenceModal" tabindex="-1" aria-labelledby="uploadEvidenceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadEvidenceModalLabel">Subir Evidencia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="uploadEvidenceForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="evidenceFile" class="form-label">Archivo de Evidencia</label>
+                        <input type="file" class="form-control" id="evidenceFile" name="evidence_file" accept="image/jpeg,image/png,application/pdf" required>
+                        <div class="form-text">Formatos permitidos: JPG, PNG, PDF. Tamaño máximo: 5MB</div>
+                    </div>
+                    
+                    <!-- Vista previa de imagen -->
+                    <div id="imagePreviewContainer" class="mb-3 d-none">
+                        <label class="form-label">Vista previa:</label>
+                        <div class="border rounded p-2 text-center">
+                            <img id="imagePreview" class="img-fluid" style="max-height: 200px;" />
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="evidenceComment" class="form-label">Comentario (opcional)</label>
+                        <textarea class="form-control" id="evidenceComment" name="comment" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i> Subir Evidencia
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Función para obtener el token CSRF
+    function getCsrfToken() {
+        const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfTokenElement) {
+            return csrfTokenElement.value;
+        }
+        // Si no encuentra el campo, buscar en las cookies
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('csrftoken=')) {
+                return cookie.substring('csrftoken='.length, cookie.length);
+            }
+        }
+        return null;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mostrar/ocultar campo de nota de resolución según el estado
+        const statusSelect = document.getElementById('statusSelect');
+        const resolutionNoteContainer = document.getElementById('resolutionNoteContainer');
+        
+        if (statusSelect && resolutionNoteContainer) {
+            statusSelect.addEventListener('change', function() {
+                if (this.value === 'cerrado') {
+                    resolutionNoteContainer.style.display = 'block';
+                } else {
+                    resolutionNoteContainer.style.display = 'none';
+                }
+            });
+        }
+        
+        // Actualizar estado
+        const updateStatusForm = document.getElementById('updateStatusForm');
+        if (updateStatusForm) {
+            updateStatusForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Validar nota de resolución si el estado es cerrado
+                const status = statusSelect.value;
+                const resolutionNote = document.getElementById('resolutionNote').value;
+                
+                if (status === 'cerrado' && !resolutionNote.trim()) {
+                    alert('Debes proporcionar una nota de resolución para cerrar el incidente.');
+                    return;
+                }
+                
+                // Recoger datos del formulario
+                const formData = new FormData(this);
+                
+                // Enviar solicitud AJAX
+                fetch('{% url "dashboard:update_incident_status" incident.id %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: new URLSearchParams(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Mostrar notificación de éxito
+                        alert('Incidente actualizado exitosamente.');
+                        
+                        // Recargar la página para mostrar los cambios
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al actualizar el incidente. Por favor, inténtalo de nuevo.');
+                });
+            });
+        }
+        
+        // Manejar vista previa de imagen
+        const evidenceFileInput = document.getElementById('evidenceFile');
+        if (evidenceFileInput) {
+            evidenceFileInput.addEventListener('change', function() {
+                const file = this.files[0];
+                const previewContainer = document.getElementById('imagePreviewContainer');
+                const preview = document.getElementById('imagePreview');
+                
+                // Limpiar vista previa anterior
+                previewContainer.classList.add('d-none');
+                
+                if (file && file.type.match('image.*')) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        previewContainer.classList.remove('d-none');
+                    }
+                    
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        // Subir evidencia
+        const uploadEvidenceForm = document.getElementById('uploadEvidenceForm');
+        if (uploadEvidenceForm) {
+            uploadEvidenceForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Validación manual del formulario
+                const fileInput = document.getElementById('evidenceFile');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    fileInput.classList.add('is-invalid');
+                    return false;
+                } else {
+                    fileInput.classList.remove('is-invalid');
+                }
+                
+                const formData = new FormData(this);
+                
+                // Mostrar indicador de carga
+                const submitBtn = uploadEvidenceForm.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
+                
+                fetch('{% url "dashboard:upload_incident_evidence" incident.id %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error HTTP: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Restaurar botón
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    
+                    if (data.success) {
+                        alert('Evidencia subida correctamente.');
+                        
+                        // Cerrar modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('uploadEvidenceModal'));
+                        modal.hide();
+                        
+                        // Recargar la página para mostrar la nueva evidencia
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    // Restaurar botón en caso de error
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    
+                    console.error('Error:', error);
+                    alert('Error al subir la evidencia. Por favor, inténtalo de nuevo.');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

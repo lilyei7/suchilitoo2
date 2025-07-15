@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 from .views import categorias_unidades_views
 from .views import entradas_salidas_views
@@ -11,8 +11,10 @@ from .views import croquis_views
 from .views import productos_venta_moderna_views
 from .views import api_views
 from .views import usuarios_views
+from .views import configuracion_views
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect
 
 app_name = 'dashboard'
 
@@ -98,12 +100,16 @@ urlpatterns = [
     # Ventas
     path('ventas/', ventas_views.ventas_view, name='ventas'),
     path('api/venta-producto/', ventas_views.venta_producto_api, name='venta_producto_api'),
+    path('api/ventas/por-periodo/', ventas_views.ventas_por_periodo_api, name='ventas_por_periodo_api'),
+    path('api/ventas/productos-mas-vendidos/', ventas_views.productos_mas_vendidos_api, name='productos_mas_vendidos_api'),
+    path('api/ventas/por-cajero/', ventas_views.ventas_por_cajero_api, name='ventas_por_cajero_api'),
     
     # Recursos Humanos
     path('recursos-humanos/', views.recursos_humanos_view, name='recursos_humanos'),
     
     # Checklist
-    path('checklist/', views.checklist_view, name='checklist'),
+    # Rutas de checklist integradas desde urls_checklist.py
+    path('checklist/', include('dashboard.urls_checklist')),
     
     # Sucursales
     path('sucursales/', sucursales_views.sucursales_view, name='sucursales'),
@@ -196,6 +202,16 @@ urlpatterns = [
     # Croquis - Editor de layout visual
     path('croquis/<int:sucursal_id>/', croquis_views.croquis_editor_view, name='croquis_editor'),
     path('croquis/<int:sucursal_id>/preview/', croquis_views.preview_croquis, name='croquis_preview'),
+    
+    # Configuración del sistema
+    path('configuracion/temas/', configuracion_views.configuracion_temas, name='configuracion_temas'),
+    path('configuracion/general/', configuracion_views.configuracion_general, name='configuracion_general'),
+    path('configuracion/backup/', configuracion_views.backup_database, name='backup_database'),
+    path('api/configuracion/temas/guardar/', configuracion_views.guardar_tema, name='guardar_tema'),
+    path('api/configuracion/temas/actual/', configuracion_views.obtener_tema_actual, name='obtener_tema_actual'),
+    path('api/configuracion/logo/actual/', configuracion_views.obtener_logo_actual, name='obtener_logo_actual'),
+    path('api/configuracion/backup/crear/', configuracion_views.crear_backup_api, name='crear_backup_api'),
+    path('api/configuracion/backup/restaurar/', configuracion_views.restaurar_backup_api, name='restaurar_backup_api'),
 ]
 
 if settings.DEBUG:

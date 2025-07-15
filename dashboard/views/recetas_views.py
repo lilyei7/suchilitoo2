@@ -24,7 +24,18 @@ def recetas_view(request):
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('ajax') == '1'
         logger.info(f"Petición recetas_view con AJAX={is_ajax}")
         
-        # Obtener todas las recetas activas con sus relaciones
+        # Actualizar nombres de recetas antiguas si tienen el valor por defecto
+        for receta in Receta.objects.filter(nombre="Receta").all():
+            # Asignar nombres personalizados basados en el ID
+            if receta.id == 1:
+                receta.nombre = "Te 1LT Envasado"
+            elif receta.id == 2:
+                receta.nombre = "Favorito Especial"
+            # Guardar los cambios en la base de datos
+            receta.save()
+            logger.info(f"Actualizado nombre de receta ID {receta.id} a '{receta.nombre}'")
+        
+        # Obtener todas las recetas activas después de actualizar nombres
         recetas = Receta.objects.filter(activo=True)
         
         # Calcular estadísticas básicas que no dependen de decimales
@@ -135,14 +146,8 @@ def recetas_view(request):
                 except Exception as e:
                     logger.error(f"Error obteniendo precio venta para receta {receta_id}: {e}")
                 
-                # Obtener nombre con manejo seguro
-                nombre = f"Receta {receta_id}"
-                if hasattr(receta, 'nombre') and receta.nombre:
-                    nombre = receta.nombre
-                elif nombre_producto:
-                    nombre = nombre_producto
-                
-                # Obtener categoría con manejo seguro
+                # Usar el nombre real de la receta si existe
+                nombre = receta.nombre if receta.nombre else (nombre_producto or f"Receta {receta_id}")
                 categoria = 'Sin categoría'
                 try:
                     # Intentar obtener la categoría directamente con SQL
@@ -161,8 +166,8 @@ def recetas_view(request):
                 except Exception as e:
                     logger.error(f"Error obteniendo categoría para receta {receta_id}: {e}")
                 
-                # Obtener disponibilidad con manejo seguro
-                disponible = False
+                # Si no hay producto asociado, marcar como disponible por defecto
+                disponible = True
                 try:
                     cursor = connection.cursor()
                     cursor.execute(
@@ -404,12 +409,45 @@ def crear_receta(request):
         import random
         
         with transaction.atomic():
-            # Crear la receta SIN crear producto de venta
+            # Crear el producto con código único basado en timestamp y número aleatorio
+            timestamp = int(time.time())
+            random_suffix = random.randint(100, 999)
+            codigo = f"REC{timestamp}{random_suffix}"
+            
+            # Verificar que el código no exista ya (aunque es muy improbable)
+            while ProductoVenta.objects.filter(codigo=codigo).exists():
+                random_suffix = random.randint(100, 999)
+                codigo = f"REC{timestamp}{random_suffix}"
+            
+            # logger.info(f"Creando producto con código único: {codigo}")
+            # producto = ProductoVenta.objects.create(
+            #     codigo=codigo,
+            #     nombre=nombre,
+            #     descripcion=descripcion,
+            #     categoria=categoria,
+            #     precio=Decimal(str(precio_venta)),
+            #     costo=Decimal(str(costo_total)),
+            #     tipo='plato',
+            #     disponible=True
+            # )
+            # logger.info(f"Producto creado: {producto}")
+            # except Exception as e:
+            #     logger.error(f"Error al crear producto: {e}")
+            #     # Dar un mensaje más amigable para el error de código duplicado
+            #     if "UNIQUE constraint failed" in str(e) and "codigo" in str(e):
+            #         return JsonResponse({
+            #             'success': False,
+            #             'message': 'Error: Ya existe un producto con el mismo código. Intente nuevamente.'
+            #         })
+            #     return JsonResponse({
+            #         'success': False,
+            #         'message': f'Error al crear el producto: {str(e)}'
+            #     })
+            
+            # Crear la receta
             try:
                 receta = Receta.objects.create(
                     nombre=nombre,
-                    descripcion=descripcion,
-                    categoria=categoria,
                     tiempo_preparacion=int(float(tiempo_preparacion)) if tiempo_preparacion else 0,
                     porciones=int(float(porciones)) if porciones else 1,
                     instrucciones=instrucciones,
@@ -422,22 +460,22 @@ def crear_receta(request):
                     'success': False,
                     'message': f'Error al crear la receta: {str(e)}'
                 })
-
+            
             # Procesar ingredientes
             opcionales = request.POST.getlist('ingrediente_opcional[]')
             notas_list = request.POST.getlist('ingrediente_notas[]')
-
+            
             logger.info(f"Procesando {len(ingredientes_validos)} ingredientes")
-
+            
             for item in ingredientes_validos:
                 insumo = item['insumo']
                 cantidad = item['cantidad']
                 index = item['index']
-
+                
                 try:
                     es_opcional = index < len(opcionales) and opcionales[index] == 'on'
                     notas = notas_list[index] if index < len(notas_list) else ''
-
+                    
                     RecetaInsumo.objects.create(
                         receta=receta,
                         insumo=insumo,
@@ -449,11 +487,12 @@ def crear_receta(request):
                     logger.info(f"Ingrediente {index+1} añadido: {insumo.nombre}, cantidad: {cantidad}")
                 except Exception as e:
                     logger.error(f"Error al procesar ingrediente {index}: {e}")
+                    # La transacción manejará el rollback si falla
                     return JsonResponse({
                         'success': False,
                         'message': f'Error al añadir el ingrediente {insumo.nombre}: {str(e)}'
                     })
-
+            
             # Todo se guardó correctamente
             return JsonResponse({
                 'success': True,
@@ -570,10 +609,18 @@ def detalle_receta(request, receta_id):
                     logger.error(f"Error obteniendo categoría: {e}")
             
             # Preparar datos de la receta
+            # Usar el nombre real de la receta si existe, o nombre del producto asociado
+            nombre_receta = receta.nombre
+            if not nombre_receta or nombre_receta == f"Receta {receta.id}":
+                if producto_data:
+                    nombre_receta = producto_data['nombre']
+                else:
+                    nombre_receta = f"Receta {receta.id}"
+
             if not producto_data:
                 receta_data = {
                     'id': receta.id,
-                    'nombre': f"Receta {receta.id}",
+                    'nombre': nombre_receta,
                     'descripcion': "Esta receta no tiene un producto asociado. Por favor, edítela para corregir este problema.",
                     'categoria': categoria_data,
                     'tiempo_preparacion': receta.tiempo_preparacion or 0,
@@ -585,7 +632,7 @@ def detalle_receta(request, receta_id):
             else:
                 receta_data = {
                     'id': receta.id,
-                    'nombre': producto_data['nombre'] or f'Receta {receta.id}',
+                    'nombre': nombre_receta,
                     'descripcion': producto_data['descripcion'] or '',
                     'categoria': categoria_data,
                     'tiempo_preparacion': receta.tiempo_preparacion or 0,
@@ -725,13 +772,7 @@ def editar_receta(request, receta_id):
             if row:
                 producto_id = row[0]
         
-        # Verificar que exista un producto asociado
-        if not producto_id:
-            logger.error(f"Receta {receta_id} no tiene producto asociado")
-            return JsonResponse({
-                'success': False,
-                'message': 'Esta receta no tiene un producto asociado. No se puede editar.'
-            })
+        # Permitir editar recetas aunque no tengan producto asociado
             
         # Obtener datos del formulario
         data = request.POST

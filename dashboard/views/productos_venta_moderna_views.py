@@ -7,6 +7,7 @@ from django.urls import reverse
 from restaurant.models import ProductoVenta, CategoriaProducto, Receta, ProductoReceta
 from decimal import Decimal
 import json
+from dashboard.views.base_views import get_sidebar_context
 
 @login_required
 def lista_productos_venta_moderna(request):
@@ -51,6 +52,7 @@ def lista_productos_venta_moderna(request):
         'productos_disponibles': productos_disponibles,
         'productos_promocion': productos_promocion,
         'precio_promedio': precio_promedio,
+        **get_sidebar_context('productos_venta')
     }
     
     return render(request, 'dashboard/productos_venta.html', context)

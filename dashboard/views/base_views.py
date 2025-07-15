@@ -21,6 +21,9 @@ def get_sidebar_context(view_name):
         'cajero_section_active': view_name in [
             'cajero_dashboard', 'punto_venta', 'ordenes_activas', 'historial_ventas',
             'apertura_caja', 'cierre_caja', 'admin_mesas'
+        ],
+        'checklist_section_active': view_name in [
+            'checklist_dashboard', 'checklist_incidents', 'checklist_notifications'
         ]
     }
     return sidebar_context
@@ -82,3 +85,10 @@ def principal_view(request):
     }
     
     return render(request, 'dashboard/principal.html', context)
+
+@login_required
+def checklist_redirect_view(request):
+    """
+    Redirecciona a la vista mejorada de checklist
+    """
+    return redirect('dashboard:checklist_dashboard')

@@ -1,0 +1,239 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Notificaciones{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Notificaciones</h1>
+        <button type="button" class="btn btn-primary" id="markAllReadBtn">
+            <i class="fas fa-check-double"></i> Marcar Todo como Leído
+        </button>
+    </div>
+
+    <!-- Lista de notificaciones -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Mis Notificaciones</h6>
+            <div>
+                <button class="btn btn-sm btn-outline-primary filter-btn" data-filter="all">Todas</button>
+                <button class="btn btn-sm btn-outline-primary filter-btn" data-filter="unread">Sin leer</button>
+                <button class="btn btn-sm btn-outline-primary filter-btn" data-filter="read">Leídas</button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if notifications %}
+                <div class="list-group notification-list">
+                    {% for notification in notifications %}
+                        <div class="list-group-item list-group-item-action flex-column align-items-start notification-item {% if notification.read %}read{% else %}unread{% endif %}"
+                             data-notification-status="{% if notification.read %}read{% else %}unread{% endif %}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">
+                                    {% if not notification.read %}
+                                        <span class="badge bg-primary">Nueva</span>
+                                    {% endif %}
+                                    {{ notification.title }}
+                                </h5>
+                                <small>{{ notification.created_at|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <p class="mb-1">{{ notification.message }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <div>
+                                    {% if notification.type == 'task_created' %}
+                                        <span class="badge bg-info">Nueva Tarea</span>
+                                    {% elif notification.type == 'task_completed' %}
+                                        <span class="badge bg-success">Tarea Completada</span>
+                                    {% elif notification.type == 'evidence_uploaded' %}
+                                        <span class="badge bg-warning">Nueva Evidencia</span>
+                                    {% elif notification.type == 'incident_reported' %}
+                                        <span class="badge bg-danger">Incidente Reportado</span>
+                                    {% elif notification.type == 'incident_updated' %}
+                                        <span class="badge bg-warning">Incidente Actualizado</span>
+                                    {% elif notification.type == 'incident_resolved' %}
+                                        <span class="badge bg-success">Incidente Resuelto</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Notificación</span>
+                                    {% endif %}
+                                    
+                                    {% if notification.related_task %}
+                                        <a href="{% url 'dashboard:checklist_dashboard' %}?task={{ notification.related_task.id }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-tasks"></i> Ver Tarea
+                                        </a>
+                                    {% endif %}
+                                    
+                                    {% if notification.related_incident %}
+                                        <a href="{% url 'dashboard:checklist_incidents' %}?incident={{ notification.related_incident.id }}" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-exclamation-triangle"></i> Ver Incidente
+                                        </a>
+                                    {% endif %}
+                                </div>
+                                {% if not notification.read %}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary mark-read-btn" data-notification-id="{{ notification.id }}">
+                                        <i class="fas fa-check"></i> Marcar como leída
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted small">
+                                        <i class="fas fa-check-double"></i> Leída
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No tienes notificaciones.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Marcar notificación como leída
+        const markReadBtns = document.querySelectorAll('.mark-read-btn');
+        markReadBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const notificationId = this.dataset.notificationId;
+                const btn = this;
+                
+                fetch(`/dashboard/checklist/notifications/${notificationId}/read/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const notificationItem = btn.closest('.notification-item');
+                        
+                        // Actualizar la apariencia
+                        notificationItem.classList.remove('unread');
+                        notificationItem.classList.add('read');
+                        notificationItem.dataset.notificationStatus = 'read';
+                        
+                        // Quitar el badge de "Nueva"
+                        const badgeNew = notificationItem.querySelector('.badge.bg-primary');
+                        if (badgeNew) {
+                            badgeNew.remove();
+                        }
+                        
+                        // Reemplazar el botón con texto
+                        const btnParent = btn.parentElement;
+                        btn.remove();
+                        
+                        const readSpan = document.createElement('span');
+                        readSpan.classList.add('text-muted', 'small');
+                        readSpan.innerHTML = '<i class="fas fa-check-double"></i> Leída';
+                        btnParent.appendChild(readSpan);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Error al marcar como leída: ' + error);
+                });
+            });
+        });
+
+        // Marcar todas como leídas
+        const markAllReadBtn = document.getElementById('markAllReadBtn');
+        if (markAllReadBtn) {
+            markAllReadBtn.addEventListener('click', function() {
+                fetch('{% url "dashboard:mark_all_notifications_read" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Actualizar la UI para todas las notificaciones no leídas
+                        const unreadItems = document.querySelectorAll('.notification-item.unread');
+                        unreadItems.forEach(item => {
+                            // Actualizar clases
+                            item.classList.remove('unread');
+                            item.classList.add('read');
+                            item.dataset.notificationStatus = 'read';
+                            
+                            // Quitar el badge de "Nueva"
+                            const badgeNew = item.querySelector('.badge.bg-primary');
+                            if (badgeNew) {
+                                badgeNew.remove();
+                            }
+                            
+                            // Reemplazar el botón con texto
+                            const btn = item.querySelector('.mark-read-btn');
+                            if (btn) {
+                                const btnParent = btn.parentElement;
+                                btn.remove();
+                                
+                                const readSpan = document.createElement('span');
+                                readSpan.classList.add('text-muted', 'small');
+                                readSpan.innerHTML = '<i class="fas fa-check-double"></i> Leída';
+                                btnParent.appendChild(readSpan);
+                            }
+                        });
+                        
+                        showToast('success', data.message);
+                    } else {
+                        showToast('error', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Error al marcar todas como leídas: ' + error);
+                });
+            });
+        }
+
+        // Filtrar notificaciones
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filter = this.dataset.filter;
+                
+                // Actualizar botones activos
+                filterBtns.forEach(b => b.classList.remove('active', 'btn-primary'));
+                this.classList.add('active', 'btn-primary');
+                
+                // Filtrar elementos
+                const notificationItems = document.querySelectorAll('.notification-item');
+                notificationItems.forEach(item => {
+                    if (filter === 'all' || item.dataset.notificationStatus === filter) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Activar el filtro "Todas" por defecto
+        document.querySelector('.filter-btn[data-filter="all"]').classList.add('active', 'btn-primary');
+
+        // Funciones auxiliares
+        function showToast(type, message) {
+            // Usar la función de toasts que tengas configurada en tu sistema
+            if (typeof Toastify === 'function') {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    close: true,
+                    gravity: 'top',
+                    position: 'right',
+                    backgroundColor: type === 'success' ? '#28a745' : '#dc3545'
+                }).showToast();
+            } else {
+                alert(message);
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,715 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Incidentes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Incidentes Reportados</h1>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#reportIncidentModal">
+            <i class="fas fa-exclamation-triangle"></i> Reportar Nuevo Incidente
+        </button>
+    </div>
+
+    <!-- Tarjetas de resumen -->
+    <div class="row mb-4">
+        <!-- Total de incidentes -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Incidentes</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_incidents }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incidentes abiertos -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Abiertos</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ open_incidents }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incidentes en proceso -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                En Proceso</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ in_progress_incidents }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-sync fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incidentes cerrados -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Cerrados</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ closed_incidents }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
+        </div>
+        <div class="card-body">
+            <form action="{% url 'dashboard:checklist_incidents' %}" method="get" class="row g-3">
+                {% if request.user.is_staff %}
+                <div class="col-md-3">
+                    <label for="branchFilter" class="form-label">Sucursal</label>
+                    <select class="form-select" id="branchFilter" name="branch">
+                        <option value="">Todas las sucursales</option>
+                        {% for branch in branches %}
+                            <option value="{{ branch.id }}" {% if selected_branch == branch.id|stringformat:"s" %}selected{% endif %}>
+                                {{ branch.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                <div class="col-md-3">
+                    <label for="statusFilter" class="form-label">Estado</label>
+                    <select class="form-select" id="statusFilter" name="status">
+                        <option value="">Todos los estados</option>
+                        {% for status_value, status_label in status_choices %}
+                            <option value="{{ status_value }}" {% if selected_status == status_value %}selected{% endif %}>
+                                {{ status_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="categoryFilter" class="form-label">Categoría</label>
+                    <select class="form-select" id="categoryFilter" name="category">
+                        <option value="">Todas las categorías</option>
+                        {% for category_value, category_label in category_choices %}
+                            <option value="{{ category_value }}" {% if selected_category == category_value %}selected{% endif %}>
+                                {{ category_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'dashboard:checklist_incidents' %}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-undo"></i> Restablecer
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de incidentes -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Lista de Incidentes</h6>
+        </div>
+        <div class="card-body">
+            {% if incidents %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="incidentsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Título</th>
+                                <th>Categoría</th>
+                                <th>Sucursal</th>
+                                <th>Reportado Por</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for incident in incidents %}
+                                <tr class="{% if incident.status == 'abierto' %}table-danger{% elif incident.status == 'en_proceso' %}table-warning{% elif incident.status == 'cerrado' %}table-success{% endif %}">
+                                    <td>{{ incident.id }}</td>
+                                    <td>{{ incident.title }}</td>
+                                    <td>
+                                        {% if incident.category == 'equipo' %}
+                                            <span class="badge bg-secondary">Equipo</span>
+                                        {% elif incident.category == 'infraestructura' %}
+                                            <span class="badge bg-secondary">Infraestructura</span>
+                                        {% elif incident.category == 'seguridad' %}
+                                            <span class="badge bg-secondary">Seguridad</span>
+                                        {% elif incident.category == 'higiene' %}
+                                            <span class="badge bg-secondary">Higiene</span>
+                                        {% elif incident.category == 'otro' %}
+                                            <span class="badge bg-secondary">Otro</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ incident.branch.nombre }}</td>
+                                    <td>{{ incident.reported_by.get_full_name }}</td>
+                                    <td>{{ incident.reported_at|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if incident.status == 'abierto' %}
+                                            <span class="badge bg-danger">Abierto</span>
+                                        {% elif incident.status == 'en_proceso' %}
+                                            <span class="badge bg-warning">En proceso</span>
+                                        {% elif incident.status == 'cerrado' %}
+                                            <span class="badge bg-success">Cerrado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-info view-incident-btn" 
+                                                data-bs-toggle="modal" data-bs-target="#viewIncidentModal"
+                                                data-incident-id="{{ incident.id }}"
+                                                data-incident-title="{{ incident.title }}"
+                                                data-incident-category="{{ incident.get_category_display }}"
+                                                data-incident-branch="{{ incident.branch.nombre }}"
+                                                data-incident-reported-by="{{ incident.reported_by.get_full_name }}"
+                                                data-incident-reported-at="{{ incident.reported_at|date:"d/m/Y H:i" }}"
+                                                data-incident-description="{{ incident.description }}"
+                                                data-incident-status="{{ incident.status }}"
+                                                data-incident-assigned-to="{% if incident.assigned_to %}{{ incident.assigned_to.get_full_name }}{% endif %}"
+                                                data-incident-resolution-note="{{ incident.resolution_note }}"
+                                                data-incident-resolved-at="{% if incident.resolved_at %}{{ incident.resolved_at|date:"d/m/Y H:i" }}{% endif %}">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        
+                                        {% if request.user.is_staff or request.user.rol.nombre == 'mantenimiento' or request.user.rol.nombre == 'gerente' or request.user == incident.assigned_to %}
+                                            <button type="button" class="btn btn-sm btn-primary update-status-btn" 
+                                                    data-bs-toggle="modal" data-bs-target="#updateStatusModal"
+                                                    data-incident-id="{{ incident.id }}"
+                                                    data-incident-status="{{ incident.status }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        {% endif %}
+                                        
+                                        <!-- Botón para subir evidencia (solo si está cerrado) -->
+                                        {% if incident.status == 'cerrado' %}
+                                            <button type="button" class="btn btn-sm btn-secondary upload-evidence-btn" 
+                                                    data-bs-toggle="modal" data-bs-target="#uploadIncidentEvidenceModal"
+                                                    data-incident-id="{{ incident.id }}"
+                                                    data-incident-title="{{ incident.title }}"
+                                                    data-incident-evidence="{{ incident.evidence|join:", " }}">
+                                                <i class="fas fa-file-upload"></i>
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No se encontraron incidentes con los filtros seleccionados.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalles de incidente -->
+<div class="modal fade" id="viewIncidentModal" tabindex="-1" aria-labelledby="viewIncidentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewIncidentModalLabel">Detalles del Incidente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>ID:</strong> <span id="viewIncidentId"></span></p>
+                        <p><strong>Título:</strong> <span id="viewIncidentTitle"></span></p>
+                        <p><strong>Categoría:</strong> <span id="viewIncidentCategory"></span></p>
+                        <p><strong>Sucursal:</strong> <span id="viewIncidentBranch"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Reportado por:</strong> <span id="viewIncidentReportedBy"></span></p>
+                        <p><strong>Fecha de reporte:</strong> <span id="viewIncidentReportedAt"></span></p>
+                        <p><strong>Estado:</strong> <span id="viewIncidentStatus"></span></p>
+                        <p><strong>Asignado a:</strong> <span id="viewIncidentAssignedTo">No asignado</span></p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <h6>Descripción:</h6>
+                    <div class="border p-3 bg-light" id="viewIncidentDescription"></div>
+                </div>
+                
+                <div id="resolutionSection" class="mb-3" style="display: none;">
+                    <h6>Nota de Resolución:</h6>
+                    <div class="border p-3 bg-light" id="viewIncidentResolutionNote"></div>
+                    <p class="mt-2"><strong>Resuelto el:</strong> <span id="viewIncidentResolvedAt"></span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para actualizar estado de incidente -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateStatusModalLabel">Actualizar Estado del Incidente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="updateStatusForm">
+                <div class="modal-body">
+                    <input type="hidden" id="updateIncidentId" name="incident_id">
+                    
+                    <div class="mb-3">
+                        <label for="updateStatus" class="form-label">Nuevo Estado</label>
+                        <select class="form-select" id="updateStatus" name="status" required>
+                            {% for status_value, status_label in status_choices %}
+                                <option value="{{ status_value }}">{{ status_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="assignedToGroup">
+                        <label for="updateAssignedTo" class="form-label">Asignar a</label>
+                        <select class="form-select" id="updateAssignedTo" name="assigned_to">
+                            <option value="">No asignado</option>
+                            {% for user in maintenance_staff %}
+                                <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="resolutionNoteGroup" style="display: none;">
+                        <label for="updateResolutionNote" class="form-label">Nota de Resolución</label>
+                        <textarea class="form-control" id="updateResolutionNote" name="resolution_note" rows="4"></textarea>
+                        <div class="form-text">Requerido para cerrar el incidente</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar Estado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para reportar incidente -->
+<div class="modal fade" id="reportIncidentModal" tabindex="-1" aria-labelledby="reportIncidentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportIncidentModalLabel">Reportar Incidente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="reportIncidentForm">
+                <div class="modal-body">
+                    {% if request.user.is_staff %}
+                    <div class="mb-3">
+                        <label for="reportBranch" class="form-label">Sucursal</label>
+                        <select class="form-select" id="reportBranch" name="branch" required>
+                            {% for branch in branches %}
+                                <option value="{{ branch.id }}" {% if branch.id == request.user.sucursal.id %}selected{% endif %}>
+                                    {{ branch.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% else %}
+                    <input type="hidden" name="branch" value="{{ request.user.sucursal.id }}">
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="reportCategory" class="form-label">Categoría</label>
+                        <select class="form-select" id="reportCategory" name="category" required>
+                            <option value="">Seleccionar categoría</option>
+                            {% for category_value, category_label in category_choices %}
+                                <option value="{{ category_value }}">{{ category_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reportTitle" class="form-label">Título</label>
+                        <input type="text" class="form-control" id="reportTitle" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reportDescription" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="reportDescription" name="description" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Reportar Incidente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para subir evidencia de incidente -->
+<div class="modal fade" id="uploadIncidentEvidenceModal" tabindex="-1" aria-labelledby="uploadIncidentEvidenceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadIncidentEvidenceModalLabel">Subir Evidencia de Incidente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="uploadIncidentEvidenceForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <!-- Campo oculto para ID de incidente -->
+                    <input type="hidden" name="incident_id" id="incidentEvidenceId" value="">
+                    
+                    <!-- Mostrar para debugging -->
+                    <div class="mb-3 d-none" id="debugIncidentContainer">
+                        <div class="alert alert-info">
+                            ID de incidente: <strong id="debugIncidentId"></strong>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="incidentEvidenceFile" class="form-label">Archivo de Evidencia</label>
+                        <input type="file" class="form-control" id="incidentEvidenceFile" name="evidence_file" accept="image/jpeg,image/png,application/pdf" required>
+                        <div class="form-text">Formatos permitidos: JPG, PNG, PDF. Tamaño máximo: 5MB</div>
+                        <small class="text-muted">Las imágenes se comprimirán automáticamente para optimizar el rendimiento.</small>
+                        <div class="invalid-feedback">Por favor seleccione un archivo.</div>
+                    </div>
+                    
+                    <!-- Vista previa de imagen -->
+                    <div id="incidentImagePreviewContainer" class="mb-3 d-none">
+                        <label class="form-label">Vista previa:</label>
+                        <div class="border rounded p-2 text-center">
+                            <img id="incidentImagePreview" class="img-fluid" style="max-height: 200px;" />
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="incidentEvidenceComment" class="form-label">Comentario (opcional)</label>
+                        <textarea class="form-control" id="incidentEvidenceComment" name="comment" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i> Subir Evidencia
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // DataTable inicialización
+        if ($.fn.DataTable) {
+            $('#incidentsTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json"
+                },
+                "order": [[5, "desc"]] // Ordenar por fecha de reporte (más recientes primero)
+            });
+        }
+
+        // Ver detalles de incidente
+        const viewIncidentBtns = document.querySelectorAll('.view-incident-btn');
+        viewIncidentBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const incident = this.dataset;
+                
+                document.getElementById('viewIncidentId').textContent = incident.incidentId;
+                document.getElementById('viewIncidentTitle').textContent = incident.incidentTitle;
+                document.getElementById('viewIncidentCategory').textContent = incident.incidentCategory;
+                document.getElementById('viewIncidentBranch').textContent = incident.incidentBranch;
+                document.getElementById('viewIncidentReportedBy').textContent = incident.incidentReportedBy;
+                document.getElementById('viewIncidentReportedAt').textContent = incident.incidentReportedAt;
+                document.getElementById('viewIncidentDescription').textContent = incident.incidentDescription;
+                
+                // Estado con etiqueta coloreada
+                const statusSpan = document.getElementById('viewIncidentStatus');
+                statusSpan.textContent = '';
+                
+                const badge = document.createElement('span');
+                badge.classList.add('badge');
+                
+                if (incident.incidentStatus === 'abierto') {
+                    badge.classList.add('bg-danger');
+                    badge.textContent = 'Abierto';
+                } else if (incident.incidentStatus === 'en_proceso') {
+                    badge.classList.add('bg-warning');
+                    badge.textContent = 'En proceso';
+                } else if (incident.incidentStatus === 'cerrado') {
+                    badge.classList.add('bg-success');
+                    badge.textContent = 'Cerrado';
+                }
+                
+                statusSpan.appendChild(badge);
+                
+                // Asignado a
+                document.getElementById('viewIncidentAssignedTo').textContent = 
+                    incident.incidentAssignedTo ? incident.incidentAssignedTo : 'No asignado';
+                
+                // Nota de resolución (solo si está cerrado)
+                const resolutionSection = document.getElementById('resolutionSection');
+                if (incident.incidentStatus === 'cerrado' && incident.incidentResolutionNote) {
+                    document.getElementById('viewIncidentResolutionNote').textContent = incident.incidentResolutionNote;
+                    document.getElementById('viewIncidentResolvedAt').textContent = incident.incidentResolvedAt;
+                    resolutionSection.style.display = 'block';
+                } else {
+                    resolutionSection.style.display = 'none';
+                }
+            });
+        });
+
+        // Actualizar estado de incidente
+        const updateStatusBtns = document.querySelectorAll('.update-status-btn');
+        updateStatusBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const incidentId = this.dataset.incidentId;
+                const currentStatus = this.dataset.incidentStatus;
+                
+                document.getElementById('updateIncidentId').value = incidentId;
+                document.getElementById('updateStatus').value = currentStatus;
+                
+                // Mostrar/ocultar campo de nota de resolución según el estado seleccionado
+                toggleResolutionNoteField();
+            });
+        });
+
+        // Cambiar estado del incidente
+        const updateStatusSelect = document.getElementById('updateStatus');
+        if (updateStatusSelect) {
+            updateStatusSelect.addEventListener('change', toggleResolutionNoteField);
+        }
+
+        function toggleResolutionNoteField() {
+            const selectedStatus = document.getElementById('updateStatus').value;
+            const resolutionNoteGroup = document.getElementById('resolutionNoteGroup');
+            const resolutionNoteInput = document.getElementById('updateResolutionNote');
+            
+            if (selectedStatus === 'cerrado') {
+                resolutionNoteGroup.style.display = 'block';
+                resolutionNoteInput.setAttribute('required', 'required');
+            } else {
+                resolutionNoteGroup.style.display = 'none';
+                resolutionNoteInput.removeAttribute('required');
+            }
+        }
+
+        // Enviar formulario de actualización de estado
+        const updateStatusForm = document.getElementById('updateStatusForm');
+        if (updateStatusForm) {
+            updateStatusForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const incidentId = document.getElementById('updateIncidentId').value;
+                const status = document.getElementById('updateStatus').value;
+                const assignedTo = document.getElementById('updateAssignedTo').value;
+                const resolutionNote = document.getElementById('updateResolutionNote').value;
+                
+                // Validar nota de resolución para incidentes cerrados
+                if (status === 'cerrado' && !resolutionNote.trim()) {
+                    alert('Se requiere una nota de resolución para cerrar el incidente.');
+                    return;
+                }
+                
+                // Preparar datos del formulario
+                const formData = new FormData();
+                formData.append('status', status);
+                if (assignedTo) {
+                    formData.append('assigned_to', assignedTo);
+                }
+                if (resolutionNote) {
+                    formData.append('resolution_note', resolutionNote);
+                }
+                
+                // Enviar solicitud AJAX
+                fetch(`/dashboard/checklist/incidents/${incidentId}/status/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Mostrar mensaje de éxito
+                        showToast('success', data.message);
+                        
+                        // Cerrar modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('updateStatusModal'));
+                        modal.hide();
+                        
+                        // Recargar la página para actualizar la UI
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showToast('error', data.message);
+                    }
+                })
+                .catch(error => {
+                    showToast('error', 'Error al actualizar estado: ' + error);
+                    console.error('Error:', error);
+                });
+            });
+        }
+
+        // Reportar incidente
+        const reportIncidentForm = document.getElementById('reportIncidentForm');
+        if (reportIncidentForm) {
+            reportIncidentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const formDataObj = {};
+                formData.forEach((value, key) => {
+                    formDataObj[key] = value;
+                });
+                
+                fetch('{% url "dashboard:report_incident" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: new URLSearchParams(formDataObj)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', data.message);
+                        
+                        // Cerrar modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('reportIncidentModal'));
+                        modal.hide();
+                        
+                        // Limpiar formulario
+                        reportIncidentForm.reset();
+                        
+                        // Recargar la página para actualizar la UI
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showToast('error', data.message);
+                    }
+                })
+                .catch(error => {
+                    showToast('error', 'Error al reportar incidente: ' + error);
+                    console.error('Error:', error);
+                });
+            });
+        }
+
+        // Subir evidencia de incidente
+        const uploadIncidentEvidenceForm = document.getElementById('uploadIncidentEvidenceForm');
+        if (uploadIncidentEvidenceForm) {
+            uploadIncidentEvidenceForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const incidentId = document.getElementById('incidentEvidenceId').value;
+                
+                // Enviar solicitud AJAX para subir evidencia
+                fetch(`/dashboard/checklist/incidents/${incidentId}/evidence/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', data.message);
+                        
+                        // Cerrar modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('uploadIncidentEvidenceModal'));
+                        modal.hide();
+                        
+                        // Limpiar formulario
+                        uploadIncidentEvidenceForm.reset();
+                        
+                        // Recargar la página para actualizar la UI
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showToast('error', data.message);
+                    }
+                })
+                .catch(error => {
+                    showToast('error', 'Error al subir evidencia: ' + error);
+                    console.error('Error:', error);
+                });
+            });
+        }
+
+        // Funciones auxiliares
+        function showToast(type, message) {
+            // Usar la función de toasts que tengas configurada en tu sistema
+            if (typeof Toastify === 'function') {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    close: true,
+                    gravity: 'top',
+                    position: 'right',
+                    backgroundColor: type === 'success' ? '#28a745' : '#dc3545'
+                }).showToast();
+            } else {
+                alert(message);
+            }
+        }
+    });
+</script>
+{% endblock %}
