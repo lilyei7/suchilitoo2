@@ -1,0 +1,100 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Editar Categoría de Checklist{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Editar Categoría: {{ category.name }}</h5>
+                        <a href="{% url 'dashboard:manage_categories' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="editCategoryForm" action="{% url 'dashboard:edit_category' category.id %}" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ category.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="order" class="form-label">Orden</label>
+                            <input type="number" class="form-control" id="order" name="order" value="{{ category.order }}" min="0">
+                            <small class="text-muted">Las categorías se mostrarán ordenadas de menor a mayor.</small>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="active" name="active" {% if category.active %}checked{% endif %}>
+                                <label class="form-check-label" for="active">Activa</label>
+                            </div>
+                            <small class="text-muted">Si está desactivada, no se mostrará en el dashboard ni en los selectores.</small>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="small text-muted">
+                        <strong>Creada:</strong> {{ category.created_at|date:"d/m/Y H:i" }} | 
+                        <strong>Última actualización:</strong> {{ category.updated_at|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Formulario de edición
+        $('#editCategoryForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Mostrar mensaje de éxito
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(function() {
+                            // Redirigir a la lista de categorías
+                            window.location.href = "{% url 'dashboard:manage_categories' %}";
+                        });
+                    } else {
+                        // Mostrar mensaje de error
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ha ocurrido un error al procesar la solicitud.'
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

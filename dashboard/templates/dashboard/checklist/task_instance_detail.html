@@ -1,0 +1,380 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Detalle de Tarea{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Detalle de Tarea: {{ instance.task.title }}</h5>
+                        <a href="{% url 'dashboard:task_history' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver al Historial
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2">Información de la Tarea</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th style="width: 30%">Título:</th>
+                                    <td>{{ instance.task.title }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Categoría:</th>
+                                    <td>{{ instance.task.category.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Descripción:</th>
+                                    <td>
+                                        {% if instance.task.description %}
+                                            {{ instance.task.description|linebreaks }}
+                                        {% else %}
+                                            <span class="text-muted">Sin descripción</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Requiere evidencia:</th>
+                                    <td>
+                                        {% if instance.task.requires_evidence %}
+                                            <span class="badge bg-info">Sí</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Rol predeterminado:</th>
+                                    <td>
+                                        {% if instance.task.default_role %}
+                                            {{ instance.task.default_role.nombre }}
+                                        {% else %}
+                                            <span class="text-muted">No asignado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2">Información de la Instancia</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th style="width: 30%">Sucursal:</th>
+                                    <td>{{ instance.branch.nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Fecha:</th>
+                                    <td>{{ instance.date|date:"d/m/Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Turno:</th>
+                                    <td>{{ instance.get_shift_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Estado:</th>
+                                    <td>
+                                        {% if instance.status == 'completado' %}
+                                            <span class="badge bg-success">Completado</span>
+                                            {% if instance.verified %}
+                                                <span class="badge bg-info ms-1">Verificado</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary ms-1">No verificado</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-warning">Pendiente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Realizado por:</th>
+                                    <td>
+                                        {% if instance.performed_by %}
+                                            {{ instance.performed_by.get_full_name }}
+                                            <br>
+                                            <small class="text-muted">{{ instance.performed_at|date:"d/m/Y H:i" }}</small>
+                                        {% else %}
+                                            <span class="text-muted">No completado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if instance.verified %}
+                                <tr>
+                                    <th>Verificado por:</th>
+                                    <td>
+                                        {{ instance.verified_by.get_full_name }}
+                                        <br>
+                                        <small class="text-muted">{{ instance.verified_at|date:"d/m/Y H:i" }}</small>
+                                    </td>
+                                </tr>
+                                {% if instance.verification_notes %}
+                                <tr>
+                                    <th>Notas de verificación:</th>
+                                    <td>{{ instance.verification_notes }}</td>
+                                </tr>
+                                {% endif %}
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if instance.status == 'completado' %}
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                    <h6 class="mb-0">Verificación de Tarea</h6>
+                                </div>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Puede aprobar la tarea si está correctamente realizada, o rechazarla si hay problemas.
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-success" id="approveTaskBtn">
+                                        <i class="fas fa-check-double"></i> Aprobar Tarea
+                                    </button>
+                                    <button type="button" class="btn btn-warning" id="rejectTaskBtn">
+                                        <i class="fas fa-times-circle"></i> Rechazar Tarea
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                <h6 class="mb-0">Evidencias</h6>
+                            </div>
+                            
+                            {% if evidences %}
+                                <div class="row">
+                                    {% for evidence in evidences %}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">Evidencia #{{ forloop.counter }}</h6>
+                                                    <div class="text-center my-3">
+                                                        {% if evidence.file.url|lower|slice:"-4:" == ".pdf" %}
+                                                            <a href="{{ evidence.file.url }}" target="_blank" class="btn btn-sm btn-primary">
+                                                                <i class="fas fa-file-pdf"></i> Ver PDF
+                                                            </a>
+                                                        {% else %}
+                                                            <a href="{{ evidence.file.url }}" data-lightbox="evidence-{{ evidence.id }}" data-title="{{ evidence.comment }}">
+                                                                <img src="{{ evidence.file.url }}" alt="Evidencia" class="img-fluid" style="max-height: 200px;">
+                                                            </a>
+                                                        {% endif %}
+                                                    </div>
+                                                    {% if evidence.comment %}
+                                                        <p class="card-text">{{ evidence.comment }}</p>
+                                                    {% endif %}
+                                                    <p class="card-text">
+                                                        <small class="text-muted">
+                                                            Subido por: {{ evidence.uploaded_by.get_full_name }}
+                                                            <br>
+                                                            {{ evidence.uploaded_at|date:"d/m/Y H:i" }}
+                                                        </small>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    No hay evidencias para esta tarea.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para rechazar tarea -->
+<div class="modal fade" id="rejectTaskModal" tabindex="-1" aria-labelledby="rejectTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="rejectTaskModalLabel">Rechazar Tarea</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="rejectTaskForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>
+                        Está a punto de rechazar esta tarea. La tarea volverá a estado pendiente y se notificará 
+                        a los usuarios responsables.
+                    </p>
+                    <div class="mb-3">
+                        <label for="comments" class="form-label">Comentarios <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="comments" name="comments" rows="3" required></textarea>
+                        <small class="text-muted">Explique por qué se rechaza la tarea para que pueda ser corregida.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Rechazar Tarea</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para aprobar tarea -->
+<div class="modal fade" id="approveTaskModal" tabindex="-1" aria-labelledby="approveTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="approveTaskModalLabel">Aprobar Tarea</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="approveTaskForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>
+                        Está a punto de aprobar esta tarea. Se notificará al usuario que la completó.
+                    </p>
+                    <div class="mb-3">
+                        <label for="approve_comments" class="form-label">Comentarios (opcional)</label>
+                        <textarea class="form-control" id="approve_comments" name="comments" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Aprobar Tarea</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Configuración para visualización de imágenes
+        lightbox.option({
+            'resizeDuration': 200,
+            'wrapAround': true
+        });
+        
+        // Rechazar tarea
+        $('#rejectTaskBtn').on('click', function() {
+            $('#rejectTaskModal').modal('show');
+        });
+        
+        $('#rejectTaskForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const comments = $('#comments').val();
+            
+            $.ajax({
+                url: '{% url "dashboard:verify_task_instance" instance.id %}',
+                type: 'POST',
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    action: 'reject',
+                    comments: comments
+                },
+                dataType: 'json',
+                success: function(response) {
+                    $('#rejectTaskModal').modal('hide');
+                    
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(function() {
+                            // Recargar la página
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function() {
+                    $('#rejectTaskModal').modal('hide');
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ha ocurrido un error al procesar la solicitud.'
+                    });
+                }
+            });
+        });
+        
+        // Aprobar tarea
+        $('#approveTaskBtn').on('click', function() {
+            $('#approveTaskModal').modal('show');
+        });
+        
+        $('#approveTaskForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const comments = $('#approve_comments').val();
+            
+            $.ajax({
+                url: '{% url "dashboard:verify_task_instance" instance.id %}',
+                type: 'POST',
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    action: 'approve',
+                    comments: comments
+                },
+                dataType: 'json',
+                success: function(response) {
+                    $('#approveTaskModal').modal('hide');
+                    
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(function() {
+                            // Recargar la página
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function() {
+                    $('#approveTaskModal').modal('hide');
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ha ocurrido un error al procesar la solicitud.'
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

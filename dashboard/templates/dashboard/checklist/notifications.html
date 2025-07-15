@@ -8,32 +8,71 @@
     <!-- Encabezado -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Notificaciones</h1>
-        <button type="button" class="btn btn-primary" id="markAllReadBtn">
-            <i class="fas fa-check-double"></i> Marcar Todo como Leído
-        </button>
+        <div>
+            <a href="{% url 'dashboard:notificaciones' %}?mark_read=all" class="btn btn-primary">
+                <i class="fas fa-check-double"></i> Marcar Todo como Leído
+            </a>
+        </div>
     </div>
 
+    <!-- Filtros -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Estado:</label>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'dashboard:notificaciones' %}" class="btn btn-outline-primary {% if not read_filter %}active{% endif %}">
+                                Todas
+                            </a>
+                            <a href="{% url 'dashboard:notificaciones' %}?read=unread" class="btn btn-outline-primary {% if read_filter == 'unread' %}active{% endif %}">
+                                Sin leer
+                            </a>
+                            <a href="{% url 'dashboard:notificaciones' %}?read=read" class="btn btn-outline-primary {% if read_filter == 'read' %}active{% endif %}">
+                                Leídas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo:</label>
+                        <div class="d-flex flex-wrap">
+                            <a href="{% url 'dashboard:notificaciones' %}" class="btn btn-sm btn-outline-secondary me-1 mb-1 {% if not tipo_filter %}active{% endif %}">
+                                Todas
+                            </a>
+                            {% for tipo_id, tipo_nombre in tipos_notificacion %}
+                            <a href="{% url 'dashboard:notificaciones' %}?tipo={{ tipo_id }}" class="btn btn-sm btn-outline-secondary me-1 mb-1 {% if tipo_filter == tipo_id %}active{% endif %}">
+                                {{ tipo_nombre }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Lista de notificaciones -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">Mis Notificaciones</h6>
-            <div>
-                <button class="btn btn-sm btn-outline-primary filter-btn" data-filter="all">Todas</button>
-                <button class="btn btn-sm btn-outline-primary filter-btn" data-filter="unread">Sin leer</button>
-                <button class="btn btn-sm btn-outline-primary filter-btn" data-filter="read">Leídas</button>
-            </div>
         </div>
         <div class="card-body">
             {% if notifications %}
                 <div class="list-group notification-list">
                     {% for notification in notifications %}
-                        <div class="list-group-item list-group-item-action flex-column align-items-start notification-item {% if notification.read %}read{% else %}unread{% endif %}"
-                             data-notification-status="{% if notification.read %}read{% else %}unread{% endif %}">
+                        <div class="list-group-item list-group-item-action flex-column align-items-start notification-item {% if not notification.read %}unread{% endif %}"
+                             data-notification-id="{{ notification.id }}">
                             <div class="d-flex w-100 justify-content-between">
                                 <h5 class="mb-1">
                                     {% if not notification.read %}
                                         <span class="badge bg-primary">Nueva</span>
                                     {% endif %}
+                                    <i class="fas fa-{{ notification.icon|default:'info-circle' }} text-{{ notification.alert_type|default:'primary' }} me-2"></i>
                                     {{ notification.title }}
                                 </h5>
                                 <small>{{ notification.created_at|date:"d/m/Y H:i" }}</small>
@@ -54,37 +93,31 @@
                                     {% elif notification.type == 'incident_resolved' %}
                                         <span class="badge bg-success">Incidente Resuelto</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">Notificación</span>
-                                    {% endif %}
-                                    
-                                    {% if notification.related_task %}
-                                        <a href="{% url 'dashboard:checklist_dashboard' %}?task={{ notification.related_task.id }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-tasks"></i> Ver Tarea
-                                        </a>
-                                    {% endif %}
-                                    
-                                    {% if notification.related_incident %}
-                                        <a href="{% url 'dashboard:checklist_incidents' %}?incident={{ notification.related_incident.id }}" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-exclamation-triangle"></i> Ver Incidente
-                                        </a>
+                                        <span class="badge bg-secondary">{{ notification.get_type_display }}</span>
                                     {% endif %}
                                 </div>
-                                {% if not notification.read %}
-                                    <button type="button" class="btn btn-sm btn-outline-secondary mark-read-btn" data-notification-id="{{ notification.id }}">
-                                        <i class="fas fa-check"></i> Marcar como leída
+                                <div>
+                                    {% if notification.link %}
+                                        <a href="{{ notification.link }}" class="btn btn-sm btn-outline-primary me-1 notification-link">
+                                            <i class="fas fa-eye"></i> Ver
+                                        </a>
+                                    {% endif %}
+                                    {% if not notification.read %}
+                                        <button type="button" class="btn btn-sm btn-outline-success me-1 mark-read-btn" data-notification-id="{{ notification.id }}">
+                                            <i class="fas fa-check"></i> Marcar como leída
+                                        </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-notification-btn" data-notification-id="{{ notification.id }}">
+                                        <i class="fas fa-trash"></i>
                                     </button>
-                                {% else %}
-                                    <span class="text-muted small">
-                                        <i class="fas fa-check-double"></i> Leída
-                                    </span>
-                                {% endif %}
+                                </div>
                             </div>
                         </div>
                     {% endfor %}
                 </div>
             {% else %}
                 <div class="alert alert-info">
-                    No tienes notificaciones.
+                    <i class="fas fa-info-circle me-2"></i> No tienes notificaciones.
                 </div>
             {% endif %}
         </div>
@@ -94,146 +127,191 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Marcar notificación como leída
-        const markReadBtns = document.querySelectorAll('.mark-read-btn');
-        markReadBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const notificationId = this.dataset.notificationId;
-                const btn = this;
-                
-                fetch(`/dashboard/checklist/notifications/${notificationId}/read/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCsrfToken()
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const notificationItem = btn.closest('.notification-item');
-                        
-                        // Actualizar la apariencia
-                        notificationItem.classList.remove('unread');
-                        notificationItem.classList.add('read');
-                        notificationItem.dataset.notificationStatus = 'read';
-                        
-                        // Quitar el badge de "Nueva"
-                        const badgeNew = notificationItem.querySelector('.badge.bg-primary');
-                        if (badgeNew) {
-                            badgeNew.remove();
-                        }
-                        
-                        // Reemplazar el botón con texto
-                        const btnParent = btn.parentElement;
-                        btn.remove();
-                        
-                        const readSpan = document.createElement('span');
-                        readSpan.classList.add('text-muted', 'small');
-                        readSpan.innerHTML = '<i class="fas fa-check-double"></i> Leída';
-                        btnParent.appendChild(readSpan);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showToast('error', 'Error al marcar como leída: ' + error);
-                });
-            });
+document.addEventListener('DOMContentLoaded', function() {
+    // Marcar como leída
+    document.querySelectorAll('.mark-read-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const notificationId = this.getAttribute('data-notification-id');
+            markAsRead(notificationId, this);
         });
-
-        // Marcar todas como leídas
-        const markAllReadBtn = document.getElementById('markAllReadBtn');
-        if (markAllReadBtn) {
-            markAllReadBtn.addEventListener('click', function() {
-                fetch('{% url "dashboard:mark_all_notifications_read" %}', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCsrfToken()
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Actualizar la UI para todas las notificaciones no leídas
-                        const unreadItems = document.querySelectorAll('.notification-item.unread');
-                        unreadItems.forEach(item => {
-                            // Actualizar clases
-                            item.classList.remove('unread');
-                            item.classList.add('read');
-                            item.dataset.notificationStatus = 'read';
-                            
-                            // Quitar el badge de "Nueva"
-                            const badgeNew = item.querySelector('.badge.bg-primary');
-                            if (badgeNew) {
-                                badgeNew.remove();
-                            }
-                            
-                            // Reemplazar el botón con texto
-                            const btn = item.querySelector('.mark-read-btn');
-                            if (btn) {
-                                const btnParent = btn.parentElement;
-                                btn.remove();
-                                
-                                const readSpan = document.createElement('span');
-                                readSpan.classList.add('text-muted', 'small');
-                                readSpan.innerHTML = '<i class="fas fa-check-double"></i> Leída';
-                                btnParent.appendChild(readSpan);
-                            }
-                        });
-                        
-                        showToast('success', data.message);
-                    } else {
-                        showToast('error', data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showToast('error', 'Error al marcar todas como leídas: ' + error);
-                });
-            });
-        }
-
-        // Filtrar notificaciones
-        const filterBtns = document.querySelectorAll('.filter-btn');
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const filter = this.dataset.filter;
-                
-                // Actualizar botones activos
-                filterBtns.forEach(b => b.classList.remove('active', 'btn-primary'));
-                this.classList.add('active', 'btn-primary');
-                
-                // Filtrar elementos
-                const notificationItems = document.querySelectorAll('.notification-item');
-                notificationItems.forEach(item => {
-                    if (filter === 'all' || item.dataset.notificationStatus === filter) {
-                        item.style.display = 'block';
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-            });
+    });
+    
+    // Eliminar notificación
+    document.querySelectorAll('.delete-notification-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const notificationId = this.getAttribute('data-notification-id');
+            deleteNotification(notificationId, this);
         });
-
-        // Activar el filtro "Todas" por defecto
-        document.querySelector('.filter-btn[data-filter="all"]').classList.add('active', 'btn-primary');
-
-        // Funciones auxiliares
-        function showToast(type, message) {
-            // Usar la función de toasts que tengas configurada en tu sistema
-            if (typeof Toastify === 'function') {
-                Toastify({
-                    text: message,
-                    duration: 3000,
-                    close: true,
-                    gravity: 'top',
-                    position: 'right',
-                    backgroundColor: type === 'success' ? '#28a745' : '#dc3545'
-                }).showToast();
-            } else {
-                alert(message);
-            }
+    });
+    
+    // Marcar como leída cuando se hace clic en el enlace
+    document.querySelectorAll('.notification-link').forEach(link => {
+        const notificationItem = link.closest('.notification-item');
+        if (notificationItem && notificationItem.classList.contains('unread')) {
+            link.addEventListener('click', function(e) {
+                const notificationId = notificationItem.getAttribute('data-notification-id');
+                markAsRead(notificationId, null, false);
+            });
         }
     });
+    
+    // Funciones para interactuar con las notificaciones
+    function markAsRead(notificationId, buttonElement, redirect = true) {
+        const formData = new FormData();
+        formData.append('notification_id', notificationId);
+        
+        fetch('/dashboard/checklist/notificacion/leer/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (buttonElement) {
+                    const notificationItem = buttonElement.closest('.notification-item');
+                    notificationItem.classList.remove('unread');
+                    buttonElement.remove();
+                }
+                
+                // Actualizar contador de notificaciones
+                updateNotificationCounter(data.unread_count);
+                
+                if (redirect) {
+                    // Mostrar mensaje de éxito
+                    showToast('Notificación marcada como leída', 'success');
+                }
+            } else {
+                showToast('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error al marcar como leída la notificación', 'danger');
+        });
+    }
+    
+    function deleteNotification(notificationId, buttonElement) {
+        if (!confirm('¿Estás seguro de que deseas eliminar esta notificación?')) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('notification_id', notificationId);
+        
+        fetch('/dashboard/checklist/notificacion/eliminar/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const notificationItem = buttonElement.closest('.notification-item');
+                notificationItem.remove();
+                
+                // Actualizar contador de notificaciones
+                updateNotificationCounter(data.unread_count);
+                
+                // Mostrar mensaje de éxito
+                showToast('Notificación eliminada', 'success');
+                
+                // Si no quedan notificaciones, mostrar mensaje
+                if (document.querySelectorAll('.notification-item').length === 0) {
+                    document.querySelector('.notification-list').innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> No tienes notificaciones.
+                        </div>
+                    `;
+                }
+            } else {
+                showToast('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error al eliminar la notificación', 'danger');
+        });
+    }
+    
+    // Actualizar contador de notificaciones en el navbar
+    function updateNotificationCounter(count) {
+        const badge = document.querySelector('#navbarDropdownNotifications .badge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+        }
+    }
+    
+    // Mostrar toast
+    function showToast(message, type = 'primary') {
+        const toastContainer = document.querySelector('.notification-toast');
+        if (!toastContainer) {
+            const container = document.createElement('div');
+            container.className = 'notification-toast';
+            document.body.appendChild(container);
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = `toast show bg-${type} text-white`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        toast.innerHTML = `
+            <div class="toast-header bg-${type} text-white">
+                <strong class="me-auto">Notificación</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        `;
+        
+        document.querySelector('.notification-toast').appendChild(toast);
+        
+        // Cerrar el toast después de 5 segundos
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 500);
+        }, 5000);
+        
+        // Manejar el botón de cerrar
+        toast.querySelector('.btn-close').addEventListener('click', function() {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 500);
+        });
+    }
+    
+    // Función para obtener el cookie CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
 </script>
 {% endblock %}

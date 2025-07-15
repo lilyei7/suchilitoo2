@@ -1,0 +1,128 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Editar Tarea de Checklist{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Editar Tarea: {{ task.title }}</h5>
+                        <a href="{% url 'dashboard:manage_tasks' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="editTaskForm" action="{% url 'dashboard:edit_task' task.id %}" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Título <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ task.title }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ task.description }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Categoría <span class="text-danger">*</span></label>
+                            <select class="form-select" id="category" name="category" required>
+                                {% for category in categories %}
+                                    <option value="{{ category.id }}" {% if task.category.id == category.id %}selected{% endif %}>
+                                        {{ category.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="requires_evidence" name="requires_evidence" {% if task.requires_evidence %}checked{% endif %}>
+                                <label class="form-check-label" for="requires_evidence">Requiere evidencia</label>
+                            </div>
+                            <small class="text-muted">Si está activado, los usuarios deberán subir una foto o documento como evidencia.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="default_role" class="form-label">Rol predeterminado</label>
+                            <select class="form-select" id="default_role" name="default_role">
+                                <option value="">Sin rol específico</option>
+                                {% for role in roles %}
+                                    <option value="{{ role.id }}" {% if task.default_role and task.default_role.id == role.id %}selected{% endif %}>
+                                        {{ role.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Los usuarios con este rol serán notificados cuando se genere la tarea.</small>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="active" name="active" {% if task.active %}checked{% endif %}>
+                                <label class="form-check-label" for="active">Activa</label>
+                            </div>
+                            <small class="text-muted">Si está desactivada, no se generará en nuevos checklists.</small>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="small text-muted">
+                        <strong>Creada:</strong> {{ task.created_at|date:"d/m/Y H:i" }} | 
+                        <strong>Última actualización:</strong> {{ task.updated_at|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Formulario de edición
+        $('#editTaskForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Mostrar mensaje de éxito
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(function() {
+                            // Redirigir a la lista de tareas
+                            window.location.href = "{% url 'dashboard:manage_tasks' %}";
+                        });
+                    } else {
+                        // Mostrar mensaje de error
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ha ocurrido un error al procesar la solicitud.'
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -23,7 +23,8 @@ def get_sidebar_context(view_name):
             'apertura_caja', 'cierre_caja', 'admin_mesas'
         ],
         'checklist_section_active': view_name in [
-            'checklist_dashboard', 'checklist_incidents', 'checklist_notifications'
+            'checklist_dashboard', 'checklist_incidents', 'checklist_notifications',
+            'manage_categories', 'manage_tasks', 'task_history'
         ]
     }
     return sidebar_context

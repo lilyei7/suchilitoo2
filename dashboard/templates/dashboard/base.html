@@ -1,4 +1,5 @@
 {% load static %}
+{% load dashboard_extras %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -27,6 +28,61 @@
     .sidebar-subitem {
         display: flex;
         align-items: center;
+    }
+    
+    /* Notification Dropdown Styles */
+    .notification-dropdown {
+        width: 350px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .unread-notification {
+        background-color: rgba(13, 110, 253, 0.05);
+        border-left: 3px solid #0d6efd;
+    }
+    
+    .notification-dropdown .dropdown-item {
+        padding: 0.5rem 1rem;
+        white-space: normal;
+    }
+    
+    .notification-dropdown .dropdown-item:hover {
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+    
+    @keyframes notification-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    
+    .notification-badge-animate {
+        animation: notification-pulse 1s infinite;
+    }
+    
+    /* Notification List Styles */
+    .notification-list .notification-item {
+        transition: all 0.3s ease;
+        border-left: 5px solid transparent;
+    }
+    
+    .notification-list .notification-item.unread {
+        border-left-color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    .notification-list .notification-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Notification Toast */
+    .notification-toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
     }
     </style>
     {% endblock %}
@@ -95,10 +151,19 @@
                         <a href="{% url 'dashboard:checklist_dashboard' %}" class="sidebar-subitem {% if sidebar_active == 'checklist_dashboard' %}active{% endif %}">
                             <i class="fas fa-clipboard-check me-2"></i>Dashboard
                         </a>
+                        <a href="{% url 'dashboard:manage_categories' %}" class="sidebar-subitem {% if sidebar_active == 'manage_categories' %}active{% endif %}">
+                            <i class="fas fa-folder-open me-2"></i>Categorías
+                        </a>
+                        <a href="{% url 'dashboard:manage_tasks' %}" class="sidebar-subitem {% if sidebar_active == 'manage_tasks' %}active{% endif %}">
+                            <i class="fas fa-list-check me-2"></i>Tareas
+                        </a>
+                        <a href="{% url 'dashboard:task_history' %}" class="sidebar-subitem {% if sidebar_active == 'task_history' %}active{% endif %}">
+                            <i class="fas fa-history me-2"></i>Historial
+                        </a>
                         <a href="{% url 'dashboard:checklist_incidents' %}" class="sidebar-subitem {% if sidebar_active == 'checklist_incidents' %}active{% endif %}">
                             <i class="fas fa-exclamation-triangle me-2"></i>Incidentes
                         </a>
-                        <a href="{% url 'dashboard:checklist_notifications' %}" class="sidebar-subitem {% if sidebar_active == 'checklist_notifications' %}active{% endif %}">
+                        <a href="{% url 'dashboard:notificaciones' %}" class="sidebar-subitem {% if sidebar_active == 'checklist_notifications' %}active{% endif %}">
                             <i class="fas fa-bell me-2"></i>Notificaciones
                         </a>
                     </div>
@@ -159,6 +224,55 @@
                                 <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog me-2"></i>Admin Panel</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'dashboard:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Notification Bell -->
+                        <div class="nav-item dropdown me-3">
+                            <a class="nav-link dropdown-toggle position-relative" href="#" id="navbarDropdownNotifications" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell"></i>
+                                {% get_unread_notifications_count user as unread_count %}
+                                {% if unread_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {% if unread_count > 0 %}notification-badge-animate{% endif %}">
+                                    {{ unread_count }}
+                                    <span class="visually-hidden">Notificaciones sin leer</span>
+                                </span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="navbarDropdownNotifications">
+                                <li>
+                                    <h6 class="dropdown-header d-flex justify-content-between align-items-center">
+                                        Notificaciones
+                                        <a href="{% url 'dashboard:notificaciones' %}" class="badge bg-primary rounded-pill text-decoration-none">Ver todas</a>
+                                    </h6>
+                                </li>
+                                {% get_notifications request.user 5 as recent_notifications %}
+                                {% if recent_notifications %}
+                                    {% for notification in recent_notifications %}
+                                    <li>
+                                        <a class="dropdown-item {% if not notification.read %}unread-notification{% endif %}" 
+                                           href="{% if notification.link %}{{ notification.link }}{% else %}#{% endif %}"
+                                           {% if not notification.read %}data-notification-id="{{ notification.id }}"{% endif %}>
+                                            <div class="d-flex align-items-start">
+                                                <div class="me-2">
+                                                    <i class="fas fa-{{ notification.icon|default:'info-circle' }} text-{{ notification.alert_type|default:'primary' }}"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ notification.title }}</div>
+                                                    <div class="small">{{ notification.message|truncatechars:100 }}</div>
+                                                    <div class="text-muted small mt-1">
+                                                        <i class="fas fa-clock me-1"></i>{{ notification.created_at|timesince }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-center" href="{% url 'dashboard:notificaciones' %}">Ver todas las notificaciones</a></li>
+                                {% else %}
+                                    <li><span class="dropdown-item text-center">No hay notificaciones</span></li>
+                                {% endif %}
                             </ul>
                         </div>
                     </div>

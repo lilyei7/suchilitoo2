@@ -16,6 +16,11 @@
         border-radius: 4px;
         padding: 10px;
         background-color: #fff;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .evidence-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
     .evidence-image {
         width: 100%;
@@ -23,6 +28,7 @@
         object-fit: cover;
         border-radius: 4px;
         margin-bottom: 10px;
+        cursor: pointer;
     }
     .evidence-pdf {
         width: 100%;
@@ -200,13 +206,17 @@
                     <div class="evidence-gallery">
                         {% for evidence in incident.evidence_files.all %}
                         <div class="evidence-item">
-                            {% if evidence.file.url|lower|endswith:'.pdf' %}
+                            {% if evidence.file.url|endswith:'.pdf' %}
                             <a href="{{ evidence.file.url }}" target="_blank" class="evidence-pdf">
                                 <i class="far fa-file-pdf"></i>
                             </a>
-                            {% else %}
-                            <a href="{{ evidence.file.url }}" target="_blank">
+                            {% elif evidence.file.url|is_image %}
+                            <a href="{{ evidence.file.url }}" target="_blank" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-src="{{ evidence.file.url }}" class="image-link">
                                 <img src="{{ evidence.file.url }}" alt="Evidencia" class="evidence-image">
+                            </a>
+                            {% else %}
+                            <a href="{{ evidence.file.url }}" target="_blank" class="evidence-pdf">
+                                <i class="fas {{ evidence.file.url|get_icon_class }}"></i>
                             </a>
                             {% endif %}
                             <div class="evidence-details">
@@ -339,16 +349,16 @@
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="evidenceFile" class="form-label">Archivo de Evidencia</label>
-                        <input type="file" class="form-control" id="evidenceFile" name="evidence_file" accept="image/jpeg,image/png,application/pdf" required>
-                        <div class="form-text">Formatos permitidos: JPG, PNG, PDF. Tamaño máximo: 5MB</div>
+                        <label for="evidenceFiles" class="form-label">Archivos de Evidencia (máx. 3)</label>
+                        <input type="file" class="form-control" id="evidenceFiles" name="evidence_files" accept="image/jpeg,image/png,application/pdf" required multiple>
+                        <div class="form-text">Formatos permitidos: JPG, PNG, PDF. Tamaño máximo: 5MB por archivo. Máximo 3 archivos.</div>
                     </div>
                     
-                    <!-- Vista previa de imagen -->
-                    <div id="imagePreviewContainer" class="mb-3 d-none">
+                    <!-- Vista previa de imágenes -->
+                    <div id="imagesPreviewContainer" class="mb-3 d-none">
                         <label class="form-label">Vista previa:</label>
-                        <div class="border rounded p-2 text-center">
-                            <img id="imagePreview" class="img-fluid" style="max-height: 200px;" />
+                        <div id="imagesPreview" class="border rounded p-2 text-center d-flex flex-wrap gap-2 justify-content-center">
+                            <!-- Las imágenes se mostrarán aquí -->
                         </div>
                     </div>
                     
@@ -364,6 +374,21 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver imagen en tamaño completo -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">Vista de imagen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="fullSizeImage" src="" alt="Imagen a tamaño completo" class="img-fluid">
+            </div>
         </div>
     </div>
 </div>
@@ -448,26 +473,68 @@
             });
         }
         
-        // Manejar vista previa de imagen
-        const evidenceFileInput = document.getElementById('evidenceFile');
-        if (evidenceFileInput) {
-            evidenceFileInput.addEventListener('change', function() {
-                const file = this.files[0];
-                const previewContainer = document.getElementById('imagePreviewContainer');
-                const preview = document.getElementById('imagePreview');
+        // Manejar vista previa de imágenes múltiples
+        const evidenceFilesInput = document.getElementById('evidenceFiles');
+        if (evidenceFilesInput) {
+            evidenceFilesInput.addEventListener('change', function() {
+                const files = this.files;
+                const previewContainer = document.getElementById('imagesPreviewContainer');
+                const previewsDiv = document.getElementById('imagesPreview');
                 
                 // Limpiar vista previa anterior
                 previewContainer.classList.add('d-none');
+                previewsDiv.innerHTML = '';
                 
-                if (file && file.type.match('image.*')) {
-                    const reader = new FileReader();
+                // Verificar límite de archivos
+                if (files.length > 3) {
+                    alert('Solo se permiten un máximo de 3 archivos.');
+                    this.value = ''; // Limpiar selección
+                    return;
+                }
+                
+                let hasImages = false;
+                
+                // Mostrar vista previa para cada imagen
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
                     
-                    reader.onload = function(e) {
-                        preview.src = e.target.result;
+                    if (file.type.match('image.*')) {
+                        hasImages = true;
+                        const reader = new FileReader();
+                        
+                        reader.onload = function(e) {
+                            const imgContainer = document.createElement('div');
+                            imgContainer.style.width = '100px';
+                            imgContainer.style.height = '100px';
+                            imgContainer.style.overflow = 'hidden';
+                            imgContainer.className = 'position-relative border rounded';
+                            
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.style.width = '100%';
+                            img.style.height = '100%';
+                            img.style.objectFit = 'cover';
+                            
+                            imgContainer.appendChild(img);
+                            previewsDiv.appendChild(imgContainer);
+                            previewContainer.classList.remove('d-none');
+                        }
+                        
+                        reader.readAsDataURL(file);
+                    } else if (file.type === 'application/pdf') {
+                        hasImages = true;
+                        const pdfContainer = document.createElement('div');
+                        pdfContainer.style.width = '100px';
+                        pdfContainer.style.height = '100px';
+                        pdfContainer.className = 'position-relative border rounded d-flex align-items-center justify-content-center bg-light';
+                        
+                        const pdfIcon = document.createElement('i');
+                        pdfIcon.className = 'far fa-file-pdf text-danger fa-3x';
+                        
+                        pdfContainer.appendChild(pdfIcon);
+                        previewsDiv.appendChild(pdfContainer);
                         previewContainer.classList.remove('d-none');
                     }
-                    
-                    reader.readAsDataURL(file);
                 }
             });
         }
@@ -479,15 +546,31 @@
                 e.preventDefault();
                 
                 // Validación manual del formulario
-                const fileInput = document.getElementById('evidenceFile');
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    fileInput.classList.add('is-invalid');
+                const filesInput = document.getElementById('evidenceFiles');
+                if (!filesInput.files || filesInput.files.length === 0) {
+                    filesInput.classList.add('is-invalid');
                     return false;
                 } else {
-                    fileInput.classList.remove('is-invalid');
+                    filesInput.classList.remove('is-invalid');
+                    
+                    // Verificar límite de archivos
+                    if (filesInput.files.length > 3) {
+                        alert('Solo se permiten un máximo de 3 archivos.');
+                        return false;
+                    }
                 }
                 
-                const formData = new FormData(this);
+                const formData = new FormData();
+                
+                // Agregar los archivos manualmente para asegurar que se envían correctamente
+                const files = filesInput.files;
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('evidence_files', files[i]);
+                }
+                
+                // Agregar el comentario y el token CSRF
+                formData.append('comment', document.getElementById('evidenceComment').value || '');
+                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
                 
                 // Mostrar indicador de carga
                 const submitBtn = uploadEvidenceForm.querySelector('button[type="submit"]');
@@ -514,7 +597,8 @@
                     submitBtn.innerHTML = originalBtnText;
                     
                     if (data.success) {
-                        alert('Evidencia subida correctamente.');
+                        const count = data.evidence_count || 'la';
+                        alert(`Se han subido ${count} evidencia(s) correctamente.`);
                         
                         // Cerrar modal
                         const modal = bootstrap.Modal.getInstance(document.getElementById('uploadEvidenceModal'));
@@ -536,6 +620,31 @@
                 });
             });
         }
+        
+        // Manejar clic en imagen para vista en tamaño completo
+        const imageModal = document.getElementById('imageModal');
+        if (imageModal) {
+            imageModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget; // Botón que activó el modal
+                const imgSrc = button.getAttribute('data-img-src'); // Obtener la fuente de la imagen
+                
+                const fullSizeImage = document.getElementById('fullSizeImage');
+                if (fullSizeImage) {
+                    fullSizeImage.src = imgSrc;
+                }
+            });
+        }
+        
+        // Manejar clic en enlaces de imagen para el modal
+        document.querySelectorAll('.image-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const imgSrc = this.getAttribute('data-img-src');
+                document.getElementById('fullSizeImage').src = imgSrc;
+                const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+                imageModal.show();
+            });
+        });
     });
 </script>
 {% endblock %}

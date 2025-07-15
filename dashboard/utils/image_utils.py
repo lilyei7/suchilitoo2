@@ -19,6 +19,10 @@ def compress_image(image_file):
     Returns:
         Archivo de imagen comprimido
     """
+    # Verificar que se haya recibido un archivo
+    if not image_file:
+        return None
+        
     # Determinar el formato de la imagen original
     img_format = os.path.splitext(image_file.name)[1].lower().replace('.', '')
     if img_format == 'jpg':

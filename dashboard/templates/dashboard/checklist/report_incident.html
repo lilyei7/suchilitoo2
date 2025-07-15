@@ -1,0 +1,177 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Reportar Incidente{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Reportar Incidente</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:principal' %}">Principal</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:checklist_incidents' %}">Incidentes</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Reportar Incidente</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'dashboard:checklist_incidents' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver a Incidentes
+            </a>
+        </div>
+    </div>
+
+    <!-- Formulario de Reporte -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Formulario de Reporte de Incidente</h6>
+        </div>
+        <div class="card-body">
+            <form id="reportIncidentForm">
+                {% csrf_token %}
+                <div class="row g-3">
+                    {% if request.user.is_staff %}
+                    <div class="col-md-6">
+                        <label for="reportBranch" class="form-label">Sucursal</label>
+                        <select class="form-select" id="reportBranch" name="branch" required>
+                            {% for branch in branches %}
+                                <option value="{{ branch.id }}" {% if request.user.sucursal and branch.id == request.user.sucursal.id %}selected{% endif %}>
+                                    {{ branch.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% else %}
+                    <input type="hidden" name="branch" value="{{ request.user.sucursal.id|default:'' }}">
+                    {% endif %}
+                    
+                    <div class="col-md-6">
+                        <label for="reportCategory" class="form-label">Categoría</label>
+                        <select class="form-select" id="reportCategory" name="category" required>
+                            <option value="">Seleccionar categoría</option>
+                            {% for category_value, category_label in category_choices %}
+                                <option value="{{ category_value }}">{{ category_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-12">
+                        <label for="reportTitle" class="form-label">Título</label>
+                        <input type="text" class="form-control" id="reportTitle" name="title" required placeholder="Título breve del incidente">
+                    </div>
+                    
+                    <div class="col-12">
+                        <label for="reportDescription" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="reportDescription" name="description" rows="5" required placeholder="Describe el incidente con el mayor detalle posible..."></textarea>
+                    </div>
+                    
+                    <div class="col-12 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Enviar Reporte
+                        </button>
+                        <a href="{% url 'dashboard:checklist_incidents' %}" class="btn btn-secondary ms-2">Cancelar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Función para obtener el token CSRF
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+        
+        // Función para mostrar notificaciones
+        function showToast(type, message) {
+            const toastClass = type === 'success' ? 'bg-success' : 'bg-danger';
+            const toast = document.createElement('div');
+            toast.className = `toast ${toastClass} text-white position-fixed bottom-0 end-0 m-3`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <strong class="me-auto">${type === 'success' ? 'Éxito' : 'Error'}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            `;
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // Eliminar el toast después de que se oculte
+            toast.addEventListener('hidden.bs.toast', function() {
+                document.body.removeChild(toast);
+            });
+        }
+        
+        // Manejar envío del formulario
+        const reportIncidentForm = document.getElementById('reportIncidentForm');
+        if (reportIncidentForm) {
+            reportIncidentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const formDataObj = {};
+                formData.forEach((value, key) => {
+                    formDataObj[key] = value;
+                });
+                
+                // Mostrar indicador de carga
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
+                
+                fetch('{% url "dashboard:report_incident" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: new URLSearchParams(formDataObj)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Restaurar botón
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    
+                    if (data.success) {
+                        showToast('success', data.message);
+                        
+                        // Limpiar formulario
+                        reportIncidentForm.reset();
+                        
+                        // Redirigir a la lista de incidentes
+                        setTimeout(() => {
+                            window.location.href = "{% url 'dashboard:checklist_incidents' %}";
+                        }, 1500);
+                    } else {
+                        showToast('error', data.message);
+                    }
+                })
+                .catch(error => {
+                    // Restaurar botón en caso de error
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    
+                    console.error('Error:', error);
+                    showToast('error', 'Error al enviar el reporte. Por favor, inténtalo de nuevo.');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

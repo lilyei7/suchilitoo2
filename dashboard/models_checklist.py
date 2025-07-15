@@ -92,6 +92,17 @@ class TaskInstance(models.Model):
         verbose_name='Realizado por'
     )
     performed_at = models.DateTimeField('Fecha de realización', null=True, blank=True)
+    verified = models.BooleanField('Verificado', default=False)
+    verified_by = models.ForeignKey(
+        Usuario, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='verified_tasks',
+        verbose_name='Verificado por'
+    )
+    verified_at = models.DateTimeField('Fecha de verificación', null=True, blank=True)
+    verification_notes = models.TextField('Notas de verificación', blank=True)
     created_at = models.DateTimeField('Fecha de creación', auto_now_add=True)
     updated_at = models.DateTimeField('Fecha de actualización', auto_now=True)
 
@@ -224,6 +235,29 @@ class Notification(models.Model):
         ('incident_resolved', 'Incidente resuelto'),
     ]
     
+    ALERT_TYPES = [
+        ('primary', 'Informativa'),
+        ('success', 'Éxito'),
+        ('warning', 'Advertencia'),
+        ('danger', 'Error'),
+        ('info', 'Información'),
+        ('secondary', 'Secundaria'),
+    ]
+    
+    ICON_CHOICES = [
+        ('info-circle', 'Información'),
+        ('check-circle', 'Completado'),
+        ('exclamation-triangle', 'Advertencia'),
+        ('exclamation-circle', 'Error'),
+        ('bell', 'Notificación'),
+        ('tools', 'Mantenimiento'),
+        ('clipboard-check', 'Checklist'),
+        ('tasks', 'Tareas'),
+        ('camera', 'Evidencia'),
+        ('bug', 'Incidente'),
+    ]
+    
+    # Campos que coinciden con la estructura actual de la base de datos
     type = models.CharField('Tipo', max_length=20, choices=TYPE_CHOICES)
     recipient = models.ForeignKey(
         Usuario, 
@@ -233,6 +267,14 @@ class Notification(models.Model):
     )
     title = models.CharField('Título', max_length=200)
     message = models.TextField('Mensaje')
+    read = models.BooleanField('Leído', default=False)
+    created_at = models.DateTimeField('Fecha de creación', auto_now_add=True)
+    
+    # Campos adicionales para mostrar en la interfaz de usuario
+    alert_type = models.CharField('Tipo de alerta', max_length=20, choices=ALERT_TYPES, default='info', null=True, blank=True)
+    icon = models.CharField('Ícono', max_length=30, choices=ICON_CHOICES, default='info-circle', null=True, blank=True)
+    link = models.CharField('Enlace', max_length=255, null=True, blank=True)
+    
     related_task = models.ForeignKey(
         TaskInstance, 
         on_delete=models.SET_NULL, 
@@ -249,8 +291,6 @@ class Notification(models.Model):
         related_name='notifications',
         verbose_name='Incidente relacionado'
     )
-    read = models.BooleanField('Leído', default=False)
-    created_at = models.DateTimeField('Fecha de creación', auto_now_add=True)
 
     class Meta:
         verbose_name = 'Notificación'
@@ -259,6 +299,20 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.get_type_display()} para {self.recipient.username} ({self.created_at})"
+        
+    def marcar_como_leida(self):
+        """
+        Marca la notificación como leída y guarda el cambio
+        """
+        if not self.read:
+            self.read = True
+            self.save(update_fields=['read'])
+            
+    def mark_as_read(self):
+        """
+        Mark the notification as read and save the change
+        """
+        return self.marcar_como_leida()
 
 
 class IncidentEvidence(models.Model):
