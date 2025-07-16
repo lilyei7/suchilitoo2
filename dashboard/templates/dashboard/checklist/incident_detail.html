@@ -462,6 +462,9 @@
             <div class="modal-body text-center">
                 <img id="fullSizeImage" src="" alt="Imagen a tamaño completo" class="img-fluid">
             </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -698,13 +701,35 @@
         const imageModal = document.getElementById('imageModal');
         if (imageModal) {
             imageModal.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget; // Botón que activó el modal
-                const imgSrc = button.getAttribute('data-img-src'); // Obtener la fuente de la imagen
-                
+                // Asegurarse de que relatedTarget existe antes de acceder a sus propiedades
+                if (event.relatedTarget) {
+                    const imgSrc = event.relatedTarget.getAttribute('data-img-src'); // Obtener la fuente de la imagen
+                    
+                    const fullSizeImage = document.getElementById('fullSizeImage');
+                    if (fullSizeImage && imgSrc) {
+                        fullSizeImage.src = imgSrc;
+                    }
+                }
+            });
+            
+            // Manejar el cierre del modal para asegurar limpieza completa
+            imageModal.addEventListener('hidden.bs.modal', function() {
+                // Limpiar la imagen para liberar memoria
                 const fullSizeImage = document.getElementById('fullSizeImage');
                 if (fullSizeImage) {
-                    fullSizeImage.src = imgSrc;
+                    fullSizeImage.src = '';
                 }
+                
+                // Asegurarse de que se elimine cualquier backdrop persistente
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                
+                // Restaurar el scroll y eliminar clases que Bootstrap añade al body
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
             });
         }
         
@@ -713,9 +738,27 @@
             link.addEventListener('click', function(e) {
                 e.preventDefault();
                 const imgSrc = this.getAttribute('data-img-src');
-                document.getElementById('fullSizeImage').src = imgSrc;
-                const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-                imageModal.show();
+                if (imgSrc) {
+                    const fullSizeImage = document.getElementById('fullSizeImage');
+                    if (fullSizeImage) {
+                        fullSizeImage.src = imgSrc;
+                    }
+                    
+                    // Verificar si ya existe una instancia del modal
+                    let modalInstance = bootstrap.Modal.getInstance(document.getElementById('imageModal'));
+                    
+                    // Si existe una instancia previa, deshacerse de ella correctamente
+                    if (modalInstance) {
+                        modalInstance.dispose();
+                    }
+                    
+                    // Crear una nueva instancia y mostrarla
+                    modalInstance = new bootstrap.Modal(document.getElementById('imageModal'), {
+                        backdrop: 'static', // Evita que se cierre al hacer clic fuera
+                        keyboard: true      // Permite cerrar con ESC
+                    });
+                    modalInstance.show();
+                }
             });
         });
         

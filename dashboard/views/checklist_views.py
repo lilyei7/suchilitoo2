@@ -1911,8 +1911,8 @@ def add_incident_comment(request, incident_id):
         return JsonResponse({
             'success': True,
             'message': 'Comentario agregado correctamente.',
-            'comment_id': history_entry.id,
-            'comment_date': history_entry.timestamp.strftime('%d/%m/%Y %H:%M'),
+            'comment_id': comment.id,
+            'comment_date': comment.created_at.strftime('%d/%m/%Y %H:%M'),
             'comment_by': request.user.get_full_name()
         })
         
