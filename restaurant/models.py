@@ -298,7 +298,7 @@ class RecetaInsumo(models.Model):
     """Relación entre recetas e insumos"""
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name='insumos')
     insumo = models.ForeignKey(Insumo, on_delete=models.PROTECT, related_name='usado_en_recetas')
-    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
+    cantidad = models.DecimalField(max_digits=10, decimal_places=4)
     orden = models.IntegerField(default=0)
     opcional = models.BooleanField(default=False)
     notas = models.TextField(blank=True, null=True)
