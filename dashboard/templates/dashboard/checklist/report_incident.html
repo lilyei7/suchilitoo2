@@ -30,7 +30,7 @@
             <h6 class="m-0 font-weight-bold text-primary">Formulario de Reporte de Incidente</h6>
         </div>
         <div class="card-body">
-            <form id="reportIncidentForm">
+            <form id="reportIncidentForm" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="row g-3">
                     {% if request.user.is_staff %}
@@ -58,6 +58,18 @@
                         </select>
                     </div>
                     
+                    <div class="col-md-6">
+                        <label for="reportUrgency" class="form-label">Nivel de Urgencia</label>
+                        <select class="form-select" id="reportUrgency" name="urgency" required>
+                            {% for urgency_value, urgency_label in urgency_choices %}
+                                <option value="{{ urgency_value }}" {% if urgency_value == 'media' %}selected{% endif %}>{{ urgency_label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            Selecciona el nivel de urgencia para la resolución de este incidente.
+                        </div>
+                    </div>
+                    
                     <div class="col-12">
                         <label for="reportTitle" class="form-label">Título</label>
                         <input type="text" class="form-control" id="reportTitle" name="title" required placeholder="Título breve del incidente">
@@ -68,6 +80,24 @@
                         <textarea class="form-control" id="reportDescription" name="description" rows="5" required placeholder="Describe el incidente con el mayor detalle posible..."></textarea>
                     </div>
                     
+                    <div class="col-12">
+                        <label for="evidenceFiles" class="form-label">Evidencia (opcional)</label>
+                        <input type="file" class="form-control" id="evidenceFiles" name="evidence_files" accept="{{ allowed_file_types }}" multiple>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle text-info me-1"></i> 
+                            Este campo es opcional. Puedes adjuntar hasta {{ max_files }} archivos.
+                            <br>
+                            Formatos permitidos: JPG, PNG, PDF. Tamaño máximo: {{ max_file_size_mb }}MB por archivo.
+                        </div>
+                    </div>
+                    
+                    <!-- Vista previa de imágenes -->
+                    <div id="imagesPreviewContainer" class="col-12 d-none">
+                        <label class="form-label">Vista previa:</label>
+                        <div id="imagesPreview" class="border rounded p-2 text-center d-flex flex-wrap gap-2 justify-content-center">
+                            <!-- Las imágenes se mostrarán aquí -->
+                        </div>
+                    </div>
                     <div class="col-12 mt-4">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save me-2"></i>Enviar Reporte
@@ -116,17 +146,87 @@
             });
         }
         
+        // Función para mostrar vista previa de archivos
+        function setupFilePreview() {
+            const fileInput = document.getElementById('evidenceFiles');
+            const previewContainer = document.getElementById('imagesPreviewContainer');
+            const previewsDiv = document.getElementById('imagesPreview');
+            
+            if (fileInput && previewContainer && previewsDiv) {
+                fileInput.addEventListener('change', function() {
+                    // Limpiar vista previa anterior
+                    previewsDiv.innerHTML = '';
+                    
+                    // Verificar si hay archivos seleccionados
+                    if (this.files && this.files.length > 0) {
+                        // Mostrar contenedor de vista previa
+                        previewContainer.classList.remove('d-none');
+                        
+                        // Procesar cada archivo (hasta un máximo de 3)
+                        const maxFiles = {{ max_files }};
+                        const maxPreview = Math.min(this.files.length, maxFiles);
+                        
+                        // Mostrar advertencia si se excede el límite
+                        if (this.files.length > maxFiles) {
+                            const alert = document.createElement('div');
+                            alert.className = 'alert alert-warning w-100';
+                            alert.textContent = `Has seleccionado ${this.files.length} archivos, pero solo se permitirán los primeros ${maxFiles}.`;
+                            previewsDiv.appendChild(alert);
+                        }
+                        
+                        for (let i = 0; i < maxPreview; i++) {
+                            const file = this.files[i];
+                            
+                            // Crear elemento de vista previa según tipo de archivo
+                            if (file.type.startsWith('image/')) {
+                                // Es una imagen, mostrar vista previa
+                                const img = document.createElement('img');
+                                img.style.width = '100px';
+                                img.style.height = '100px';
+                                img.className = 'border rounded object-fit-cover';
+                                
+                                // Crear URL para la vista previa
+                                const imgUrl = URL.createObjectURL(file);
+                                img.src = imgUrl;
+                                
+                                // Liberar URL al descargar imagen
+                                img.onload = function() {
+                                    URL.revokeObjectURL(imgUrl);
+                                };
+                                
+                                previewsDiv.appendChild(img);
+                            } else if (file.type === 'application/pdf') {
+                                // Es un PDF, mostrar icono
+                                const pdfContainer = document.createElement('div');
+                                pdfContainer.style.width = '100px';
+                                pdfContainer.style.height = '100px';
+                                pdfContainer.className = 'position-relative border rounded d-flex align-items-center justify-content-center bg-light';
+                                
+                                const pdfIcon = document.createElement('i');
+                                pdfIcon.className = 'far fa-file-pdf text-danger fa-3x';
+                                
+                                pdfContainer.appendChild(pdfIcon);
+                                previewsDiv.appendChild(pdfContainer);
+                            }
+                        }
+                    } else {
+                        // Ocultar contenedor si no hay archivos
+                        previewContainer.classList.add('d-none');
+                    }
+                });
+            }
+        }
+        
         // Manejar envío del formulario
         const reportIncidentForm = document.getElementById('reportIncidentForm');
         if (reportIncidentForm) {
+            // Configurar vista previa de archivos
+            setupFilePreview();
+            
             reportIncidentForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
                 const formData = new FormData(this);
-                const formDataObj = {};
-                formData.forEach((value, key) => {
-                    formDataObj[key] = value;
-                });
                 
                 // Mostrar indicador de carga
                 const submitBtn = this.querySelector('button[type="submit"]');
@@ -137,10 +237,9 @@
                 fetch('{% url "dashboard:report_incident" %}', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRFToken': getCsrfToken()
                     },
-                    body: new URLSearchParams(formDataObj)
+                    body: formData
                 })
                 .then(response => response.json())
                 .then(data => {

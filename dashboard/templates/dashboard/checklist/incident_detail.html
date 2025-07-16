@@ -93,6 +93,21 @@
         background-color: #f8f9fa;
         border-radius: 4px;
     }
+    /* Estilos para comentarios */
+    .comments-list {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .comment-item {
+        transition: background-color 0.2s;
+    }
+    .comment-item:hover {
+        background-color: #f8f9fa !important;
+    }
+    .comment-author {
+        display: flex;
+        align-items: center;
+    }
 </style>
 {% endblock %}
 
@@ -288,49 +303,107 @@
             {% endif %}
             
             <!-- Timeline -->
-            <div class="card shadow">
+            <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Historial</h6>
                 </div>
                 <div class="card-body">
                     <div class="timeline">
-                        {% if incident.status == 'cerrado' and incident.resolved_at %}
+                        {% for entry in incident_history %}
                         <div class="timeline-item">
-                            <div class="timeline-badge bg-success">
-                                <i class="fas fa-check"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <p class="mb-1"><strong>Incidente cerrado</strong></p>
-                                <p class="mb-1">{{ incident.resolved_at|date:"d/m/Y H:i" }}</p>
-                                <small class="text-muted">Por {{ incident.assigned_to.get_full_name|default:"Un administrador" }}</small>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        {% if incident.status == 'en_proceso' or incident.status == 'cerrado' %}
-                        <div class="timeline-item">
-                            <div class="timeline-badge bg-warning">
-                                <i class="fas fa-tools"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <p class="mb-1"><strong>En proceso</strong></p>
-                                <p class="mb-1">{{ incident.updated_at|date:"d/m/Y H:i" }}</p>
-                                <small class="text-muted">Asignado a {{ incident.assigned_to.get_full_name|default:"No asignado" }}</small>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="timeline-item">
+                            {% if entry.action_type == 'creado' %}
                             <div class="timeline-badge bg-danger">
                                 <i class="fas fa-exclamation-triangle"></i>
                             </div>
+                            {% elif entry.action_type == 'cambio_estado' %}
+                            <div class="timeline-badge bg-primary">
+                                <i class="fas fa-sync"></i>
+                            </div>
+                            {% elif entry.action_type == 'reasignado' %}
+                            <div class="timeline-badge bg-info">
+                                <i class="fas fa-user-edit"></i>
+                            </div>
+                            {% elif entry.action_type == 'cerrado' %}
+                            <div class="timeline-badge bg-success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            {% elif entry.action_type == 'evidencia_agregada' %}
+                            <div class="timeline-badge bg-warning">
+                                <i class="fas fa-camera"></i>
+                            </div>
+                            {% elif entry.action_type == 'comentario' %}
+                            <div class="timeline-badge bg-secondary">
+                                <i class="fas fa-comment"></i>
+                            </div>
+                            {% else %}
+                            <div class="timeline-badge bg-dark">
+                                <i class="fas fa-info"></i>
+                            </div>
+                            {% endif %}
                             <div class="timeline-content">
-                                <p class="mb-1"><strong>Incidente reportado</strong></p>
-                                <p class="mb-1">{{ incident.reported_at|date:"d/m/Y H:i" }}</p>
-                                <small class="text-muted">Por {{ incident.reported_by.get_full_name }}</small>
+                                <p class="mb-1"><strong>{{ entry.get_action_type_display }}</strong></p>
+                                <p class="mb-1">{{ entry.description }}</p>
+                                <small class="text-muted">{{ entry.timestamp|date:"d/m/Y H:i" }} por {{ entry.action_by.get_full_name|default:"Sistema" }}</small>
                             </div>
                         </div>
+                        {% empty %}
+                        <div class="text-center text-muted">
+                            <p>No hay registros en el historial</p>
+                        </div>
+                        {% endfor %}
                     </div>
+                </div>
+            </div>
+            
+            <!-- Lista de Comentarios -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Comentarios</h6>
+                </div>
+                <div class="card-body">
+                    {% if incident.comments.exists %}
+                    <div class="comments-list">
+                        {% for comment in incident.comments.all %}
+                        <div class="comment-item mb-3 p-3 {% if forloop.first %}border-start border-4 border-primary{% else %}border-start border-4 border-light{% endif %} bg-light rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="comment-author">
+                                    <strong class="text-primary">{{ comment.user.get_full_name }}</strong>
+                                    {% if comment.user == incident.reported_by %}
+                                    <span class="badge bg-info text-white ms-2">Reportante</span>
+                                    {% endif %}
+                                    {% if comment.user == incident.assigned_to %}
+                                    <span class="badge bg-success text-white ms-2">Asignado</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ comment.created_at|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <p class="comment-text mb-0">{{ comment.text|linebreaks }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted">No hay comentarios todavía</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Agregar Comentario -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Añadir Comentario</h6>
+                </div>
+                <div class="card-body">
+                    <form id="addCommentForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <textarea class="form-control" id="commentText" name="comment" rows="3" placeholder="Escribe un comentario sobre este incidente..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-comment"></i> Publicar Comentario
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -645,6 +718,72 @@
                 imageModal.show();
             });
         });
+        
+        // Manejar el formulario de comentarios
+        const addCommentForm = document.getElementById('addCommentForm');
+        if (addCommentForm) {
+            addCommentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Validación del formulario
+                const commentText = document.getElementById('commentText');
+                if (!commentText.value.trim()) {
+                    commentText.classList.add('is-invalid');
+                    return false;
+                } else {
+                    commentText.classList.remove('is-invalid');
+                }
+                
+                // Preparar los datos
+                const formData = new FormData();
+                formData.append('comment', commentText.value.trim());
+                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+                
+                // Mostrar indicador de carga
+                const submitBtn = addCommentForm.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
+                
+                // Enviar la solicitud
+                fetch('{% url "dashboard:add_incident_comment" incident.id %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error HTTP: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Restaurar botón
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    
+                    if (data.success) {
+                        // Limpiar el formulario
+                        commentText.value = '';
+                        
+                        // Recargar la página para mostrar el nuevo comentario
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    // Restaurar botón en caso de error
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    
+                    console.error('Error:', error);
+                    alert('Error al enviar el comentario. Por favor, inténtalo de nuevo.');
+                });
+            });
+        }
     });
 </script>
 {% endblock %}

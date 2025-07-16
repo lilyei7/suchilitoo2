@@ -32,6 +32,7 @@ urlpatterns = [
     path('incidente/<int:incident_id>/', checklist_views.incident_detail, name='incident_detail'),
     path('incidente/<int:incident_id>/status/', checklist_views.update_incident_status, name='update_incident_status'),
     path('incidente/<int:incident_id>/evidencia/', checklist_views.upload_incident_evidence, name='upload_incident_evidence'),
+    path('incidente/<int:incident_id>/comentario/', checklist_views.add_incident_comment, name='add_incident_comment'),
     
     # Rutas de notificaciones
     path('notificaciones/', checklist_views.notifications_list, name='notificaciones'),

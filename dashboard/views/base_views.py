@@ -23,8 +23,14 @@ def get_sidebar_context(view_name):
             'apertura_caja', 'cierre_caja', 'admin_mesas'
         ],
         'checklist_section_active': view_name in [
-            'checklist_dashboard', 'checklist_incidents', 'checklist_notifications',
-            'manage_categories', 'manage_tasks', 'task_history'
+            # Standard names
+            'checklist_dashboard', 'checklist_incidents', 'checklist_notifications', 
+            'manage_categories', 'manage_tasks', 'task_history',
+            # Alternative names
+            'categorias_checklist', 'tareas_checklist', 'historial_checklist', 'notificaciones_checklist',
+            'checklist_categories', 'checklist_tasks', 'checklist_history',
+            # Generic checklist name
+            'checklist'
         ]
     }
     return sidebar_context

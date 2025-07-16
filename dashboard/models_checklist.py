@@ -176,6 +176,13 @@ class IncidentReport(models.Model):
         ('cerrado', 'Cerrado'),
     ]
     
+    URGENCY_CHOICES = [
+        ('baja', 'Baja'),
+        ('media', 'Media'),
+        ('alta', 'Alta'),
+        ('critica', 'Crítica'),
+    ]
+    
     branch = models.ForeignKey(
         Sucursal, 
         on_delete=models.CASCADE, 
@@ -185,6 +192,7 @@ class IncidentReport(models.Model):
     category = models.CharField('Categoría', max_length=20, choices=CATEGORY_CHOICES)
     title = models.CharField('Título', max_length=200)
     description = models.TextField('Descripción')
+    urgency = models.CharField('Nivel de Urgencia', max_length=10, choices=URGENCY_CHOICES, default='media')
     reported_by = models.ForeignKey(
         Usuario, 
         on_delete=models.SET_NULL, 
@@ -343,3 +351,96 @@ class IncidentEvidence(models.Model):
 
     def __str__(self):
         return f"Evidencia para incidente {self.incident.title} ({self.uploaded_at})"
+
+
+class IncidentHistory(models.Model):
+    """
+    Historial de acciones en un incidente (creación, asignación, cambio de estado, etc.)
+    """
+    ACTION_TYPES = [
+        ('creado', 'Creado'),
+        ('cambio_estado', 'Cambio de Estado'),
+        ('reasignado', 'Reasignado'),
+        ('cerrado', 'Cerrado'),
+        ('evidencia_agregada', 'Evidencia Agregada'),
+        ('comentario', 'Comentario'),
+    ]
+    
+    incident = models.ForeignKey(
+        IncidentReport, 
+        on_delete=models.CASCADE, 
+        related_name='history',
+        verbose_name='Incidente'
+    )
+    action_by = models.ForeignKey(
+        Usuario, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='incident_actions',
+        verbose_name='Realizado por'
+    )
+    action_type = models.CharField('Tipo de acción', max_length=20, choices=ACTION_TYPES)
+    description = models.TextField('Descripción')
+    timestamp = models.DateTimeField('Fecha y hora', auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Historial de Incidente'
+        verbose_name_plural = 'Historial de Incidentes'
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        return f"{self.get_action_type_display()} - {self.incident.title} ({self.timestamp})"
+
+
+class IncidentComment(models.Model):
+    """
+    Comentarios en reportes de incidentes
+    """
+    incident = models.ForeignKey(
+        IncidentReport, 
+        on_delete=models.CASCADE, 
+        related_name='comments',
+        verbose_name='Incidente'
+    )
+    user = models.ForeignKey(
+        Usuario, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='incident_comments',
+        verbose_name='Usuario'
+    )
+    text = models.TextField('Comentario')
+    created_at = models.DateTimeField('Fecha de creación', auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Comentario de Incidente'
+        verbose_name_plural = 'Comentarios de Incidentes'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Comentario en {self.incident.title} por {self.user.get_full_name() if self.user else 'Usuario eliminado'}"
+        
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        
+        # Create history entry for new comments
+        if is_new and hasattr(self, 'incident') and hasattr(self, 'user'):
+            from dashboard.models_checklist import IncidentHistory
+            IncidentHistory.objects.create(
+                incident=self.incident,
+                action_by=self.user,
+                action_type='comentario',
+                description=f"Comentó: {self.text[:100]}{'...' if len(self.text) > 100 else ''}"
+            )
+            
+            # Create notification for assigned user if different from commenter
+            if self.incident.assigned_to and self.incident.assigned_to != self.user:
+                from dashboard.models_checklist import ChecklistNotification
+                ChecklistNotification.objects.create(
+                    recipient=self.incident.assigned_to,
+                    type='incident_comment',
+                    message=f"Nuevo comentario en incidente: {self.incident.title}",
+                    related_object_id=self.incident.id,
+                    related_model='IncidentReport'
+                )

@@ -11,7 +11,8 @@ from django.db import transaction
 from accounts.models import Usuario, Sucursal, Rol
 from dashboard.models_checklist import (
     ChecklistCategory, ChecklistTask, TaskInstance, 
-    Evidence, IncidentReport, Notification, IncidentEvidence
+    Evidence, IncidentReport, Notification, IncidentEvidence,
+    IncidentHistory, IncidentComment
 )
 from dashboard.views.base_views import get_sidebar_context
 from dashboard.utils.image_utils import compress_image
@@ -604,12 +605,18 @@ def incident_list(request):
 
 
 @login_required
+@branch_required
 def report_incident(request):
     """
     Reporta un nuevo incidente o muestra el formulario de reporte
     """
     # Si es GET, mostrar el formulario
     if request.method == 'GET':
+        # Verificar que el usuario tenga una sucursal asignada
+        if not request.user.sucursal and not request.user.is_staff:
+            messages.error(request, "Debes tener una sucursal asignada para reportar incidentes.")
+            return redirect('dashboard:checklist_dashboard')
+        
         # Obtener sucursales para el selector
         if request.user.is_staff:
             branches = Sucursal.objects.filter(activa=True).order_by('nombre')
@@ -619,6 +626,10 @@ def report_incident(request):
         context = {
             'branches': branches,
             'category_choices': IncidentReport.CATEGORY_CHOICES,
+            'urgency_choices': IncidentReport.URGENCY_CHOICES,
+            'max_files': 3,  # Máximo de archivos permitidos
+            'max_file_size_mb': 5,  # Tamaño máximo por archivo en MB
+            'allowed_file_types': 'image/jpeg, image/png, application/pdf',  # Tipos de archivo permitidos
             **get_sidebar_context('checklist_incidents')
         }
         return render(request, 'dashboard/checklist/report_incident.html', context)
@@ -628,6 +639,7 @@ def report_incident(request):
         # Obtener datos del formulario
         branch_id = request.POST.get('branch')
         category = request.POST.get('category')
+        urgency = request.POST.get('urgency', 'media')
         title = request.POST.get('title')
         description = request.POST.get('description')
         
@@ -644,6 +656,10 @@ def report_incident(request):
                 'success': False,
                 'message': 'Categoría no válida.'
             })
+            
+        # Validar nivel de urgencia
+        if urgency not in dict(IncidentReport.URGENCY_CHOICES):
+            urgency = 'media'  # Valor predeterminado si no es válido
         
         # Obtener sucursal
         try:
@@ -654,23 +670,99 @@ def report_incident(request):
                 'message': 'Sucursal no encontrada o inválida.'
             })
         
-        # Crear el incidente
-        incident = IncidentReport.objects.create(
-            branch=branch,
-            category=category,
-            title=title,
-            description=description,
-            reported_by=request.user,
-            status='abierto'
-        )
+        # Crear el incidente con transacción atómica para garantizar consistencia
+        with transaction.atomic():
+            # Crear el incidente
+            incident = IncidentReport.objects.create(
+                branch=branch,
+                category=category,
+                urgency=urgency,
+                title=title,
+                description=description,
+                reported_by=request.user,
+                status='abierto'
+            )
+            
+            # Registrar en historial
+            IncidentHistory.objects.create(
+                incident=incident,
+                action_by=request.user,
+                action_type='creado',
+                description=f'Incidente reportado por {request.user.get_full_name()}'
+            )
+            
+            # Procesar las evidencias adjuntas si existen
+            if 'evidence_files' in request.FILES:
+                files = request.FILES.getlist('evidence_files')
+                
+                # Verificar límite de archivos
+                if len(files) > 3:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Solo se permiten un máximo de 3 archivos por subida.'
+                    })
+                
+                # Procesar cada archivo
+                for file in files:
+                    # Validar que el archivo sea una imagen o un PDF
+                    if not (file.content_type.startswith('image/') or file.content_type == 'application/pdf'):
+                        return JsonResponse({
+                            'success': False,
+                            'message': 'Los archivos deben ser imágenes (JPEG, PNG) o PDF.'
+                        })
+                    
+                    # Verificar tamaño máximo (5 MB)
+                    if file.size > 5 * 1024 * 1024:
+                        return JsonResponse({
+                            'success': False,
+                            'message': 'Cada archivo no debe superar los 5 MB.'
+                        })
+                
+                # Procesar y guardar cada archivo válido
+                from dashboard.utils.image_utils import compress_image
+                
+                for file in files:
+                    # Comprimir la imagen si es necesario
+                    processed_file = file
+                    if file.content_type.startswith('image/'):
+                        processed_file = compress_image(file) or file
+                    
+                    # Crear la evidencia
+                    evidence = IncidentEvidence.objects.create(
+                        incident=incident,
+                        uploaded_by=request.user,
+                        file=processed_file,
+                        comment="Evidencia inicial"
+                    )
+                    
+                # Registrar subida de evidencia en historial
+                IncidentHistory.objects.create(
+                    incident=incident,
+                    action_by=request.user,
+                    action_type='evidencia_agregada',
+                    description=f'{len(files)} evidencia(s) agregada(s) por {request.user.get_full_name()}'
+                )
         
         # Notificar a los usuarios de mantenimiento y gerentes
-        maintenance_staff = Usuario.objects.filter(
-            Q(rol__nombre='mantenimiento') | Q(rol__nombre='gerente'),
+        # Primero al gerente de la sucursal específica
+        branch_managers = Usuario.objects.filter(
+            sucursal=branch,
+            rol__nombre='gerente',
             is_active=True
         )
         
-        for user in maintenance_staff:
+        # Luego a mantenimiento y admins
+        maintenance_staff = Usuario.objects.filter(
+            Q(rol__nombre='mantenimiento') | 
+            Q(rol__nombre='admin') | 
+            Q(is_staff=True),
+            is_active=True
+        ).exclude(id__in=branch_managers.values_list('id', flat=True))
+        
+        # Combinamos ambos grupos dando prioridad a los gerentes de la sucursal
+        notification_recipients = list(branch_managers) + list(maintenance_staff)
+        
+        for user in notification_recipients:
             Notification.objects.create(
                 type='incident_reported',
                 recipient=user,
@@ -738,50 +830,84 @@ def update_incident_status(request, incident_id):
                 'message': 'Se requiere una nota de resolución para cerrar el incidente.'
             })
         
-        # Actualizar el incidente
-        old_status = incident.status
-        incident.status = new_status
-        
-        # Si se está cerrando, registrar fecha de resolución
-        if new_status == 'cerrado' and old_status != 'cerrado':
-            incident.resolved_at = timezone.now()
-            incident.resolution_note = resolution_note
-        
-        # Si se está asignando a alguien
-        assigned_to_id = request.POST.get('assigned_to')
-        if assigned_to_id:
-            try:
-                assigned_to = Usuario.objects.get(id=assigned_to_id)
-                incident.assigned_to = assigned_to
+        # Usar transacción para garantizar consistencia
+        with transaction.atomic():
+            # Actualizar el incidente
+            old_status = incident.status
+            old_assigned_to = incident.assigned_to
+            incident.status = new_status
+            
+            # Si se está cerrando, registrar fecha de resolución
+            if new_status == 'cerrado' and old_status != 'cerrado':
+                incident.resolved_at = timezone.now()
+                incident.resolution_note = resolution_note
                 
-                # Notificar al asignado
+                # Registrar en historial
+                IncidentHistory.objects.create(
+                    incident=incident,
+                    action_by=request.user,
+                    action_type='cerrado',
+                    description=f'Incidente cerrado por {request.user.get_full_name()} con nota: {resolution_note}'
+                )
+            elif new_status != old_status:
+                # Cambio de estado que no es cierre
+                status_display = dict(IncidentReport.STATUS_CHOICES)[new_status]
+                IncidentHistory.objects.create(
+                    incident=incident,
+                    action_by=request.user,
+                    action_type='cambio_estado',
+                    description=f'Estado cambiado de "{dict(IncidentReport.STATUS_CHOICES)[old_status]}" a "{status_display}" por {request.user.get_full_name()}'
+                )
+            
+            # Si se está asignando a alguien
+            assigned_to_id = request.POST.get('assigned_to')
+            if assigned_to_id:
+                try:
+                    assigned_to = Usuario.objects.get(id=assigned_to_id)
+                    
+                    # Verificar si es una reasignación
+                    if incident.assigned_to != assigned_to:
+                        old_assignee = 'nadie' if incident.assigned_to is None else incident.assigned_to.get_full_name()
+                        
+                        # Actualizar asignado
+                        incident.assigned_to = assigned_to
+                        
+                        # Registrar en historial
+                        IncidentHistory.objects.create(
+                            incident=incident,
+                            action_by=request.user,
+                            action_type='reasignado',
+                            description=f'Reasignado de {old_assignee} a {assigned_to.get_full_name()} por {request.user.get_full_name()}'
+                        )
+                        
+                        # Notificar al asignado
+                        Notification.objects.create(
+                            type='incident_updated',
+                            recipient=assigned_to,
+                            title='Incidente asignado',
+                            message=f'{request.user.get_full_name()} te ha asignado un incidente: {incident.title}',
+                            related_incident=incident,
+                            alert_type='info',
+                            icon='user-check',
+                            link=f'/dashboard/checklist/incidente/{incident.id}/'
+                        )
+                except Usuario.DoesNotExist:
+                    pass
+            
+            incident.save()
+            
+            # Notificar al reportante si el incidente se cerró
+            if new_status == 'cerrado' and old_status != 'cerrado' and incident.reported_by:
                 Notification.objects.create(
-                    type='incident_updated',
-                    recipient=assigned_to,
-                    title='Incidente asignado',
-                    message=f'{request.user.get_full_name()} te ha asignado un incidente: {incident.title}',
+                    type='incident_resolved',
+                    recipient=incident.reported_by,
+                    title='Incidente resuelto',
+                    message=f'Tu incidente "{incident.title}" ha sido resuelto.',
                     related_incident=incident,
-                    alert_type='info',
-                    icon='user-check',
+                    alert_type='success',
+                    icon='check-circle',
                     link=f'/dashboard/checklist/incidente/{incident.id}/'
                 )
-            except Usuario.DoesNotExist:
-                pass
-        
-        incident.save()
-        
-        # Notificar al reportante si el incidente se cerró
-        if new_status == 'cerrado' and old_status != 'cerrado' and incident.reported_by:
-            Notification.objects.create(
-                type='incident_resolved',
-                recipient=incident.reported_by,
-                title='Incidente resuelto',
-                message=f'Tu incidente "{incident.title}" ha sido resuelto.',
-                related_incident=incident,
-                alert_type='success',
-                icon='check-circle',
-                link=f'/dashboard/checklist/incidente/{incident.id}/'
-            )
         
         return JsonResponse({
             'success': True,
@@ -830,7 +956,7 @@ def notifications_list(request):
         'read_filter': read_filter,
         'tipo_filter': tipo_filter,
         'tipos_notificacion': Notification.TYPE_CHOICES,
-        **get_sidebar_context('checklist')
+        **get_sidebar_context('checklist_notifications')
     }
     
     return render(request, 'dashboard/checklist/notifications.html', context)
@@ -973,6 +1099,14 @@ def upload_incident_evidence(request, incident_id):
             )
             evidence_files.append(evidence)
         
+        # Registrar en historial
+        IncidentHistory.objects.create(
+            incident=incident,
+            action_by=request.user,
+            action_type='evidencia_agregada',
+            description=f'{len(files)} evidencia(s) agregada(s) por {request.user.get_full_name()} con comentario: "{comment}"'
+        )
+        
         # Crear notificación para los administradores y supervisores
         managers = Usuario.objects.filter(
             Q(sucursal=incident.branch) | Q(is_staff=True),
@@ -1043,15 +1177,23 @@ def incident_detail(request, incident_id):
     if user_is_admin or user_is_supervisor:
         users = Usuario.objects.filter(
             Q(sucursal=incident.branch) | Q(is_staff=True),
-            Q(rol__nombre__in=['admin', 'gerente', 'supervisor', 'jefe_cocina']) | Q(is_staff=True),
+            Q(rol__nombre__in=['admin', 'gerente', 'supervisor', 'jefe_cocina', 'mantenimiento']) | Q(is_staff=True),
             is_active=True
         ).distinct().order_by('first_name', 'last_name')
     else:
         users = []
     
+    # Obtener historial de acciones del incidente
+    incident_history = IncidentHistory.objects.filter(incident=incident).order_by('-timestamp')
+    
     context = {
         'incident': incident,
         'users': users,
+        'incident_history': incident_history,
+        'user_is_admin': user_is_admin,
+        'user_is_supervisor': user_is_supervisor,
+        'user_is_reporter': user_is_reporter,
+        'user_is_assigned': user_is_assigned,
         **get_sidebar_context('checklist_incidents')
     }
     
@@ -1673,6 +1815,109 @@ def verify_task_instance(request, instance_id):
         
     except Exception as e:
         logger.error(f"Error al verificar tarea: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        })
+
+
+@login_required
+@require_POST
+def add_incident_comment(request, incident_id):
+    """
+    Añade un comentario a un incidente
+    """
+    try:
+        # Obtener el incidente
+        incident = get_object_or_404(IncidentReport, id=incident_id)
+        
+        # Verificar permisos
+        if not request.user.is_staff and request.user.sucursal != incident.branch:
+            return JsonResponse({
+                'success': False,
+                'message': 'No tienes permiso para comentar en este incidente.'
+            })
+        
+        # Obtener el comentario
+        comment_text = request.POST.get('comment', '').strip()
+        
+        # Validar comentario
+        if not comment_text:
+            return JsonResponse({
+                'success': False,
+                'message': 'El comentario no puede estar vacío.'
+            })
+        
+        # Crear el comentario
+        comment = IncidentComment.objects.create(
+            incident=incident,
+            user=request.user,
+            text=comment_text
+        )
+        
+        # No es necesario crear manualmente un registro en el historial
+        # ya que el método save() de IncidentComment lo hace automáticamente
+        
+        # Notificar a las partes interesadas
+        # 1. El reportante (si no es quien comenta)
+        if incident.reported_by and incident.reported_by != request.user:
+            Notification.objects.create(
+                type='incident_comment',
+                recipient=incident.reported_by,
+                title='Nuevo comentario en incidente',
+                message=f'{request.user.get_full_name()} ha comentado en el incidente "{incident.title}"',
+                related_incident=incident,
+                alert_type='info',
+                icon='message-circle',
+                link=f'/dashboard/checklist/incidente/{incident.id}/'
+            )
+        
+        # 2. El asignado (si existe y no es quien comenta)
+        if incident.assigned_to and incident.assigned_to != request.user:
+            Notification.objects.create(
+                type='incident_comment',
+                recipient=incident.assigned_to,
+                title='Nuevo comentario en incidente',
+                message=f'{request.user.get_full_name()} ha comentado en el incidente "{incident.title}"',
+                related_incident=incident,
+                alert_type='info',
+                icon='message-circle',
+                link=f'/dashboard/checklist/incidente/{incident.id}/'
+            )
+        
+        # 3. Gerentes y supervisores de la sucursal
+        managers = Usuario.objects.filter(
+            sucursal=incident.branch,
+            rol__nombre__in=['gerente', 'supervisor'],
+            is_active=True
+        ).exclude(id__in=[
+            request.user.id,
+            incident.reported_by.id if incident.reported_by else 0,
+            incident.assigned_to.id if incident.assigned_to else 0
+        ])
+        
+        for manager in managers:
+            Notification.objects.create(
+                type='incident_comment',
+                recipient=manager,
+                title='Nuevo comentario en incidente',
+                message=f'{request.user.get_full_name()} ha comentado en el incidente "{incident.title}"',
+                related_incident=incident,
+                alert_type='info',
+                icon='message-circle',
+                link=f'/dashboard/checklist/incidente/{incident.id}/'
+            )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Comentario agregado correctamente.',
+            'comment_id': history_entry.id,
+            'comment_date': history_entry.timestamp.strftime('%d/%m/%Y %H:%M'),
+            'comment_by': request.user.get_full_name()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al agregar comentario a incidente: {str(e)}")
         return JsonResponse({
             'success': False,
             'message': f'Error: {str(e)}'
