@@ -1,0 +1,1105 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Detalles del Empleado - Recursos Humanos{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'dashboard/vendor/datatables/dataTables.bootstrap4.min.css' %}">
+<style>
+    .profile-header {
+        background-color: #f8f9fc;
+        border-radius: 10px;
+        padding: 20px;
+        position: relative;
+    }
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 5px solid #fff;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    .profile-info {
+        padding-left: 20px;
+    }
+    .tab-content {
+        padding: 20px;
+    }
+    .document-card {
+        transition: all 0.2s;
+    }
+    .document-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .document-icon {
+        font-size: 2rem;
+    }
+    .attendance-summary .card-body {
+        padding: 1rem;
+    }
+    .attendance-summary .number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .contact-info i {
+        width: 20px;
+    }
+    .attendance-chart {
+        height: 300px;
+    }
+    .calendar-day {
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        border-radius: 50%;
+        display: inline-block;
+        margin: 2px;
+        font-size: 0.8rem;
+    }
+    .calendar-day.present {
+        background-color: #1cc88a;
+        color: white;
+    }
+    .calendar-day.absent {
+        background-color: #e74a3b;
+        color: white;
+    }
+    .calendar-day.late {
+        background-color: #f6c23e;
+        color: white;
+    }
+    .calendar-day.inactive {
+        background-color: #eaecf4;
+        color: #858796;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Perfil del Empleado</h1>
+    <div>
+        <a href="{% url 'dashboard:rrhh_empleado_editar' empleado_id=empleado.id %}" class="d-none d-sm-inline-block btn btn-sm btn-warning shadow-sm">
+            <i class="fas fa-edit fa-sm text-white-50 me-1"></i> Editar
+        </a>
+        <a href="{% url 'dashboard:rrhh_empleados_listado' %}" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm ms-2">
+            <i class="fas fa-arrow-left fa-sm text-white-50 me-1"></i> Volver
+        </a>
+    </div>
+</div>
+
+<!-- Perfil Header -->
+<div class="card shadow mb-4">
+    <div class="card-body p-0">
+        <div class="profile-header d-md-flex align-items-center">
+            <!-- Estado del empleado -->
+            <div class="position-absolute top-0 end-0 p-3">
+                {% if empleado.estado == 'activo' %}
+                    <span class="badge bg-success">Activo</span>
+                {% elif empleado.estado == 'inactivo' %}
+                    <span class="badge bg-danger">Inactivo</span>
+                {% elif empleado.estado == 'vacaciones' %}
+                    <span class="badge bg-info">Vacaciones</span>
+                {% elif empleado.estado == 'permiso' %}
+                    <span class="badge bg-warning">Permiso</span>
+                {% endif %}
+            </div>
+            
+            <!-- Foto de perfil -->
+            <div class="text-center">
+                {% if empleado.foto %}
+                    <img src="{{ empleado.foto.url }}" alt="{{ empleado.nombre }}" class="profile-avatar">
+                {% else %}
+                    <img src="{% static 'dashboard/img/undraw_profile.svg' %}" alt="{{ empleado.nombre }}" class="profile-avatar">
+                {% endif %}
+            </div>
+            
+            <!-- Información básica -->
+            <div class="profile-info">
+                <h4 class="mb-1">{{ empleado.nombre }} {{ empleado.apellido }}</h4>
+                <p class="text-muted mb-2">{{ empleado.cargo }}</p>
+                
+                <div class="d-flex flex-wrap mb-3">
+                    {% for rol in empleado.roles.all %}
+                        <span class="badge bg-primary me-1 mb-1">{{ rol.nombre }}</span>
+                    {% endfor %}
+                    
+                    {% for sucursal in empleado.sucursales.all %}
+                        <span class="badge bg-secondary me-1 mb-1">{{ sucursal.nombre }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="d-flex">
+                    <div class="me-4">
+                        <small class="text-muted">Ingreso</small>
+                        <div>{{ empleado.fecha_ingreso|date:"d/m/Y" }}</div>
+                    </div>
+                    {% if empleado.fecha_nacimiento %}
+                        <div class="me-4">
+                            <small class="text-muted">Fecha Nacimiento</small>
+                            <div>{{ empleado.fecha_nacimiento|date:"d/m/Y" }}</div>
+                        </div>
+                    {% endif %}
+                    <div>
+                        <small class="text-muted">RUT</small>
+                        <div>{{ empleado.rut }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs de Información -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <ul class="nav nav-tabs card-header-tabs" id="employeeTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">
+                    <i class="fas fa-user me-1"></i> Información Personal
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab" aria-controls="attendance" aria-selected="false">
+                    <i class="fas fa-clipboard-check me-1"></i> Asistencia
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab" aria-controls="documents" aria-selected="false">
+                    <i class="fas fa-file-alt me-1"></i> Documentos
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="trainings-tab" data-bs-toggle="tab" data-bs-target="#trainings" type="button" role="tab" aria-controls="trainings" aria-selected="false">
+                    <i class="fas fa-graduation-cap me-1"></i> Capacitaciones
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="payroll-tab" data-bs-toggle="tab" data-bs-target="#payroll" type="button" role="tab" aria-controls="payroll" aria-selected="false">
+                    <i class="fas fa-money-check-alt me-1"></i> Nómina
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content" id="employeeTabsContent">
+            <!-- Información Personal -->
+            <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
+                <div class="row">
+                    <!-- Información de Contacto -->
+                    <div class="col-lg-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold text-primary">Información de Contacto</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled contact-info">
+                                    <li class="mb-2">
+                                        <i class="fas fa-envelope me-2 text-primary"></i>
+                                        {{ empleado.email|default:"No disponible" }}
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-phone me-2 text-primary"></i>
+                                        {{ empleado.telefono|default:"No disponible" }}
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                                        {{ empleado.direccion|default:"No disponible" }}
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-city me-2 text-primary"></i>
+                                        {{ empleado.ciudad|default:"No disponible" }}
+                                    </li>
+                                    <li>
+                                        <i class="fas fa-id-card me-2 text-primary"></i>
+                                        {{ empleado.rut }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información Laboral -->
+                    <div class="col-lg-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold text-primary">Información Laboral</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Cargo</small>
+                                        <span>{{ empleado.cargo }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Departamento</small>
+                                        <span>{{ empleado.departamento|default:"No asignado" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Fecha de Ingreso</small>
+                                        <span>{{ empleado.fecha_ingreso|date:"d/m/Y" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Tipo de Contrato</small>
+                                        <span>{{ empleado.tipo_contrato|default:"No especificado" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Jornada</small>
+                                        <span>{{ empleado.jornada|default:"No especificada" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Salario Base</small>
+                                        <span>${{ empleado.salario_base|floatformat:0|default:"No especificado" }}</span>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <h6 class="font-weight-bold">Roles</h6>
+                                <div class="mb-3">
+                                    {% for rol in empleado.roles.all %}
+                                        <span class="badge bg-primary me-1">{{ rol.nombre }}</span>
+                                    {% empty %}
+                                        <span class="text-muted">No tiene roles asignados</span>
+                                    {% endfor %}
+                                </div>
+                                
+                                <h6 class="font-weight-bold">Sucursales</h6>
+                                <div>
+                                    {% for sucursal in empleado.sucursales.all %}
+                                        <span class="badge bg-secondary me-1">{{ sucursal.nombre }}</span>
+                                    {% empty %}
+                                        <span class="text-muted">No tiene sucursales asignadas</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información Personal -->
+                    <div class="col-lg-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold text-primary">Información Personal</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Fecha de Nacimiento</small>
+                                        <span>{{ empleado.fecha_nacimiento|date:"d/m/Y"|default:"No disponible" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Género</small>
+                                        <span>{{ empleado.genero|default:"No especificado" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Estado Civil</small>
+                                        <span>{{ empleado.estado_civil|default:"No especificado" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Nacionalidad</small>
+                                        <span>{{ empleado.nacionalidad|default:"No especificada" }}</span>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <h6 class="font-weight-bold">Contacto de Emergencia</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Nombre</small>
+                                        <span>{{ empleado.contacto_emergencia_nombre|default:"No especificado" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Teléfono</small>
+                                        <span>{{ empleado.contacto_emergencia_telefono|default:"No especificado" }}</span>
+                                    </div>
+                                    <div class="col-12">
+                                        <small class="text-muted d-block">Relación</small>
+                                        <span>{{ empleado.contacto_emergencia_relacion|default:"No especificada" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información Bancaria -->
+                    <div class="col-lg-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold text-primary">Información Bancaria</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Banco</small>
+                                        <span>{{ empleado.banco|default:"No especificado" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Tipo de Cuenta</small>
+                                        <span>{{ empleado.tipo_cuenta|default:"No especificado" }}</span>
+                                    </div>
+                                    <div class="col-md-12 mb-3">
+                                        <small class="text-muted d-block">Número de Cuenta</small>
+                                        <span>{{ empleado.numero_cuenta|default:"No especificado" }}</span>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <h6 class="font-weight-bold">Información Previsional</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">AFP</small>
+                                        <span>{{ empleado.afp|default:"No especificada" }}</span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <small class="text-muted d-block">Salud</small>
+                                        <span>{{ empleado.sistema_salud|default:"No especificado" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Asistencia -->
+            <div class="tab-pane fade" id="attendance" role="tabpanel" aria-labelledby="attendance-tab">
+                <!-- Resumen de Asistencia -->
+                <div class="row">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-primary shadow h-100 py-2 attendance-summary">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            Asistencia Mensual</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ asistencia_mensual }}%</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-success shadow h-100 py-2 attendance-summary">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            Puntualidad</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ puntualidad }}%</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-info shadow h-100 py-2 attendance-summary">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                            Horas Trabajadas</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ horas_trabajadas }}</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-stopwatch fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-warning shadow h-100 py-2 attendance-summary">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                            Llegadas Tarde</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ llegadas_tarde }}</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Gráfico de Asistencia -->
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-primary">Tendencia de Asistencia</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="attendance-chart">
+                                    <canvas id="attendanceChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-primary">Distribución de Estados</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="attendance-chart">
+                                    <canvas id="attendanceStatusChart"></canvas>
+                                </div>
+                                <div class="mt-4 text-center small">
+                                    <span class="me-2">
+                                        <i class="fas fa-circle text-success"></i> Presente
+                                    </span>
+                                    <span class="me-2">
+                                        <i class="fas fa-circle text-danger"></i> Ausente
+                                    </span>
+                                    <span class="me-2">
+                                        <i class="fas fa-circle text-warning"></i> Tarde
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-circle text-info"></i> Justificado
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Calendario de Asistencia -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Calendario de Asistencia</h6>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" id="prev-month">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="mx-2" id="current-month">{{ mes_actual|date:"F Y" }}</span>
+                            <button class="btn btn-sm btn-outline-primary" id="next-month">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="calendar-container">
+                            <div class="d-flex justify-content-center mb-3">
+                                <div class="me-3"><span class="calendar-day present"></span> Presente</div>
+                                <div class="me-3"><span class="calendar-day absent"></span> Ausente</div>
+                                <div class="me-3"><span class="calendar-day late"></span> Tarde</div>
+                                <div><span class="calendar-day inactive"></span> No laborable</div>
+                            </div>
+                            
+                            <div class="calendar-grid" id="calendar-days">
+                                <!-- Los días del calendario se cargarán con JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabla de Asistencia -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Historial de Asistencia</h6>
+                        <a href="{% url 'dashboard:rrhh_asistencia_registrar' %}?empleado={{ empleado.id }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> Registrar
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if asistencias %}
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="attendanceDataTable" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Entrada</th>
+                                            <th>Salida</th>
+                                            <th>Estado</th>
+                                            <th>Turno</th>
+                                            <th>Observaciones</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for asistencia in asistencias %}
+                                            <tr>
+                                                <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
+                                                <td>
+                                                    {% if asistencia.hora_entrada %}
+                                                        {{ asistencia.hora_entrada|date:"H:i" }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if asistencia.hora_salida %}
+                                                        {{ asistencia.hora_salida|date:"H:i" }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if asistencia.estado == 'presente' %}
+                                                        <span class="badge bg-success">Presente</span>
+                                                    {% elif asistencia.estado == 'ausente' %}
+                                                        <span class="badge bg-danger">Ausente</span>
+                                                    {% elif asistencia.estado == 'tarde' %}
+                                                        <span class="badge bg-warning">Tarde</span>
+                                                    {% elif asistencia.estado == 'justificado' %}
+                                                        <span class="badge bg-info">Justificado</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ asistencia.turno.nombre }}</td>
+                                                <td>
+                                                    {% if asistencia.observaciones %}
+                                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ asistencia.observaciones }}">
+                                                            <i class="fas fa-comment-alt"></i> Ver
+                                                        </span>
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex">
+                                                        <button onclick="editarAsistencia({{ asistencia.id }})" class="btn btn-sm btn-warning me-1">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button onclick="justificarAsistencia({{ asistencia.id }})" class="btn btn-sm btn-info me-1">
+                                                            <i class="fas fa-file-medical"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-1"></i> No hay registros de asistencia para este empleado.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Documentos -->
+            <div class="tab-pane fade" id="documents" role="tabpanel" aria-labelledby="documents-tab">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0">Documentos del Empleado</h5>
+                    <a href="{% url 'dashboard:rrhh_documento_subir' empleado_id=empleado.id %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i> Agregar Documento
+                    </a>
+                </div>
+                
+                <div class="row">
+                    {% if documentos %}
+                        {% for documento in documentos %}
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card h-100 document-card">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="document-icon me-3">
+                                                {% if documento.tipo == 'contrato' %}
+                                                    <i class="fas fa-file-contract text-primary"></i>
+                                                {% elif documento.tipo == 'cv' %}
+                                                    <i class="fas fa-file-alt text-info"></i>
+                                                {% elif documento.tipo == 'certificado' %}
+                                                    <i class="fas fa-certificate text-success"></i>
+                                                {% elif documento.tipo == 'finiquito' %}
+                                                    <i class="fas fa-file-invoice-dollar text-danger"></i>
+                                                {% else %}
+                                                    <i class="fas fa-file text-secondary"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h5 class="card-title mb-0">{{ documento.nombre }}</h5>
+                                                <p class="card-text text-muted">{{ documento.get_tipo_display }}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="small mb-2">
+                                            <span class="text-muted">Subido:</span> {{ documento.fecha_subida|date:"d/m/Y" }}
+                                        </div>
+                                        
+                                        {% if documento.fecha_vencimiento %}
+                                            <div class="small mb-3">
+                                                <span class="text-muted">Vence:</span> {{ documento.fecha_vencimiento|date:"d/m/Y" }}
+                                                
+                                                {% if documento.dias_para_vencer <= 0 %}
+                                                    <span class="badge bg-danger ms-1">Vencido</span>
+                                                {% elif documento.dias_para_vencer <= 30 %}
+                                                    <span class="badge bg-warning ms-1">{{ documento.dias_para_vencer }} días</span>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if documento.descripcion %}
+                                            <p class="card-text small">{{ documento.descripcion|truncatechars:100 }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer bg-light">
+                                        <div class="d-flex justify-content-between">
+                                            <a href="{{ documento.archivo.url }}" class="btn btn-sm btn-primary" target="_blank">
+                                                <i class="fas fa-eye me-1"></i> Ver
+                                            </a>
+                                            <div>
+                                                <button onclick="editarDocumento({{ documento.id }})" class="btn btn-sm btn-warning me-1">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button onclick="eliminarDocumento({{ documento.id }})" class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-1"></i> No hay documentos registrados para este empleado.
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Capacitaciones -->
+            <div class="tab-pane fade" id="trainings" role="tabpanel" aria-labelledby="trainings-tab">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0">Capacitaciones</h5>
+                    <a href="{% url 'dashboard:rrhh_capacitacion_asignar_empleado' empleado_id=empleado.id %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i> Asignar Capacitación
+                    </a>
+                </div>
+                
+                {% if capacitaciones %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="trainingsDataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Descripción</th>
+                                    <th>Fecha Inicio</th>
+                                    <th>Fecha Fin</th>
+                                    <th>Estado</th>
+                                    <th>Resultado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for capacitacion in capacitaciones %}
+                                    <tr>
+                                        <td>{{ capacitacion.capacitacion.nombre }}</td>
+                                        <td>{{ capacitacion.capacitacion.descripcion|truncatechars:50 }}</td>
+                                        <td>{{ capacitacion.fecha_inicio|date:"d/m/Y" }}</td>
+                                        <td>{{ capacitacion.fecha_fin|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if capacitacion.estado == 'pendiente' %}
+                                                <span class="badge bg-warning">Pendiente</span>
+                                            {% elif capacitacion.estado == 'en_curso' %}
+                                                <span class="badge bg-primary">En Curso</span>
+                                            {% elif capacitacion.estado == 'completada' %}
+                                                <span class="badge bg-success">Completada</span>
+                                            {% elif capacitacion.estado == 'cancelada' %}
+                                                <span class="badge bg-danger">Cancelada</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if capacitacion.resultado %}
+                                                {% if capacitacion.resultado == 'aprobado' %}
+                                                    <span class="badge bg-success">Aprobado</span>
+                                                {% elif capacitacion.resultado == 'reprobado' %}
+                                                    <span class="badge bg-danger">Reprobado</span>
+                                                {% endif %}
+                                                {% if capacitacion.calificacion %}
+                                                    <span class="ms-1">{{ capacitacion.calificacion }}</span>
+                                                {% endif %}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button onclick="verDetalleCapacitacion({{ capacitacion.id }})" class="btn btn-sm btn-primary me-1">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button onclick="editarCapacitacion({{ capacitacion.id }})" class="btn btn-sm btn-warning me-1">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                {% if capacitacion.estado != 'completada' %}
+                                                    <button onclick="completarCapacitacion({{ capacitacion.id }})" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i> No hay capacitaciones registradas para este empleado.
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Nómina -->
+            <div class="tab-pane fade" id="payroll" role="tabpanel" aria-labelledby="payroll-tab">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0">Historial de Nómina</h5>
+                    <a href="{% url 'dashboard:rrhh_nomina_generar_empleado' empleado_id=empleado.id %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i> Generar Nómina
+                    </a>
+                </div>
+                
+                {% if nominas %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="payrollDataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Período</th>
+                                    <th>Salario Base</th>
+                                    <th>Bonificaciones</th>
+                                    <th>Deducciones</th>
+                                    <th>Total</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for nomina in nominas %}
+                                    <tr>
+                                        <td>{{ nomina.mes }}/{{ nomina.año }}</td>
+                                        <td>${{ nomina.salario_base|floatformat:0 }}</td>
+                                        <td>${{ nomina.total_bonificaciones|floatformat:0 }}</td>
+                                        <td>${{ nomina.total_deducciones|floatformat:0 }}</td>
+                                        <td class="font-weight-bold">${{ nomina.total_pago|floatformat:0 }}</td>
+                                        <td>
+                                            {% if nomina.estado == 'generada' %}
+                                                <span class="badge bg-warning">Generada</span>
+                                            {% elif nomina.estado == 'aprobada' %}
+                                                <span class="badge bg-success">Aprobada</span>
+                                            {% elif nomina.estado == 'pagada' %}
+                                                <span class="badge bg-primary">Pagada</span>
+                                            {% elif nomina.estado == 'cancelada' %}
+                                                <span class="badge bg-danger">Cancelada</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex">
+                                                <button onclick="verDetalleNomina({{ nomina.id }})" class="btn btn-sm btn-primary me-1">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                {% if nomina.estado == 'generada' %}
+                                                    <button onclick="editarNomina({{ nomina.id }})" class="btn btn-sm btn-warning me-1">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <a href="{% url 'dashboard:rrhh_nomina_aprobar' nomina_id=nomina.id %}" class="btn btn-sm btn-success me-1">
+                                                        <i class="fas fa-check"></i>
+                                                    </a>
+                                                {% endif %}
+                                                <button onclick="generarPdfNomina({{ nomina.id }})" class="btn btn-sm btn-info">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i> No hay registros de nómina para este empleado.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'dashboard/vendor/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'dashboard/vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+<script src="{% static 'dashboard/vendor/chart.js/Chart.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        // Inicializar DataTables
+        $('#attendanceDataTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+            },
+            order: [[0, 'desc']]
+        });
+        
+        $('#trainingsDataTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+            },
+            order: [[2, 'desc']]
+        });
+        
+        $('#payrollDataTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+            },
+            order: [[0, 'desc']]
+        });
+        
+        // Inicializar tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Gráfico de tendencia de asistencia
+        var ctx = document.getElementById("attendanceChart");
+        var myLineChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ meses|safe }},
+                datasets: [{
+                    label: "Asistencia",
+                    lineTension: 0.3,
+                    backgroundColor: "rgba(78, 115, 223, 0.05)",
+                    borderColor: "rgba(78, 115, 223, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(78, 115, 223, 1)",
+                    pointBorderColor: "rgba(78, 115, 223, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+                    pointHoverBorderColor: "rgba(78, 115, 223, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    data: {{ asistencia_mensual_historico|safe }},
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 25,
+                        top: 25,
+                        bottom: 0
+                    }
+                },
+                scales: {
+                    xAxes: [{
+                        time: {
+                            unit: 'date'
+                        },
+                        gridLines: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            maxTicksLimit: 7
+                        }
+                    }],
+                    yAxes: [{
+                        ticks: {
+                            maxTicksLimit: 5,
+                            padding: 10,
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        gridLines: {
+                            color: "rgb(234, 236, 244)",
+                            zeroLineColor: "rgb(234, 236, 244)",
+                            drawBorder: false,
+                            borderDash: [2],
+                            zeroLineBorderDash: [2]
+                        }
+                    }],
+                },
+                legend: {
+                    display: false
+                },
+                tooltips: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyFontColor: "#858796",
+                    titleMarginBottom: 10,
+                    titleFontColor: '#6e707e',
+                    titleFontSize: 14,
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    xPadding: 15,
+                    yPadding: 15,
+                    displayColors: false,
+                    intersect: false,
+                    mode: 'index',
+                    caretPadding: 10,
+                    callbacks: {
+                        label: function(tooltipItem, chart) {
+                            var datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
+                            return datasetLabel + ': ' + tooltipItem.yLabel + '%';
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de distribución de estados
+        var ctxPie = document.getElementById("attendanceStatusChart");
+        var myPieChart = new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: ["Presente", "Ausente", "Tarde", "Justificado"],
+                datasets: [{
+                    data: [{{ presentes }}, {{ ausentes }}, {{ tardanzas }}, {{ justificados }}],
+                    backgroundColor: ['#1cc88a', '#e74a3b', '#f6c23e', '#36b9cc'],
+                    hoverBackgroundColor: ['#17a673', '#be2617', '#dda20a', '#2c9faf'],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                tooltips: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyFontColor: "#858796",
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    xPadding: 15,
+                    yPadding: 15,
+                    displayColors: false,
+                    caretPadding: 10,
+                },
+                legend: {
+                    display: false
+                },
+                cutoutPercentage: 80,
+            },
+        });
+        
+        // Código para el calendario
+        const asistenciaData = {{ asistencia_calendario|safe }};
+        let currentDate = new Date('{{ mes_actual|date:"Y-m-d" }}');
+        
+        function renderCalendar(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            
+            // Actualizar texto del mes actual
+            document.getElementById('current-month').textContent = date.toLocaleString('es', { month: 'long', year: 'numeric' });
+            
+            // Limpiar contenedor
+            const calendarContainer = document.getElementById('calendar-days');
+            calendarContainer.innerHTML = '';
+            
+            // Agregar días de la semana
+            const weekdays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            weekdays.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day fw-bold';
+                dayElement.textContent = day;
+                calendarContainer.appendChild(dayElement);
+            });
+            
+            // Agregar espacios en blanco para el primer día
+            const firstDayOfWeek = firstDay.getDay();
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day inactive';
+                calendarContainer.appendChild(emptyDay);
+            }
+            
+            // Agregar días del mes
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayElement = document.createElement('div');
+                const currentDateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                
+                // Verificar si hay asistencia para este día
+                const asistencia = asistenciaData[currentDateStr];
+                
+                if (asistencia) {
+                    if (asistencia.estado === 'presente') {
+                        dayElement.className = 'calendar-day present';
+                    } else if (asistencia.estado === 'ausente') {
+                        dayElement.className = 'calendar-day absent';
+                    } else if (asistencia.estado === 'tarde') {
+                        dayElement.className = 'calendar-day late';
+                    }
+                    
+                    // Agregar tooltip con información
+                    dayElement.setAttribute('data-bs-toggle', 'tooltip');
+                    dayElement.setAttribute('data-bs-placement', 'top');
+                    
+                    let tooltipText = `${i} - ${asistencia.estado.charAt(0).toUpperCase() + asistencia.estado.slice(1)}`;
+                    if (asistencia.hora_entrada) {
+                        tooltipText += ` - Entrada: ${asistencia.hora_entrada}`;
+                    }
+                    if (asistencia.hora_salida) {
+                        tooltipText += ` - Salida: ${asistencia.hora_salida}`;
+                    }
+                    
+                    dayElement.setAttribute('title', tooltipText);
+                } else {
+                    // Verificar si es día laborable
+                    const date = new Date(year, month, i);
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = domingo, 6 = sábado
+                    
+                    if (isWeekend) {
+                        dayElement.className = 'calendar-day inactive';
+                    } else {
+                        dayElement.className = 'calendar-day';
+                    }
+                }
+                
+                dayElement.textContent = i;
+                calendarContainer.appendChild(dayElement);
+            }
+            
+            // Reinicializar tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+        
+        // Renderizar calendario inicial
+        renderCalendar(currentDate);
+        
+        // Eventos para cambiar de mes
+        document.getElementById('prev-month').addEventListener('click', function() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar(currentDate);
+        });
+        
+        document.getElementById('next-month').addEventListener('click', function() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar(currentDate);
+        });
+    });
+</script>
+
+<!-- Script para funciones placeholder de RRHH -->
+<script src="{% static 'dashboard/js/rrhh_functions.js' %}"></script>
+{% endblock %}

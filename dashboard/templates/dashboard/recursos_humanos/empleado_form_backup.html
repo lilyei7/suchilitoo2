@@ -1,0 +1,316 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if accion == 'crear' %}
+        Crear Empleado - Recursos Humanos
+    {% else %}
+        Editar Empleado - Recursos Humanos
+    {% endif %}
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .form-section {
+        background-color: #f8f9fc;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4e73df;
+    }
+    .section-title {
+        color: #5a5c69;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+    }
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+    .preview-image {
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 50%;
+        border: 3px solid #e3e6f0;
+        margin-top: 10px;
+    }
+    .input-group-text {
+        background-color: #4e73df;
+        color: white;
+        border: none;
+    }
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    .required-field::after {
+        content: " *";
+        color: #e74a3b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-user-plus text-primary me-2"></i>
+            {% if accion == 'crear' %}
+                Crear Nuevo Empleado
+            {% else %}
+                Editar Empleado
+            {% endif %}
+        </h1>
+        <small class="text-muted">Complete la información del empleado</small>
+    </div>
+    <div>
+        <a href="{% url 'dashboard:rrhh_empleados_listado' %}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Volver al Listado
+        </a>
+    </div>
+</div>
+
+<!-- Formulario -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="empleadoForm">
+                    {% csrf_token %}
+                    
+                    <!-- Información Personal -->
+                    <div class="form-section">
+                        <h5 class="section-title">
+                            <i class="fas fa-user me-2"></i>Información Personal
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">Nombre</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    {{ form.nombre }}
+                                </div>
+                                {% if form.nombre.errors %}
+                                    <div class="text-danger small">{{ form.nombre.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">Apellido</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    {{ form.apellido }}
+                                </div>
+                                {% if form.apellido.errors %}
+                                    <div class="text-danger small">{{ form.apellido.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">RUT</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-id-card"></i>
+                                    </span>
+                                    {{ form.rut }}
+                                </div>
+                                {% if form.rut.errors %}
+                                    <div class="text-danger small">{{ form.rut.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                    {{ form.email }}
+                                </div>
+                                {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-phone"></i>
+                                    </span>
+                                    {{ form.telefono }}
+                                </div>
+                                {% if form.telefono.errors %}
+                                    <div class="text-danger small">{{ form.telefono.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Dirección</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </span>
+                                    {{ form.direccion }}
+                                </div>
+                                {% if form.direccion.errors %}
+                                    <div class="text-danger small">{{ form.direccion.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información Laboral -->
+                    <div class="form-section">
+                        <h5 class="section-title">
+                            <i class="fas fa-briefcase me-2"></i>Información Laboral
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Fecha de Ingreso</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-calendar"></i>
+                                    </span>
+                                    {{ form.fecha_ingreso }}
+                                </div>
+                                {% if form.fecha_ingreso.errors %}
+                                    <div class="text-danger small">{{ form.fecha_ingreso.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Salario</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.salario }}
+                                </div>
+                                {% if form.salario.errors %}
+                                    <div class="text-danger small">{{ form.salario.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Estado</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-toggle-on"></i>
+                                    </span>
+                                    {{ form.estado }}
+                                </div>
+                                {% if form.estado.errors %}
+                                    <div class="text-danger small">{{ form.estado.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asignaciones -->
+                    <div class="form-section">
+                        <h5 class="section-title">
+                            <i class="fas fa-users-cog me-2"></i>Asignaciones
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Sucursales</label>
+                                <select name="sucursales" multiple class="form-control" id="sucursalesSelect">
+                                    {% for sucursal in sucursales %}
+                                        <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Mantén presionado Ctrl para seleccionar múltiples sucursales</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Roles</label>
+                                <select name="roles" multiple class="form-control" id="rolesSelect">
+                                    {% for rol in roles %}
+                                        <option value="{{ rol.id }}">{{ rol.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Mantén presionado Ctrl para seleccionar múltiples roles</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'dashboard:rrhh_empleados_listado' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if accion == 'crear' %}
+                                Crear Empleado
+                            {% else %}
+                                Guardar Cambios
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar Flatpickr para fechas
+    flatpickr("#id_fecha_ingreso", {
+        locale: "es",
+        dateFormat: "Y-m-d",
+        maxDate: "today"
+    });
+    
+    flatpickr("#id_fecha_termino", {
+        locale: "es",
+        dateFormat: "Y-m-d",
+        minDate: "today"
+    });
+    
+    // Validación del formulario
+    document.getElementById('empleadoForm').addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Validar campos requeridos
+        const requiredFields = ['nombre', 'apellido', 'rut', 'email'];
+        requiredFields.forEach(field => {
+            const input = document.getElementById(`id_${field}`);
+            if (input && !input.value.trim()) {
+                isValid = false;
+                input.classList.add('is-invalid');
+            } else if (input) {
+                input.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Por favor complete todos los campos requeridos.');
+        }
+    });
+});
+</script>
+{% endblock %}

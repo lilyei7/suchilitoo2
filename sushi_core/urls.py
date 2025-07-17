@@ -17,6 +17,7 @@ urlpatterns = [
     path('mesero/', include('mesero.urls')),
     path('cocina/', include('cocina.urls', namespace='cocina')),
     path('accounts/', include('accounts.urls')),
+    path('rrhh/', include('rrhh.urls')),
     path('', redirect_to_dashboard),
 ]
 

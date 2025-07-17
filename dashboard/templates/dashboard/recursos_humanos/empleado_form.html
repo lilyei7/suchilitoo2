@@ -1,0 +1,245 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if accion == 'crear' %}
+        Crear Empleado - Recursos Humanos
+    {% else %}
+        Editar Empleado - Recursos Humanos
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-user-plus text-primary me-2"></i>
+                {% if accion == 'crear' %}
+                    Crear Nuevo Empleado
+                {% else %}
+                    Editar Empleado
+                {% endif %}
+            </h1>
+            <p class="text-muted">Complete toda la información del empleado</p>
+        </div>
+        <a href="{% url 'dashboard:rrhh_empleados_listado' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Volver al Listado
+        </a>
+    </div>
+
+    <!-- Main Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-edit me-2"></i>Datos del Empleado
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Personal Information Section -->
+                        <div class="mb-4">
+                            <h5 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="fas fa-user me-2"></i>Información Personal
+                            </h5>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">
+                                        <strong>Nombre *</strong>
+                                    </label>
+                                    {{ form.nombre }}
+                                    {% if form.nombre.errors %}
+                                        <div class="text-danger small">{{ form.nombre.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">
+                                        <strong>Apellido *</strong>
+                                    </label>
+                                    {{ form.apellido }}
+                                    {% if form.apellido.errors %}
+                                        <div class="text-danger small">{{ form.apellido.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">
+                                        <strong>RUT *</strong>
+                                    </label>
+                                    {{ form.rut }}
+                                    {% if form.rut.errors %}
+                                        <div class="text-danger small">{{ form.rut.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <strong>Email *</strong>
+                                    </label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <strong>Teléfono</strong>
+                                    </label>
+                                    {{ form.telefono }}
+                                    {% if form.telefono.errors %}
+                                        <div class="text-danger small">{{ form.telefono.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <strong>Fecha de Nacimiento *</strong>
+                                    </label>
+                                    {{ form.fecha_nacimiento }}
+                                    {% if form.fecha_nacimiento.errors %}
+                                        <div class="text-danger small">{{ form.fecha_nacimiento.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <strong>Dirección</strong>
+                                    </label>
+                                    {{ form.direccion }}
+                                    {% if form.direccion.errors %}
+                                        <div class="text-danger small">{{ form.direccion.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <strong>Foto del Empleado</strong>
+                                    </label>
+                                    {{ form.foto }}
+                                    {% if form.foto.errors %}
+                                        <div class="text-danger small">{{ form.foto.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Work Information Section -->
+                        <div class="mb-4">
+                            <h5 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="fas fa-briefcase me-2"></i>Información Laboral
+                            </h5>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">
+                                        <strong>Fecha de Ingreso *</strong>
+                                    </label>
+                                    {{ form.fecha_ingreso }}
+                                    {% if form.fecha_ingreso.errors %}
+                                        <div class="text-danger small">{{ form.fecha_ingreso.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">
+                                        <strong>Fecha de Término</strong>
+                                    </label>
+                                    {{ form.fecha_termino }}
+                                    {% if form.fecha_termino.errors %}
+                                        <div class="text-danger small">{{ form.fecha_termino.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">
+                                        <strong>Estado *</strong>
+                                    </label>
+                                    {{ form.estado }}
+                                    {% if form.estado.errors %}
+                                        <div class="text-danger small">{{ form.estado.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">
+                                        <strong>Tipo de Contrato *</strong>
+                                    </label>
+                                    {{ form.tipo_contrato }}
+                                    {% if form.tipo_contrato.errors %}
+                                        <div class="text-danger small">{{ form.tipo_contrato.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">
+                                        <strong>Cargo *</strong>
+                                    </label>
+                                    {{ form.cargo }}
+                                    {% if form.cargo.errors %}
+                                        <div class="text-danger small">{{ form.cargo.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">
+                                        <strong>Salario Base *</strong>
+                                    </label>
+                                    {{ form.salario_base }}
+                                    {% if form.salario_base.errors %}
+                                        <div class="text-danger small">{{ form.salario_base.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <strong>Jefe Directo</strong>
+                                    </label>
+                                    {{ form.jefe_directo }}
+                                    {% if form.jefe_directo.errors %}
+                                        <div class="text-danger small">{{ form.jefe_directo.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="border-top pt-3">
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{% url 'dashboard:rrhh_empleados_listado' %}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>
+                                    {% if accion == 'crear' %}
+                                        Crear Empleado
+                                    {% else %}
+                                        Guardar Cambios
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

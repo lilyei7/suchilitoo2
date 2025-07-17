@@ -1,0 +1,515 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Recursos Humanos{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js desde CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<style>
+    .kpi-card {
+        border-radius: 10px;
+        transition: transform 0.3s;
+        cursor: pointer;
+    }
+    .kpi-card:hover {
+        transform: translateY(-5px);
+    }
+    .kpi-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+    .alert-contract {
+        border-left: 4px solid #dc3545;
+    }
+    .notification-card {
+        border-left: 4px solid #f6c23e;
+        background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+    }
+    .employee-avatar {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    .calendar-mini {
+        font-size: 0.8rem;
+    }
+    .calendar-mini .calendar-day {
+        width: 25px;
+        height: 25px;
+        line-height: 25px;
+        text-align: center;
+        margin: 1px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .calendar-mini .present {
+        background-color: #1cc88a;
+        color: white;
+    }
+    .calendar-mini .absent {
+        background-color: #e74a3b;
+        color: white;
+    }
+    .calendar-mini .late {
+        background-color: #f6c23e;
+        color: white;
+    }
+    .weather-info {
+        background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado mejorado -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-users text-primary me-2"></i>
+            Dashboard de Recursos Humanos
+        </h1>
+        <small class="text-muted">{{ fecha_actual|date:"l, d \d\e F \d\e Y" }} - Gestión integral de personal</small>
+    </div>
+    <div class="d-flex align-items-center">
+        <div class="me-3 text-center">
+            <div class="small text-muted">Hora actual</div>
+            <div class="h5 mb-0 text-primary" id="horaActual">{{ hora_actual|date:"H:i" }}</div>
+        </div>
+        <div>
+            <a href="{% url 'dashboard:rrhh_empleado_crear' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-user-plus fa-sm text-white-50 me-1"></i> Nuevo Empleado
+            </a>
+            <a href="{% url 'dashboard:rrhh_asistencia_registrar' %}" class="d-none d-sm-inline-block btn btn-sm btn-success shadow-sm ms-2">
+                <i class="fas fa-clock fa-sm text-white-50 me-1"></i> Registro Rápido
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Tarjetas de KPI -->
+<div class="row">
+    <!-- Total de Empleados -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2 kpi-card">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Empleados</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_empleados }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300 kpi-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empleados Activos -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2 kpi-card">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Empleados Activos</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ empleados_activos }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-check fa-2x text-gray-300 kpi-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empleados Nuevos (Este Mes) -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2 kpi-card">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Nuevos este mes</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ empleados_nuevos }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-plus fa-2x text-gray-300 kpi-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasa de Retención -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2 kpi-card">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Tasa de Retención</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {% if total_empleados > 0 %}
+                                {{ empleados_activos|floatformat:0 }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-percent fa-2x text-gray-300 kpi-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Acciones Rápidas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div style="margin-bottom: 24px;">
+            <div style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden; border: 1px solid #e5e7eb;">
+                <!-- Encabezado con diseño oscuro -->
+                <div style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%); padding: 24px; display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-bolt" style="font-size: 28px; color: #1f2937;"></i>
+                    </div>
+                    <div>
+                        <h5 style="margin: 0; font-size: 20px; font-weight: 600; color: #ffffff; font-family: 'Inter', sans-serif;">Acciones Rápidas</h5>
+                        <p style="margin: 0; font-size: 14px; color: #9ca3af; margin-top: 4px;">Gestiona tu equipo de trabajo de manera eficiente</p>
+                    </div>
+                </div>
+
+                <!-- Grid de botones de acción -->
+                <div style="padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                    <!-- Botón: Nuevo Empleado -->
+                    <a href="{% url 'dashboard:rrhh_empleado_crear' %}" style="text-decoration: none; display: flex; align-items: center; gap: 16px; padding: 20px; background: #ffffff; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s ease; cursor: pointer;" 
+                       onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.15)'; this.style.transform='translateY(-2px)';" 
+                       onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+                        <div style="width: 48px; height: 48px; background: #3b82f6; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-user-plus" style="font-size: 20px; color: #ffffff;"></i>
+                        </div>
+                        <span style="font-size: 16px; font-weight: 500; color: #1f2937; font-family: 'Inter', sans-serif;">Nuevo Empleado</span>
+                    </a>
+
+                    <!-- Botón: Ver Empleados -->
+                    <a href="{% url 'dashboard:rrhh_empleados_listado' %}" style="text-decoration: none; display: flex; align-items: center; gap: 16px; padding: 20px; background: #ffffff; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s ease; cursor: pointer;" 
+                       onmouseover="this.style.borderColor='#10b981'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.15)'; this.style.transform='translateY(-2px)';" 
+                       onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+                        <div style="width: 48px; height: 48px; background: #10b981; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-users" style="font-size: 20px; color: #ffffff;"></i>
+                        </div>
+                        <span style="font-size: 16px; font-weight: 500; color: #1f2937; font-family: 'Inter', sans-serif;">Ver Empleados</span>
+                    </a>
+
+                    <!-- Botón: Registrar Asistencia -->
+                    <a href="{% url 'dashboard:rrhh_asistencia_registrar' %}" style="text-decoration: none; display: flex; align-items: center; gap: 16px; padding: 20px; background: #ffffff; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s ease; cursor: pointer;" 
+                       onmouseover="this.style.borderColor='#6366f1'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.15)'; this.style.transform='translateY(-2px)';" 
+                       onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+                        <div style="width: 48px; height: 48px; background: #6366f1; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-clock" style="font-size: 20px; color: #ffffff;"></i>
+                        </div>
+                        <span style="font-size: 16px; font-weight: 500; color: #1f2937; font-family: 'Inter', sans-serif;">Registrar Asistencia</span>
+                    </a>
+
+                    <!-- Botón: Gestionar Turnos -->
+                    <a href="{% url 'dashboard:rrhh_turnos_listado' %}" style="text-decoration: none; display: flex; align-items: center; gap: 16px; padding: 20px; background: #ffffff; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s ease; cursor: pointer;" 
+                       onmouseover="this.style.borderColor='#f59e0b'; this.style.boxShadow='0 4px 12px rgba(245, 158, 11, 0.15)'; this.style.transform='translateY(-2px)';" 
+                       onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+                        <div style="width: 48px; height: 48px; background: #f59e0b; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-calendar-alt" style="font-size: 20px; color: #ffffff;"></i>
+                        </div>
+                        <span style="font-size: 16px; font-weight: 500; color: #1f2937; font-family: 'Inter', sans-serif;">Gestionar Turnos</span>
+                    </a>
+
+                    <!-- Botón: Ver Asistencias -->
+                    <a href="{% url 'dashboard:rrhh_asistencias_listado' %}" style="text-decoration: none; display: flex; align-items: center; gap: 16px; padding: 20px; background: #ffffff; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s ease; cursor: pointer;" 
+                       onmouseover="this.style.borderColor='#6b7280'; this.style.boxShadow='0 4px 12px rgba(107, 114, 128, 0.15)'; this.style.transform='translateY(-2px)';" 
+                       onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+                        <div style="width: 48px; height: 48px; background: #6b7280; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-list" style="font-size: 20px; color: #ffffff;"></i>
+                        </div>
+                        <span style="font-size: 16px; font-weight: 500; color: #1f2937; font-family: 'Inter', sans-serif;">Ver Asistencias</span>
+                    </a>
+
+                    <!-- Botón: Nóminas -->
+                    <a href="{% url 'dashboard:rrhh_nominas_listado' %}" style="text-decoration: none; display: flex; align-items: center; gap: 16px; padding: 20px; background: #ffffff; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s ease; cursor: pointer;" 
+                       onmouseover="this.style.borderColor='#ef4444'; this.style.boxShadow='0 4px 12px rgba(239, 68, 68, 0.15)'; this.style.transform='translateY(-2px)';" 
+                       onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+                        <div style="width: 48px; height: 48px; background: #ef4444; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-money-bill-wave" style="font-size: 20px; color: #ffffff;"></i>
+                        </div>
+                        <span style="font-size: 16px; font-weight: 500; color: #1f2937; font-family: 'Inter', sans-serif;">Nóminas</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos y Alertas -->
+<div class="row">
+    <!-- Distribución por Sucursal -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Distribución por Sucursal</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="sucursalesChart"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    {% for sucursal in sucursales %}
+                        <span class="mr-2">
+                            <i class="fas fa-circle" style="color: var(--bs-{{ forloop.counter|divisibleby:5|yesno:'primary,success,info,warning,danger' }})"></i> {{ sucursal.nombre }}
+                        </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribución por Rol -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Distribución por Rol</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="rolesChart"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    {% for rol in roles %}
+                        <span class="mr-2">
+                            <i class="fas fa-circle" style="color: var(--bs-{{ forloop.counter|divisibleby:5|yesno:'primary,success,info,warning,danger' }})"></i> {{ rol.nombre }}
+                        </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contratos por Vencer y Notificaciones -->
+<div class="row">
+    <!-- Contratos por Vencer -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Contratos próximos a vencer</h6>
+            </div>
+            <div class="card-body">
+                {% if contratos_por_vencer %}
+                    {% for empleado in contratos_por_vencer %}
+                        <div class="alert alert-contract mb-2 py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ empleado.nombre }} {{ empleado.apellido }}</strong><br>
+                                    <small>Vence: {{ empleado.fecha_termino }}</small>
+                                </div>
+                                <a href="{% url 'dashboard:rrhh_empleado_detalle' empleado.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-1"></i> No hay contratos próximos a vencer.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificaciones -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Notificaciones Recientes</h6>
+            </div>
+            <div class="card-body">
+                {% if notificaciones %}
+                    {% for notificacion in notificaciones %}
+                        <div class="alert alert-{{ notificacion.prioridad|yesno:'danger,warning,info' }} mb-2 py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ notificacion.titulo }}</strong><br>
+                                    <small>{{ notificacion.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary mark-read" data-id="{{ notificacion.id }}">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-1"></i> No hay notificaciones pendientes.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js ya está cargado desde CDN en el head -->
+<script>
+    // Configuración de gráficos al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gráfico de Sucursales
+        var ctx1 = document.getElementById('sucursalesChart').getContext('2d');
+        var sucursalesChart = new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for sucursal in sucursales %}'{{ sucursal.nombre }}',{% endfor %}],
+                datasets: [{
+                    data: [{% for sucursal in sucursales %}{{ sucursal.num_empleados }},{% endfor %}],
+                    backgroundColor: [
+                        '#4e73df',
+                        '#1cc88a',
+                        '#36b9cc',
+                        '#f6c23e',
+                        '#e74a3b',
+                        '#6f42c1',
+                        '#6c757d',
+                    ],
+                    hoverBackgroundColor: [
+                        '#2e59d9',
+                        '#17a673',
+                        '#2c9faf',
+                        '#dda20a',
+                        '#c9302c',
+                        '#59359a',
+                        '#545b62',
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        backgroundColor: "rgb(255,255,255)",
+                        bodyColor: "#858796",
+                        borderColor: '#dddfeb',
+                        borderWidth: 1,
+                        displayColors: false,
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                cutout: '70%',
+            },
+        });
+
+        // Gráfico de Roles
+        var ctx2 = document.getElementById('rolesChart').getContext('2d');
+        var rolesChart = new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for rol in roles %}'{{ rol.nombre }}',{% endfor %}],
+                datasets: [{
+                    data: [{% for rol in roles %}{{ rol.num_empleados }},{% endfor %}],
+                    backgroundColor: [
+                        '#36b9cc',
+                        '#e74a3b',
+                        '#1cc88a',
+                        '#f6c23e',
+                        '#4e73df',
+                        '#6f42c1',
+                        '#6c757d',
+                    ],
+                    hoverBackgroundColor: [
+                        '#2c9faf',
+                        '#c9302c',
+                        '#17a673',
+                        '#dda20a',
+                        '#2e59d9',
+                        '#59359a',
+                        '#545b62',
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        backgroundColor: "rgb(255,255,255)",
+                        bodyColor: "#858796",
+                        borderColor: '#dddfeb',
+                        borderWidth: 1,
+                        displayColors: false,
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                cutout: '70%',
+            },
+        });
+
+        // Funcionalidad para marcar notificaciones como leídas
+        const markReadButtons = document.querySelectorAll('.mark-read');
+        markReadButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const notificationId = this.dataset.id;
+                const alertElement = this.closest('.alert');
+                
+                // Llamada AJAX para marcar como leída
+                fetch(`/api/recursos-humanos/notificaciones/${notificationId}/leida/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Animar y eliminar la notificación
+                        alertElement.style.transition = 'opacity 0.5s';
+                        alertElement.style.opacity = 0;
+                        setTimeout(() => alertElement.remove(), 500);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+
+        // Función para obtener el valor de una cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

@@ -60,11 +60,60 @@ def checklist_view(request):
 @login_required
 def recursos_humanos_view(request):
     """Vista para gestionar recursos humanos"""
-    usuarios = Usuario.objects.filter(activo=True)
+    from rrhh.models import Empleado, Rol
+    from accounts.models import Sucursal
+    from django.utils import timezone
+    from django.db.models import Count, Q
+    from datetime import datetime, timedelta
+    
+    # Obtener datos para estadísticas
+    total_empleados = Empleado.objects.count()
+    empleados_activos = Empleado.objects.filter(estado='activo').count()
+    empleados_nuevos = Empleado.objects.filter(
+        fecha_ingreso__month=timezone.now().month,
+        fecha_ingreso__year=timezone.now().year
+    ).count()
+    
+    # Datos para gráficos - usar las relaciones ManyToMany correctas
+    try:
+        # Para sucursales: relación ManyToMany a través de la tabla intermedia
+        sucursales = Sucursal.objects.annotate(
+            num_empleados=Count('empleado', filter=Q(empleado__estado='activo'))
+        ).filter(num_empleados__gt=0)
+    except:
+        # Si hay error, obtener todas las sucursales activas
+        sucursales = Sucursal.objects.filter(activa=True)
+    
+    try:
+        # Para roles: relación ManyToMany a través de la tabla intermedia
+        roles = Rol.objects.annotate(
+            num_empleados=Count('empleado', filter=Q(empleado__estado='activo'))
+        ).filter(num_empleados__gt=0)
+    except:
+        # Si hay error, obtener todos los roles
+        roles = Rol.objects.all()
+    
+    # Empleados con contratos próximos a vencer
+    contratos_por_vencer = Empleado.objects.filter(
+        fecha_termino__isnull=False,
+        fecha_termino__lte=timezone.now().date() + timedelta(days=30),
+        estado='activo'
+    )[:5]  # Solo los primeros 5
+    
+    # Notificaciones (ejemplo)
+    notificaciones = []
     
     context = {
-        'usuarios': usuarios,
+        'total_empleados': total_empleados,
+        'empleados_activos': empleados_activos,
+        'empleados_nuevos': empleados_nuevos,
+        'sucursales': sucursales,
+        'roles': roles,
+        'contratos_por_vencer': contratos_por_vencer,
+        'notificaciones': notificaciones,
+        'fecha_actual': timezone.now(),
+        'hora_actual': timezone.now(),
         **get_sidebar_context('recursos_humanos')
     }
     
-    return render(request, 'dashboard/recursos_humanos.html', context)
+    return render(request, 'dashboard/recursos_humanos/index.html', context)

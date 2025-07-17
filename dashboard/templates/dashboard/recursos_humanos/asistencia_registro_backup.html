@@ -1,0 +1,991 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Registro de Asistencia - Recursos Humanos{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Container principal */
+    .attendance-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px 0;
+    }
+    
+    /* Tarjetas de empleados responsivas */
+    .employee-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: none;
+        overflow: hidden;
+        position: relative;
+        height: 100%;
+    }
+    
+    .employee-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Estados de las tarjetas */
+    .employee-card.status-present {
+        border-left: 5px solid #28a745;
+    }
+    
+    .employee-card.status-absent {
+        border-left: 5px solid #dc3545;
+    }
+    
+    .employee-card.status-pending {
+        border-left: 5px solid #ffc107;
+    }
+    
+    .employee-card.status-late {
+        border-left: 5px solid #fd7e14;
+    }
+    
+    /* Avatar del empleado */
+    .employee-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #fff;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin: 0 auto 15px;
+        display: block;
+    }
+    
+    /* Indicador de estado */
+    .status-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-badge.present { background: #28a745; }
+    .status-badge.absent { background: #dc3545; }
+    .status-badge.pending { background: #ffc107; }
+    .status-badge.late { background: #fd7e14; }
+    
+    /* Card Body */
+    .employee-card .card-body {
+        padding: 25px 20px 20px;
+        text-align: center;
+    }
+    
+    .employee-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .employee-role {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Información de tiempo */
+    .time-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 15px;
+        font-size: 0.85rem;
+    }
+    
+    .time-entry {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 3px 0;
+    }
+    
+    .time-entry .time-label {
+        color: #6c757d;
+    }
+    
+    .time-entry .time-value {
+        font-weight: 600;
+    }
+    
+    .time-entry.entrada .time-value { color: #28a745; }
+    .time-entry.salida .time-value { color: #dc3545; }
+    .time-entry.turno .time-value { color: #007bff; }
+    
+    /* Botones de acción */
+    .card-actions {
+        padding: 0 20px 20px;
+    }
+    
+    .btn-action {
+        border-radius: 10px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        padding: 8px 16px;
+        width: 100%;
+        margin-bottom: 8px;
+        border: none;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-entrada {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+    }
+    
+    .btn-salida {
+        background: linear-gradient(45deg, #dc3545, #e55353);
+        color: white;
+    }
+    
+    .btn-completado {
+        background: linear-gradient(45deg, #6c757d, #868e96);
+        color: white;
+        cursor: not-allowed;
+    }
+    
+    .btn-detalle {
+        background: linear-gradient(45deg, #007bff, #0056b3);
+        color: white;
+    }
+    
+    /* Header de estadísticas */
+    .stats-header {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .stat-card {
+        text-align: center;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .stat-card.presentes { background: linear-gradient(45deg, #28a745, #20c997); }
+    .stat-card.pendientes { background: linear-gradient(45deg, #ffc107, #ffca2c); }
+    .stat-card.ausentes { background: linear-gradient(45deg, #dc3545, #e55353); }
+    .stat-card.llegadas-tarde { background: linear-gradient(45deg, #fd7e14, #ff851b); }
+    
+    .stat-card h3 {
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0;
+    }
+    
+    .stat-card p {
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0;
+        font-weight: 500;
+    }
+    
+    .stat-card i {
+        font-size: 2.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 10px;
+    }
+    
+    /* Búsqueda moderna */
+    .search-modern {
+        position: relative;
+        margin-bottom: 25px;
+    }
+    
+    .search-input {
+        background: white;
+        border: none;
+        border-radius: 25px;
+        padding: 15px 50px 15px 20px;
+        font-size: 1rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        outline: none;
+    }
+    
+    .search-icon {
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    
+    /* Filtros pill */
+    .filter-pills {
+        margin-bottom: 25px;
+        text-align: center;
+    }
+    
+    .filter-pill {
+        display: inline-block;
+        padding: 8px 16px;
+        margin: 5px;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+        border: 2px solid transparent;
+    }
+    
+    .filter-pill:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    .filter-pill.active {
+        background: white;
+        color: #667eea;
+        border-color: white;
+    }
+    
+    /* Botón flotante */
+    .floating-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 1000;
+    }
+    
+    .floating-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .employee-card {
+            margin-bottom: 20px;
+        }
+        
+        .employee-avatar {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .employee-name {
+            font-size: 1rem;
+        }
+        
+        .stat-card h3 {
+            font-size: 1.5rem;
+        }
+        
+        .stat-card i {
+            font-size: 2rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .employee-card .card-body {
+            padding: 15px;
+        }
+        
+        .card-actions {
+            padding: 0 15px 15px;
+        }
+        
+        .stats-header {
+            padding: 15px;
+        }
+    }
+</style>
+        color: white !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">Registro de Asistencia</h1>
+        <p class="text-muted">{{ fecha_actual|date:"l, d \d\e F \d\e Y" }}</p>
+    </div>
+    <div>
+        <button type="button" class="btn btn-sm btn-info shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#reporteRapidoModal">
+            <i class="fas fa-chart-bar fa-sm text-white-50 me-1"></i> Reporte Rápido
+        </button>
+        <a href="{% url 'dashboard:rrhh_asistencias_listado' %}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-list fa-sm text-white-50 me-1"></i> Ver Histórico
+        </a>
+    </div>
+</div>
+
+<!-- Resumen del día -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Presentes Hoy</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ presentes_hoy }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Pendientes</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pendientes_hoy }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Ausentes</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ ausentes_hoy }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-times fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Llegadas Tarde</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ tardanzas_hoy }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Búsqueda y filtros -->
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <div class="search-container">
+            <input type="text" class="form-control search-input" id="searchEmpleados" placeholder="Buscar empleado por nombre, apellido o RUT...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+        
+        <div class="filter-pills">
+            <span class="badge badge-pill badge-light filter-pill active" data-filter="todos">
+                <i class="fas fa-users me-1"></i> Todos ({{ total_empleados }})
+            </span>
+            <span class="badge badge-pill badge-success filter-pill" data-filter="presentes">
+                <i class="fas fa-user-check me-1"></i> Presentes ({{ presentes_hoy }})
+            </span>
+            <span class="badge badge-pill badge-warning filter-pill" data-filter="pendientes">
+                <i class="fas fa-clock me-1"></i> Pendientes ({{ pendientes_hoy }})
+            </span>
+            <span class="badge badge-pill badge-danger filter-pill" data-filter="ausentes">
+                <i class="fas fa-user-times me-1"></i> Ausentes ({{ ausentes_hoy }})
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de empleados -->
+<div class="row" id="empleadosContainer">
+    {% for empleado in empleados %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4 empleado-card" 
+             data-nombre="{{ empleado.nombre|lower }} {{ empleado.apellido|lower }}" 
+             data-rut="{{ empleado.rut }}"
+             data-estado="{{ empleado.estado_asistencia_hoy }}">
+            <div class="card shadow attendance-card h-100 
+                {% if empleado.estado_asistencia_hoy == 'presente' %}checked-in
+                {% elif empleado.estado_asistencia_hoy == 'ausente' %}checked-out
+                {% endif %}"
+                data-empleado-id="{{ empleado.id }}">
+                
+                <!-- Indicador de estado -->
+                <div class="status-indicator 
+                    {% if empleado.estado_asistencia_hoy == 'presente' %}present
+                    {% elif empleado.estado_asistencia_hoy == 'ausente' %}absent
+                    {% else %}pending
+                    {% endif %}"></div>
+                
+                <div class="card-body text-center">
+                    <!-- Foto de perfil -->
+                    {% if empleado.foto %}
+                        <img src="{{ empleado.foto.url }}" alt="{{ empleado.nombre }}" class="employee-avatar mb-3">
+                    {% else %}
+                        <img src="{% static 'dashboard/img/undraw_profile.svg' %}" alt="{{ empleado.nombre }}" class="employee-avatar mb-3">
+                    {% endif %}
+                    
+                    <!-- Información básica -->
+                    <h6 class="card-title mb-1">{{ empleado.nombre }} {{ empleado.apellido }}</h6>
+                    <p class="text-muted small mb-2">{{ empleado.cargo }}</p>
+                    
+                    <!-- Estado de asistencia -->
+                    {% if empleado.asistencia_hoy %}
+                        <div class="mb-2">
+                            {% if empleado.asistencia_hoy.hora_entrada %}
+                                <div class="small text-success">
+                                    <i class="fas fa-sign-in-alt me-1"></i>
+                                    Entrada: {{ empleado.asistencia_hoy.hora_entrada|date:"H:i" }}
+                                </div>
+                            {% endif %}
+                            {% if empleado.asistencia_hoy.hora_salida %}
+                                <div class="small text-danger">
+                                    <i class="fas fa-sign-out-alt me-1"></i>
+                                    Salida: {{ empleado.asistencia_hoy.hora_salida|date:"H:i" }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Turno asignado -->
+                    {% if empleado.turno_hoy %}
+                        <div class="small text-info mb-2">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ empleado.turno_hoy.hora_inicio|date:"H:i" }} - {{ empleado.turno_hoy.hora_fin|date:"H:i" }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-footer bg-light">
+                    <div class="d-grid gap-2">
+                        {% if not empleado.asistencia_hoy %}
+                            <button class="btn btn-success btn-sm btn-registrar-entrada" data-empleado-id="{{ empleado.id }}">
+                                <i class="fas fa-sign-in-alt me-1"></i> Registrar Entrada
+                            </button>
+                        {% elif empleado.asistencia_hoy.hora_entrada and not empleado.asistencia_hoy.hora_salida %}
+                            <button class="btn btn-danger btn-sm btn-registrar-salida" data-empleado-id="{{ empleado.id }}">
+                                <i class="fas fa-sign-out-alt me-1"></i> Registrar Salida
+                            </button>
+                        {% else %}
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                <i class="fas fa-check me-1"></i> Completo
+                            </button>
+                        {% endif %}
+                        
+                        <button class="btn btn-outline-primary btn-sm btn-ver-detalle" data-empleado-id="{{ empleado.id }}">
+                            <i class="fas fa-eye me-1"></i> Ver Detalle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-1"></i> No hay empleados registrados en el sistema.
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Acciones flotantes -->
+<div class="quick-actions">
+    <button type="button" class="btn btn-primary floating-btn" data-bs-toggle="modal" data-bs-target="#registroManualModal" title="Registro Manual">
+        <i class="fas fa-plus"></i>
+    </button>
+    <button type="button" class="btn btn-info floating-btn" onclick="actualizarPagina()" title="Actualizar">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+</div>
+
+<!-- Modal para registro manual -->
+<div class="modal fade" id="registroManualModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registro Manual de Asistencia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formRegistroManual">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="empleadoSelect" class="form-label">Empleado</label>
+                        <select class="form-select" id="empleadoSelect" required>
+                            <option value="">Seleccione un empleado</option>
+                            {% for empleado in empleados %}
+                                <option value="{{ empleado.id }}">{{ empleado.nombre }} {{ empleado.apellido }} - {{ empleado.cargo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tipoRegistro" class="form-label">Tipo de Registro</label>
+                        <select class="form-select" id="tipoRegistro" required>
+                            <option value="">Seleccione tipo</option>
+                            <option value="entrada">Entrada</option>
+                            <option value="salida">Salida</option>
+                            <option value="ausencia">Marcar Ausencia</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="horaContainer" style="display: none;">
+                        <label for="horaRegistro" class="form-label">Hora</label>
+                        <input type="time" class="form-control" id="horaRegistro">
+                    </div>
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observaciones" rows="3" placeholder="Motivo, justificación u observaciones..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarRegistroManual()">Guardar Registro</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para reporte rápido -->
+<div class="modal fade" id="reporteRapidoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reporte Rápido de Asistencia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="chartAsistenciaHoy"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Resumen del Día</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Total Empleados
+                                <span class="badge bg-primary rounded-pill">{{ total_empleados }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Presentes
+                                <span class="badge bg-success rounded-pill">{{ presentes_hoy }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Ausentes
+                                <span class="badge bg-danger rounded-pill">{{ ausentes_hoy }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Llegadas Tarde
+                                <span class="badge bg-warning rounded-pill">{{ tardanzas_hoy }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Tasa de Asistencia
+                                <span class="badge bg-info rounded-pill">{{ tasa_asistencia|floatformat:1 }}%</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button class="btn btn-success" onclick="exportarReporte()">
+                    <i class="fas fa-download me-1"></i> Exportar Reporte
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'dashboard/vendor/chart.js/Chart.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        // Búsqueda en tiempo real
+        $('#searchEmpleados').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            filtrarEmpleados(searchTerm);
+        });
+        
+        // Filtros por estado
+        $('.filter-pill').on('click', function() {
+            $('.filter-pill').removeClass('active');
+            $(this).addClass('active');
+            
+            const filtro = $(this).data('filter');
+            filtrarPorEstado(filtro);
+        });
+        
+        // Registrar entrada
+        $('.btn-registrar-entrada').on('click', function() {
+            const empleadoId = $(this).data('empleado-id');
+            registrarAsistencia(empleadoId, 'entrada');
+        });
+        
+        // Registrar salida
+        $('.btn-registrar-salida').on('click', function() {
+            const empleadoId = $(this).data('empleado-id');
+            registrarAsistencia(empleadoId, 'salida');
+        });
+        
+        // Ver detalle del empleado
+        $('.btn-ver-detalle').on('click', function() {
+            const empleadoId = $(this).data('empleado-id');
+            window.open('{% url "dashboard:rrhh_empleado_detalle" empleado_id=0 %}'.replace('0', empleadoId), '_blank');
+        });
+        
+        // Inicializar gráfico cuando se abre el modal
+        $('#reporteRapidoModal').on('shown.bs.modal', function() {
+            inicializarGraficoAsistencia();
+        });
+        
+        // Mostrar campo de hora en registro manual
+        $('#tipoRegistro').on('change', function() {
+            if ($(this).val() === 'entrada' || $(this).val() === 'salida') {
+                $('#horaContainer').show();
+                $('#horaRegistro').prop('required', true);
+                // Establecer hora actual
+                const now = new Date();
+                const horaActual = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                $('#horaRegistro').val(horaActual);
+            } else {
+                $('#horaContainer').hide();
+                $('#horaRegistro').prop('required', false);
+            }
+        });
+        
+        // Auto-refresh cada 30 segundos
+        setInterval(function() {
+            actualizarContadores();
+        }, 30000);
+    });
+    
+    function filtrarEmpleados(searchTerm) {
+        $('.empleado-card').each(function() {
+            const nombre = $(this).data('nombre');
+            const rut = $(this).data('rut');
+            
+            if (nombre.includes(searchTerm) || rut.includes(searchTerm)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+    
+    function filtrarPorEstado(estado) {
+        $('.empleado-card').each(function() {
+            if (estado === 'todos') {
+                $(this).show();
+            } else {
+                const estadoEmpleado = $(this).data('estado');
+                if (estadoEmpleado === estado) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            }
+        });
+    }
+    
+    function registrarAsistencia(empleadoId, tipo) {
+        // Confirmar acción
+        const mensaje = tipo === 'entrada' ? '¿Registrar entrada?' : '¿Registrar salida?';
+        if (!confirm(mensaje)) return;
+        
+        // Mostrar loading
+        const btn = $(`[data-empleado-id="${empleadoId}"]`).find('.btn-registrar-' + tipo);
+        const textoOriginal = btn.html();
+        btn.html('<i class="fas fa-spinner fa-spin"></i> Registrando...').prop('disabled', true);
+        
+        $.ajax({
+            url: '{% url "dashboard:rrhh_asistencia_registrar" %}',
+            method: 'POST',
+            data: {
+                'empleado_id': empleadoId,
+                'tipo': tipo,
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Mostrar mensaje de éxito
+                    toastr.success(response.message);
+                    
+                    // Actualizar la tarjeta del empleado
+                    actualizarTarjetaEmpleado(empleadoId, response.data);
+                    
+                    // Actualizar contadores
+                    actualizarContadores();
+                } else {
+                    toastr.error(response.message || 'Error al registrar asistencia');
+                    btn.html(textoOriginal).prop('disabled', false);
+                }
+            },
+            error: function() {
+                toastr.error('Error de conexión al registrar asistencia');
+                btn.html(textoOriginal).prop('disabled', false);
+            }
+        });
+    }
+    
+    function actualizarTarjetaEmpleado(empleadoId, data) {
+        const card = $(`.empleado-card[data-empleado-id="${empleadoId}"] .attendance-card`);
+        const cardFooter = card.find('.card-footer .d-grid');
+        
+        // Actualizar estado visual
+        card.removeClass('checked-in checked-out');
+        if (data.estado === 'presente') {
+            card.addClass('checked-in');
+        } else if (data.estado === 'ausente') {
+            card.addClass('checked-out');
+        }
+        
+        // Actualizar indicador de estado
+        const statusIndicator = card.find('.status-indicator');
+        statusIndicator.removeClass('present absent pending');
+        statusIndicator.addClass(data.estado === 'presente' ? 'present' : 'absent');
+        
+        // Actualizar horarios mostrados
+        const cardBody = card.find('.card-body');
+        let horariosHtml = '';
+        
+        if (data.hora_entrada) {
+            horariosHtml += `<div class="small text-success">
+                <i class="fas fa-sign-in-alt me-1"></i>
+                Entrada: ${data.hora_entrada}
+            </div>`;
+        }
+        
+        if (data.hora_salida) {
+            horariosHtml += `<div class="small text-danger">
+                <i class="fas fa-sign-out-alt me-1"></i>
+                Salida: ${data.hora_salida}
+            </div>`;
+        }
+        
+        // Actualizar o crear la sección de horarios
+        let horariosDiv = cardBody.find('.horarios-asistencia');
+        if (horariosDiv.length === 0) {
+            cardBody.find('.text-muted.small').after('<div class="horarios-asistencia mb-2"></div>');
+            horariosDiv = cardBody.find('.horarios-asistencia');
+        }
+        horariosDiv.html(horariosHtml);
+        
+        // Actualizar botones
+        if (!data.hora_entrada) {
+            cardFooter.html(`
+                <button class="btn btn-success btn-sm btn-registrar-entrada" data-empleado-id="${empleadoId}">
+                    <i class="fas fa-sign-in-alt me-1"></i> Registrar Entrada
+                </button>
+                <button class="btn btn-outline-primary btn-sm btn-ver-detalle" data-empleado-id="${empleadoId}">
+                    <i class="fas fa-eye me-1"></i> Ver Detalle
+                </button>
+            `);
+        } else if (data.hora_entrada && !data.hora_salida) {
+            cardFooter.html(`
+                <button class="btn btn-danger btn-sm btn-registrar-salida" data-empleado-id="${empleadoId}">
+                    <i class="fas fa-sign-out-alt me-1"></i> Registrar Salida
+                </button>
+                <button class="btn btn-outline-primary btn-sm btn-ver-detalle" data-empleado-id="${empleadoId}">
+                    <i class="fas fa-eye me-1"></i> Ver Detalle
+                </button>
+            `);
+        } else {
+            cardFooter.html(`
+                <button class="btn btn-secondary btn-sm" disabled>
+                    <i class="fas fa-check me-1"></i> Completo
+                </button>
+                <button class="btn btn-outline-primary btn-sm btn-ver-detalle" data-empleado-id="${empleadoId}">
+                    <i class="fas fa-eye me-1"></i> Ver Detalle
+                </button>
+            `);
+        }
+        
+        // Reactivar eventos para los nuevos botones
+        reactivarEventos();
+    }
+    
+    function reactivarEventos() {
+        $('.btn-registrar-entrada').off('click').on('click', function() {
+            const empleadoId = $(this).data('empleado-id');
+            registrarAsistencia(empleadoId, 'entrada');
+        });
+        
+        $('.btn-registrar-salida').off('click').on('click', function() {
+            const empleadoId = $(this).data('empleado-id');
+            registrarAsistencia(empleadoId, 'salida');
+        });
+        
+        $('.btn-ver-detalle').off('click').on('click', function() {
+            const empleadoId = $(this).data('empleado-id');
+            window.open('{% url "dashboard:rrhh_empleado_detalle" empleado_id=0 %}'.replace('0', empleadoId), '_blank');
+        });
+    }
+    
+    function actualizarContadores() {
+        $.ajax({
+            url: '{% url "dashboard:rrhh_asistencia_registrar" %}',
+            method: 'GET',
+            data: {
+                'action': 'get_counters'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Actualizar contadores en las tarjetas de resumen
+                    $('.border-left-success .h5').text(response.data.presentes);
+                    $('.border-left-warning .h5').text(response.data.pendientes);
+                    $('.border-left-danger .h5').text(response.data.ausentes);
+                    $('.border-left-info .h5').text(response.data.tardanzas);
+                    
+                    // Actualizar filtros
+                    $('.filter-pill[data-filter="presentes"]').html(`<i class="fas fa-user-check me-1"></i> Presentes (${response.data.presentes})`);
+                    $('.filter-pill[data-filter="pendientes"]').html(`<i class="fas fa-clock me-1"></i> Pendientes (${response.data.pendientes})`);
+                    $('.filter-pill[data-filter="ausentes"]').html(`<i class="fas fa-user-times me-1"></i> Ausentes (${response.data.ausentes})`);
+                }
+            }
+        });
+    }
+    
+    function guardarRegistroManual() {
+        const form = $('#formRegistroManual');
+        const empleadoId = $('#empleadoSelect').val();
+        const tipo = $('#tipoRegistro').val();
+        const hora = $('#horaRegistro').val();
+        const observaciones = $('#observaciones').val();
+        
+        if (!empleadoId || !tipo) {
+            toastr.error('Por favor complete todos los campos requeridos');
+            return;
+        }
+        
+        if ((tipo === 'entrada' || tipo === 'salida') && !hora) {
+            toastr.error('Por favor especifique la hora');
+            return;
+        }
+        
+        $.ajax({
+            url: '{% url "dashboard:rrhh_asistencia_registrar" %}',
+            method: 'POST',
+            data: {
+                'empleado_id': empleadoId,
+                'tipo': tipo,
+                'hora': hora,
+                'observaciones': observaciones,
+                'manual': true,
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    $('#registroManualModal').modal('hide');
+                    form[0].reset();
+                    location.reload(); // Recargar para mostrar cambios
+                } else {
+                    toastr.error(response.message || 'Error al registrar asistencia');
+                }
+            },
+            error: function() {
+                toastr.error('Error de conexión al registrar asistencia');
+            }
+        });
+    }
+    
+    function inicializarGraficoAsistencia() {
+        const ctx = document.getElementById('chartAsistenciaHoy').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Presentes', 'Ausentes', 'Pendientes'],
+                datasets: [{
+                    data: [{{ presentes_hoy }}, {{ ausentes_hoy }}, {{ pendientes_hoy }}],
+                    backgroundColor: ['#1cc88a', '#e74a3b', '#f6c23e'],
+                    hoverBackgroundColor: ['#17a673', '#be2617', '#dda20a']
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    function actualizarPagina() {
+        location.reload();
+    }
+    
+    // Configurar toastr
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    };
+    
+    // Función para exportar reporte
+    function exportarReporte() {
+        const fecha = "{{ fecha_actual|date:'Y-m-d' }}";
+        const url = `/rrhh/asistencias/exportar/?fecha=${fecha}`;
+        window.open(url, '_blank');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,525 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Turno de Trabajo - Recursos Humanos{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'dashboard/vendor/datatables/dataTables.bootstrap4.min.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .shift-card {
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    .shift-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .shift-type-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .time-display {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    .fc-event {
+        cursor: pointer;
+    }
+    .hour-block {
+        height: 40px;
+        line-height: 40px;
+        margin-bottom: 2px;
+        border-radius: 4px;
+    }
+    .hour-label {
+        width: 80px;
+        text-align: right;
+        padding-right: 10px;
+    }
+    .hour-content {
+        flex-grow: 1;
+        background-color: #f8f9fc;
+        position: relative;
+    }
+    .shift-block {
+        position: absolute;
+        left: 0;
+        height: 100%;
+        padding-left: 10px;
+        border-radius: 4px;
+        color: white;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    .shift-block.morning {
+        background-color: #4e73df;
+    }
+    .shift-block.afternoon {
+        background-color: #f6c23e;
+    }
+    .shift-block.night {
+        background-color: #1cc88a;
+    }
+    .filter-form {
+        background-color: #f8f9fc;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Turnos de Trabajo</h1>
+    <div>
+        <a href="{% url 'dashboard:rrhh_turno_crear' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50 me-1"></i> Nuevo Turno
+        </a>
+        <button onclick="exportarTurnos()" class="d-none d-sm-inline-block btn btn-sm btn-success shadow-sm ms-2">
+            <i class="fas fa-download fa-sm text-white-50 me-1"></i> Exportar
+        </button>
+    </div>
+</div>
+
+<!-- Resumen de Turnos -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Turnos</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_turnos }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Empleados Asignados</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_empleados_en_turnos }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Horas Promedio</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ promedio_horas|floatformat:1 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Turnos Activos Hoy</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ turnos_activos_hoy }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{% url 'dashboard:rrhh_turnos_listado' %}" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="sucursal" class="form-label">Sucursal</label>
+                <select class="form-select" id="sucursal" name="sucursal">
+                    <option value="">Todas</option>
+                    {% for sucursal in sucursales %}
+                        <option value="{{ sucursal.id }}" {% if sucursal_filtro == sucursal.id|stringformat:"s" %}selected{% endif %}>{{ sucursal.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="tipo" class="form-label">Tipo de Turno</label>
+                <select class="form-select" id="tipo" name="tipo">
+                    <option value="">Todos</option>
+                    <option value="mañana" {% if tipo_filtro == 'mañana' %}selected{% endif %}>Mañana</option>
+                    <option value="tarde" {% if tipo_filtro == 'tarde' %}selected{% endif %}>Tarde</option>
+                    <option value="noche" {% if tipo_filtro == 'noche' %}selected{% endif %}>Noche</option>
+                    <option value="especial" {% if tipo_filtro == 'especial' %}selected{% endif %}>Especial</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="dia" class="form-label">Día de la Semana</label>
+                <select class="form-select" id="dia" name="dia">
+                    <option value="">Todos</option>
+                    <option value="lunes" {% if dia_filtro == 'lunes' %}selected{% endif %}>Lunes</option>
+                    <option value="martes" {% if dia_filtro == 'martes' %}selected{% endif %}>Martes</option>
+                    <option value="miercoles" {% if dia_filtro == 'miercoles' %}selected{% endif %}>Miércoles</option>
+                    <option value="jueves" {% if dia_filtro == 'jueves' %}selected{% endif %}>Jueves</option>
+                    <option value="viernes" {% if dia_filtro == 'viernes' %}selected{% endif %}>Viernes</option>
+                    <option value="sabado" {% if dia_filtro == 'sabado' %}selected{% endif %}>Sábado</option>
+                    <option value="domingo" {% if dia_filtro == 'domingo' %}selected{% endif %}>Domingo</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Vista de Turnos -->
+<div class="row">
+    <div class="col-12">
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="cards-tab" data-bs-toggle="tab" data-bs-target="#cards" type="button" role="tab" aria-controls="cards" aria-selected="true">
+                    <i class="fas fa-th-large me-1"></i> Tarjetas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="list-tab" data-bs-toggle="tab" data-bs-target="#list" type="button" role="tab" aria-controls="list" aria-selected="false">
+                    <i class="fas fa-list me-1"></i> Lista
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button" role="tab" aria-controls="schedule" aria-selected="false">
+                    <i class="fas fa-calendar-alt me-1"></i> Horario
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- Vista de Tarjetas -->
+            <div class="tab-pane fade show active" id="cards" role="tabpanel" aria-labelledby="cards-tab">
+                <div class="row mt-4">
+                    {% if turnos %}
+                        {% for turno in turnos %}
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card shadow h-100 shift-card" onclick="window.location='{% url 'dashboard:rrhh_turno_detalle' turno_id=turno.id %}'">
+                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                        <h6 class="m-0 font-weight-bold text-primary">{{ turno.nombre }}</h6>
+                                        <div class="shift-type-badge">
+                                            {% if turno.tipo == 'mañana' %}
+                                                <span class="badge bg-primary">Mañana</span>
+                                            {% elif turno.tipo == 'tarde' %}
+                                                <span class="badge bg-warning">Tarde</span>
+                                            {% elif turno.tipo == 'noche' %}
+                                                <span class="badge bg-success">Noche</span>
+                                            {% elif turno.tipo == 'especial' %}
+                                                <span class="badge bg-info">Especial</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3 text-center">
+                                            <span class="time-display">{{ turno.hora_inicio|date:"H:i" }} - {{ turno.hora_fin|date:"H:i" }}</span>
+                                            <div class="text-muted small">{{ turno.duracion }} horas</div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <div><i class="fas fa-building me-1 text-primary"></i> Sucursal:</div>
+                                                <div>{{ turno.sucursal.nombre }}</div>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <div><i class="fas fa-users me-1 text-primary"></i> Empleados:</div>
+                                                <div>{{ turno.empleados_count }}</div>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <div><i class="fas fa-calendar-day me-1 text-primary"></i> Días:</div>
+                                                <div>
+                                                    {% if turno.lunes %}<span class="badge bg-secondary me-1">L</span>{% endif %}
+                                                    {% if turno.martes %}<span class="badge bg-secondary me-1">M</span>{% endif %}
+                                                    {% if turno.miercoles %}<span class="badge bg-secondary me-1">X</span>{% endif %}
+                                                    {% if turno.jueves %}<span class="badge bg-secondary me-1">J</span>{% endif %}
+                                                    {% if turno.viernes %}<span class="badge bg-secondary me-1">V</span>{% endif %}
+                                                    {% if turno.sabado %}<span class="badge bg-secondary me-1">S</span>{% endif %}
+                                                    {% if turno.domingo %}<span class="badge bg-secondary">D</span>{% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-2 small">
+                                            {% if turno.descripcion %}
+                                                <div class="text-muted">{{ turno.descripcion|truncatechars:100 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="card-footer d-flex justify-content-between">
+                                        <div>
+                                            <a href="{% url 'dashboard:rrhh_turno_detalle' turno_id=turno.id %}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'dashboard:rrhh_turno_editar' turno_id=turno.id %}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                        <a href="{% url 'dashboard:rrhh_turno_asignar_empleados' turno_id=turno.id %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-user-plus"></i> Asignar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <div class="alert alert-info mt-4">
+                                <i class="fas fa-info-circle me-1"></i> No se encontraron turnos con los criterios de búsqueda.
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Vista de Lista -->
+            <div class="tab-pane fade" id="list" role="tabpanel" aria-labelledby="list-tab">
+                <div class="card shadow mb-4 mt-4">
+                    <div class="card-body">
+                        {% if turnos %}
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="turnosDataTable" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Tipo</th>
+                                            <th>Horario</th>
+                                            <th>Días</th>
+                                            <th>Sucursal</th>
+                                            <th>Empleados</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for turno in turnos %}
+                                            <tr>
+                                                <td>{{ turno.nombre }}</td>
+                                                <td>
+                                                    {% if turno.tipo == 'mañana' %}
+                                                        <span class="badge bg-primary">Mañana</span>
+                                                    {% elif turno.tipo == 'tarde' %}
+                                                        <span class="badge bg-warning">Tarde</span>
+                                                    {% elif turno.tipo == 'noche' %}
+                                                        <span class="badge bg-success">Noche</span>
+                                                    {% elif turno.tipo == 'especial' %}
+                                                        <span class="badge bg-info">Especial</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ turno.hora_inicio|date:"H:i" }} - {{ turno.hora_fin|date:"H:i" }}</td>
+                                                <td>
+                                                    {% if turno.lunes %}<span class="badge bg-secondary me-1">L</span>{% endif %}
+                                                    {% if turno.martes %}<span class="badge bg-secondary me-1">M</span>{% endif %}
+                                                    {% if turno.miercoles %}<span class="badge bg-secondary me-1">X</span>{% endif %}
+                                                    {% if turno.jueves %}<span class="badge bg-secondary me-1">J</span>{% endif %}
+                                                    {% if turno.viernes %}<span class="badge bg-secondary me-1">V</span>{% endif %}
+                                                    {% if turno.sabado %}<span class="badge bg-secondary me-1">S</span>{% endif %}
+                                                    {% if turno.domingo %}<span class="badge bg-secondary">D</span>{% endif %}
+                                                </td>
+                                                <td>{{ turno.sucursal.nombre }}</td>
+                                                <td>
+                                                    {{ turno.empleados_count }}
+                                                    <a href="{% url 'dashboard:rrhh_turno_detalle' turno_id=turno.id %}#empleados" class="ms-1 text-info">
+                                                        <i class="fas fa-users"></i>
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex">
+                                                        <a href="{% url 'dashboard:rrhh_turno_detalle' turno_id=turno.id %}" class="btn btn-sm btn-primary me-1">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{% url 'dashboard:rrhh_turno_editar' turno_id=turno.id %}" class="btn btn-sm btn-warning me-1">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <a href="{% url 'dashboard:rrhh_turno_asignar_empleados' turno_id=turno.id %}" class="btn btn-sm btn-info me-1">
+                                                            <i class="fas fa-user-plus"></i>
+                                                        </a>
+                                                        <a href="{% url 'dashboard:rrhh_turno_eliminar' turno_id=turno.id %}" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-1"></i> No se encontraron turnos con los criterios de búsqueda.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Vista de Horario -->
+            <div class="tab-pane fade" id="schedule" role="tabpanel" aria-labelledby="schedule-tab">
+                <div class="card shadow mb-4 mt-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Horario Semanal</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-end mb-3">
+                            <div class="d-inline-block me-3"><span class="badge bg-primary">&nbsp;&nbsp;&nbsp;</span> Mañana</div>
+                            <div class="d-inline-block me-3"><span class="badge bg-warning">&nbsp;&nbsp;&nbsp;</span> Tarde</div>
+                            <div class="d-inline-block"><span class="badge bg-success">&nbsp;&nbsp;&nbsp;</span> Noche</div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%">Hora</th>
+                                        <th style="width: 12.85%">Lunes</th>
+                                        <th style="width: 12.85%">Martes</th>
+                                        <th style="width: 12.85%">Miércoles</th>
+                                        <th style="width: 12.85%">Jueves</th>
+                                        <th style="width: 12.85%">Viernes</th>
+                                        <th style="width: 12.85%">Sábado</th>
+                                        <th style="width: 12.85%">Domingo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for hora in horas_horario %}
+                                        <tr>
+                                            <td class="text-center fw-bold">{{ hora }}</td>
+                                            
+                                            {% for dia in dias_semana %}
+                                                <td>
+                                                    {% for turno in horario_semanal %}
+                                                        {% if turno.dia == dia and turno.hora == hora %}
+                                                            <div class="p-1 rounded mb-1 
+                                                                {% if turno.tipo == 'mañana' %}bg-primary{% elif turno.tipo == 'tarde' %}bg-warning{% elif turno.tipo == 'noche' %}bg-success{% else %}bg-info{% endif %} 
+                                                                text-white small">
+                                                                <a href="{% url 'dashboard:rrhh_turno_detalle' turno_id=turno.id %}" class="text-white">
+                                                                    {{ turno.nombre }}
+                                                                </a>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Paginación -->
+{% if turnos.has_other_pages %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Paginación de turnos">
+            <ul class="pagination">
+                {% if turnos.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if sucursal_filtro %}&sucursal={{ sucursal_filtro }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if dia_filtro %}&dia={{ dia_filtro }}{% endif %}" aria-label="Primera">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ turnos.previous_page_number }}{% if sucursal_filtro %}&sucursal={{ sucursal_filtro }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if dia_filtro %}&dia={{ dia_filtro }}{% endif %}">{{ turnos.previous_page_number }}</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ turnos.number }}</span>
+                </li>
+                
+                {% if turnos.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ turnos.next_page_number }}{% if sucursal_filtro %}&sucursal={{ sucursal_filtro }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if dia_filtro %}&dia={{ dia_filtro }}{% endif %}">{{ turnos.next_page_number }}</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ turnos.paginator.num_pages }}{% if sucursal_filtro %}&sucursal={{ sucursal_filtro }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if dia_filtro %}&dia={{ dia_filtro }}{% endif %}" aria-label="Última">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'dashboard/vendor/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'dashboard/vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        // Inicializar DataTable
+        $('#turnosDataTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+            },
+            "pageLength": 10,
+            "ordering": true,
+            "order": [[0, 'asc']]
+        });
+        
+        // Activar tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Mantener la pestaña activa al recargar la página
+        $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+            localStorage.setItem('activeTab', $(e.target).attr('id'));
+        });
+        
+        var activeTab = localStorage.getItem('activeTab');
+        if(activeTab){
+            $('#' + activeTab).tab('show');
+        }
+    });
+    
+    // Función para exportar turnos
+    function exportarTurnos() {
+        const url = `/rrhh/turnos/exportar/`;
+        window.open(url, '_blank');
+    }
+</script>
+{% endblock %}

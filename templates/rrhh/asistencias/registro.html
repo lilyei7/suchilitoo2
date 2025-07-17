@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Registrar Asistencia - Recursos Humanos{% endblock %}
+
+{% block extra_css %}
+<style>
+    .attendance-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+    .time-display {
+        font-size: 3rem;
+        font-weight: bold;
+        text-align: center;
+        margin: 20px 0;
+    }
+    .quick-actions {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .employee-card {
+        border: none;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+    .employee-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .status-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-clock me-3"></i>Registro de Asistencias</h1>
+            <p class="text-muted mb-0">Control de entrada y salida del personal</p>
+        </div>
+        <a href="{% url 'rrhh_asistencias_listado' %}" class="btn btn-outline-primary">
+            <i class="fas fa-list me-2"></i>Ver Historial
+        </a>
+    </div>
+
+    <!-- Reloj en tiempo real -->
+    <div class="attendance-card">
+        <div class="text-center">
+            <h3><i class="fas fa-calendar-day me-2"></i>{{ fecha_actual|date:"l, d F Y" }}</h3>
+            <div class="time-display" id="currentTime">{{ hora_actual|time:"H:i:s" }}</div>
+            <p class="mb-0">Hora actual del sistema</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Registro Rápido -->
+        <div class="col-md-6">
+            <div class="quick-actions">
+                <h5><i class="fas fa-tachometer-alt me-2"></i>Registro Rápido</h5>
+                <form method="post" id="quickAttendanceForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Empleado</label>
+                        <select class="form-select" name="empleado" required>
+                            <option value="">Seleccionar empleado...</option>
+                            {% for empleado in empleados_activos %}
+                                <option value="{{ empleado.id }}">
+                                    {{ empleado.usuario.get_full_name }} - {{ empleado.rol.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Registro</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <button type="submit" name="tipo" value="entrada" class="btn btn-success w-100">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Entrada
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button type="submit" name="tipo" value="salida" class="btn btn-danger w-100">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Salida
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Empleados con Turno Activo -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-users-clock me-2"></i>Empleados en Turno</h5>
+                </div>
+                <div class="card-body">
+                    {% if empleados_en_turno %}
+                        <div class="row">
+                            {% for empleado in empleados_en_turno %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card employee-card position-relative" onclick="selectEmployee({{ empleado.id }})">
+                                    {% if empleado.asistencia_hoy %}
+                                        <span class="badge status-badge bg-{% if empleado.asistencia_hoy.hora_salida %}secondary{% else %}success{% endif %}">
+                                            {% if empleado.asistencia_hoy.hora_salida %}Completa{% else %}En curso{% endif %}
+                                        </span>
+                                    {% endif %}
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                {% if empleado.foto %}
+                                                    <img src="{{ empleado.foto.url }}" class="rounded-circle" width="50" height="50" alt="{{ empleado.usuario.get_full_name }}">
+                                                {% else %}
+                                                    <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">{{ empleado.usuario.get_full_name }}</h6>
+                                                <small class="text-muted">{{ empleado.rol.nombre }}</small>
+                                                {% if empleado.asistencia_hoy %}
+                                                    <br>
+                                                    <small class="text-success">
+                                                        Entrada: {{ empleado.asistencia_hoy.hora_entrada|time:"H:i" }}
+                                                        {% if empleado.asistencia_hoy.hora_salida %}
+                                                            | Salida: {{ empleado.asistencia_hoy.hora_salida|time:"H:i" }}
+                                                        {% endif %}
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted">No hay empleados con turno activo en este momento</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Asistencias de Hoy -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-list-alt me-2"></i>Asistencias de Hoy</h5>
+                    <span class="badge bg-primary">{{ asistencias_hoy.count }} registros</span>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    {% if asistencias_hoy %}
+                        {% for asistencia in asistencias_hoy %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    {% if asistencia.empleado.foto %}
+                                        <img src="{{ asistencia.empleado.foto.url }}" class="rounded-circle" width="40" height="40" alt="{{ asistencia.empleado.usuario.get_full_name }}">
+                                    {% else %}
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ asistencia.empleado.usuario.get_full_name }}</h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-sign-in-alt text-success me-1"></i>{{ asistencia.hora_entrada|time:"H:i" }}
+                                        {% if asistencia.hora_salida %}
+                                            <i class="fas fa-sign-out-alt text-danger me-1 ms-2"></i>{{ asistencia.hora_salida|time:"H:i" }}
+                                        {% endif %}
+                                    </small>
+                                    {% if asistencia.horas_trabajadas %}
+                                        <br>
+                                        <small class="text-info">{{ asistencia.horas_trabajadas|floatformat:1 }} horas trabajadas</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-{{ asistencia.estado|yesno:'success,warning' }}">
+                                    {% if asistencia.hora_salida %}Completa{% else %}En curso{% endif %}
+                                </span>
+                                {% if not asistencia.hora_salida %}
+                                    <br>
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-1" onclick="registrarSalida({{ asistencia.empleado.id }})">
+                                        <i class="fas fa-sign-out-alt me-1"></i>Salida
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-muted">No hay asistencias registradas hoy</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Registro</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage"></p>
+                <div class="alert alert-info">
+                    <strong>Hora actual:</strong> <span id="confirmTime"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmButton">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+let currentAction = null;
+
+// Actualizar reloj en tiempo real
+function updateClock() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    document.getElementById('currentTime').textContent = timeString;
+}
+
+// Actualizar cada segundo
+setInterval(updateClock, 1000);
+
+// Seleccionar empleado desde las tarjetas
+function selectEmployee(empleadoId) {
+    const select = document.querySelector('select[name="empleado"]');
+    select.value = empleadoId;
+    select.dispatchEvent(new Event('change'));
+}
+
+// Registrar salida rápida
+function registrarSalida(empleadoId) {
+    const empleadoSelect = document.querySelector('select[name="empleado"] option[value="' + empleadoId + '"]');
+    const empleadoNombre = empleadoSelect.textContent;
+    
+    document.getElementById('confirmMessage').innerHTML = 
+        `¿Confirmas el registro de <strong>SALIDA</strong> para:<br><strong>${empleadoNombre}</strong>?`;
+    document.getElementById('confirmTime').textContent = new Date().toLocaleTimeString('es-ES');
+    
+    currentAction = function() {
+        const form = document.getElementById('quickAttendanceForm');
+        const formData = new FormData(form);
+        formData.set('empleado', empleadoId);
+        formData.set('tipo', 'salida');
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                throw new Error('Error en la respuesta del servidor');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al registrar la salida');
+        });
+    };
+    
+    confirmModal.show();
+}
+
+// Manejar envío del formulario
+document.getElementById('quickAttendanceForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const empleadoSelect = document.querySelector('select[name="empleado"]');
+    const tipo = e.submitter.value;
+    
+    if (!empleadoSelect.value) {
+        alert('Por favor selecciona un empleado');
+        empleadoSelect.focus();
+        return;
+    }
+    
+    const empleadoNombre = empleadoSelect.options[empleadoSelect.selectedIndex].textContent;
+    const tipoTexto = tipo === 'entrada' ? 'ENTRADA' : 'SALIDA';
+    
+    document.getElementById('confirmMessage').innerHTML = 
+        `¿Confirmas el registro de <strong>${tipoTexto}</strong> para:<br><strong>${empleadoNombre}</strong>?`;
+    document.getElementById('confirmTime').textContent = new Date().toLocaleTimeString('es-ES');
+    
+    currentAction = function() {
+        const formData = new FormData(e.target);
+        formData.set('tipo', tipo);
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                throw new Error('Error en la respuesta del servidor');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al registrar la asistencia');
+        });
+    };
+    
+    confirmModal.show();
+});
+
+document.getElementById('confirmButton').addEventListener('click', function() {
+    if (currentAction) {
+        currentAction();
+        confirmModal.hide();
+        currentAction = null;
+    }
+});
+
+// Auto-refresh cada 30 segundos para mantener actualizado
+setInterval(function() {
+    // Solo refrescar si no hay modales abiertos
+    if (!document.querySelector('.modal.show')) {
+        location.reload();
+    }
+}, 30000);
+</script>
+{% endblock %}

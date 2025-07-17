@@ -106,6 +106,7 @@ urlpatterns = [
     
     # Recursos Humanos
     path('recursos-humanos/', views.recursos_humanos_view, name='recursos_humanos'),
+    path('recursos-humanos/', include('rrhh.urls')),
     
     # Checklist
     # Rutas de checklist integradas desde urls_checklist.py
@@ -212,6 +213,9 @@ urlpatterns = [
     path('api/configuracion/logo/actual/', configuracion_views.obtener_logo_actual, name='obtener_logo_actual'),
     path('api/configuracion/backup/crear/', configuracion_views.crear_backup_api, name='crear_backup_api'),
     path('api/configuracion/backup/restaurar/', configuracion_views.restaurar_backup_api, name='restaurar_backup_api'),
+    
+    # Módulo de Recursos Humanos
+    path('recursos-humanos/', include('rrhh.urls')),
 ]
 
 if settings.DEBUG:

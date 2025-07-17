@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Crear Empleado - Recursos Humanos{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #007bff;
+    }
+    .form-section h5 {
+        color: #007bff;
+        margin-bottom: 20px;
+    }
+    .required-field {
+        border-left: 3px solid #dc3545;
+    }
+    .foto-preview {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #dee2e6;
+    }
+    .foto-placeholder {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: #f8f9fa;
+        border: 3px dashed #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .foto-placeholder:hover {
+        border-color: #007bff;
+        color: #007bff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-user-plus me-3"></i>Crear Nuevo Empleado</h1>
+            <p class="text-muted mb-0">Registra un nuevo empleado en el sistema</p>
+        </div>
+        <a href="{% url 'rrhh_empleados_listado' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="empleadoForm">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Información del Usuario -->
+                <div class="form-section">
+                    <h5><i class="fas fa-user me-2"></i>Información de Usuario</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            {{ form.usuario.errors }}
+                            <input type="text" class="form-control required-field" name="first_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Apellido <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control required-field" name="last_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control required-field" name="email" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre de Usuario <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control required-field" name="username" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control required-field" name="password" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Confirmar Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control required-field" name="password_confirm" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Personal -->
+                <div class="form-section">
+                    <h5><i class="fas fa-id-card me-2"></i>Información Personal</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cédula</label>
+                            {{ form.cedula.errors }}
+                            {{ form.cedula }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono</label>
+                            {{ form.telefono.errors }}
+                            {{ form.telefono }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha de Nacimiento</label>
+                            {{ form.fecha_nacimiento.errors }}
+                            {{ form.fecha_nacimiento }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Estado Civil</label>
+                            {{ form.estado_civil.errors }}
+                            {{ form.estado_civil }}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Dirección</label>
+                            {{ form.direccion.errors }}
+                            {{ form.direccion }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Laboral -->
+                <div class="form-section">
+                    <h5><i class="fas fa-briefcase me-2"></i>Información Laboral</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Rol <span class="text-danger">*</span></label>
+                            {{ form.rol.errors }}
+                            {{ form.rol }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sucursal <span class="text-danger">*</span></label>
+                            {{ form.sucursal.errors }}
+                            {{ form.sucursal }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha de Ingreso <span class="text-danger">*</span></label>
+                            {{ form.fecha_ingreso.errors }}
+                            {{ form.fecha_ingreso }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Salario Base</label>
+                            {{ form.salario_base.errors }}
+                            {{ form.salario_base }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo de Contrato</label>
+                            {{ form.tipo_contrato.errors }}
+                            {{ form.tipo_contrato }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Estado</label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.activo }}
+                                <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                                    Empleado Activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Foto del Empleado -->
+                <div class="form-section">
+                    <h5><i class="fas fa-camera me-2"></i>Foto del Empleado</h5>
+                    <div class="text-center mb-3">
+                        <div class="foto-placeholder" id="fotoPreview" onclick="document.getElementById('id_foto').click()">
+                            <div>
+                                <i class="fas fa-camera fa-2x"></i>
+                                <p class="mb-0 mt-2">Clic para subir foto</p>
+                            </div>
+                        </div>
+                        {{ form.foto.errors }}
+                        {{ form.foto }}
+                    </div>
+                    <small class="text-muted">Formatos permitidos: JPG, PNG. Tamaño máximo: 2MB</small>
+                </div>
+
+                <!-- Información Adicional -->
+                <div class="form-section">
+                    <h5><i class="fas fa-info-circle me-2"></i>Información Adicional</h5>
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>Nota:</strong> Una vez creado el empleado, podrás:
+                            <ul class="mb-0 mt-2">
+                                <li>Asignar turnos de trabajo</li>
+                                <li>Registrar asistencias</li>
+                                <li>Subir documentos</li>
+                                <li>Programar capacitaciones</li>
+                                <li>Realizar evaluaciones</li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="form-section">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>Crear Empleado
+                        </button>
+                        <a href="{% url 'rrhh_empleados_listado' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Preview de la foto
+    const fotoInput = document.getElementById('id_foto');
+    const fotoPreview = document.getElementById('fotoPreview');
+    
+    if (fotoInput) {
+        fotoInput.style.display = 'none';
+        
+        fotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fotoPreview.innerHTML = `<img src="${e.target.result}" class="foto-preview" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Validación de contraseñas
+    const password = document.querySelector('input[name="password"]');
+    const passwordConfirm = document.querySelector('input[name="password_confirm"]');
+    
+    function validatePasswords() {
+        if (password.value !== passwordConfirm.value) {
+            passwordConfirm.setCustomValidity('Las contraseñas no coinciden');
+        } else {
+            passwordConfirm.setCustomValidity('');
+        }
+    }
+    
+    password.addEventListener('input', validatePasswords);
+    passwordConfirm.addEventListener('input', validatePasswords);
+    
+    // Generar username automáticamente
+    const firstName = document.querySelector('input[name="first_name"]');
+    const lastName = document.querySelector('input[name="last_name"]');
+    const username = document.querySelector('input[name="username"]');
+    
+    function generateUsername() {
+        if (firstName.value && lastName.value && !username.value) {
+            const generatedUsername = (firstName.value + '.' + lastName.value).toLowerCase().replace(/\s+/g, '');
+            username.value = generatedUsername;
+        }
+    }
+    
+    firstName.addEventListener('blur', generateUsername);
+    lastName.addEventListener('blur', generateUsername);
+    
+    // Validación del formulario
+    const form = document.getElementById('empleadoForm');
+    form.addEventListener('submit', function(e) {
+        // Validar contraseñas
+        if (password.value !== passwordConfirm.value) {
+            e.preventDefault();
+            alert('Las contraseñas no coinciden');
+            passwordConfirm.focus();
+            return false;
+        }
+        
+        // Validar campos requeridos
+        const requiredFields = form.querySelectorAll('.required-field');
+        for (let field of requiredFields) {
+            if (!field.value.trim()) {
+                e.preventDefault();
+                alert('Por favor completa todos los campos obligatorios');
+                field.focus();
+                return false;
+            }
+        }
+        
+        // Mostrar loading en el botón
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando...';
+        submitBtn.disabled = true;
+    });
+    
+    // Formatear fecha de ingreso por defecto (hoy)
+    const fechaIngreso = document.getElementById('id_fecha_ingreso');
+    if (fechaIngreso && !fechaIngreso.value) {
+        const today = new Date().toISOString().split('T')[0];
+        fechaIngreso.value = today;
+    }
+    
+    // Auto-formato para cédula
+    const cedulaInput = document.getElementById('id_cedula');
+    if (cedulaInput) {
+        cedulaInput.addEventListener('input', function(e) {
+            // Remover caracteres no numéricos
+            let value = e.target.value.replace(/\D/g, '');
+            // Limitar a 10 dígitos
+            if (value.length > 10) {
+                value = value.substring(0, 10);
+            }
+            e.target.value = value;
+        });
+    }
+    
+    // Auto-formato para teléfono
+    const telefonoInput = document.getElementById('id_telefono');
+    if (telefonoInput) {
+        telefonoInput.addEventListener('input', function(e) {
+            // Remover caracteres no numéricos
+            let value = e.target.value.replace(/\D/g, '');
+            // Limitar a 10 dígitos
+            if (value.length > 10) {
+                value = value.substring(0, 10);
+            }
+            e.target.value = value;
+        });
+    }
+});
+</script>
+{% endblock %}

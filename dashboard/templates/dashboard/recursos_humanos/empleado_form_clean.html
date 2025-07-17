@@ -1,0 +1,395 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if accion == 'crear' %}
+        Crear Empleado - Recursos Humanos
+    {% else %}
+        Editar Empleado - Recursos Humanos
+    {% endif %}
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .rrhh-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .rrhh-form-section {
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #4e73df;
+    }
+    .rrhh-section-title {
+        color: #2d3748;
+        font-weight: 600;
+        margin-bottom: 20px;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+    }
+    .rrhh-section-title i {
+        margin-right: 8px;
+        color: #4e73df;
+    }
+    .rrhh-form-group {
+        margin-bottom: 20px;
+    }
+    .rrhh-label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #2d3748;
+    }
+    .rrhh-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+    }
+    .rrhh-input:focus {
+        outline: none;
+        border-color: #4e73df;
+        box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.1);
+    }
+    .rrhh-required::after {
+        content: " *";
+        color: #e53e3e;
+    }
+    .rrhh-btn-primary {
+        background: #4e73df;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background-color 0.2s;
+    }
+    .rrhh-btn-primary:hover {
+        background: #3d5ab7;
+        color: white;
+        text-decoration: none;
+    }
+    .rrhh-btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background-color 0.2s;
+    }
+    .rrhh-btn-secondary:hover {
+        background: #545b62;
+        color: white;
+        text-decoration: none;
+    }
+    .rrhh-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: -10px;
+    }
+    .rrhh-col {
+        flex: 1;
+        min-width: 300px;
+        padding: 10px;
+    }
+    .rrhh-error {
+        color: #e53e3e;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+    .rrhh-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .rrhh-header-left h1 {
+        margin: 0;
+        color: #2d3748;
+        font-size: 28px;
+        font-weight: 600;
+    }
+    .rrhh-header-left small {
+        color: #718096;
+        display: block;
+        margin-top: 4px;
+    }
+    @media (max-width: 768px) {
+        .rrhh-row {
+            flex-direction: column;
+        }
+        .rrhh-col {
+            min-width: unset;
+        }
+        .rrhh-container {
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rrhh-container">
+    <!-- Encabezado -->
+    <div class="rrhh-header">
+        <div class="rrhh-header-left">
+            <h1>
+                <i class="fas fa-user-plus" style="color: #4e73df; margin-right: 10px;"></i>
+                {% if accion == 'crear' %}
+                    Crear Nuevo Empleado
+                {% else %}
+                    Editar Empleado
+                {% endif %}
+            </h1>
+            <small>Complete la información del empleado</small>
+        </div>
+        <div>
+            <a href="{% url 'dashboard:rrhh_empleados_listado' %}" class="rrhh-btn-secondary">
+                <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Volver al Listado
+            </a>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <form method="post" enctype="multipart/form-data" id="empleadoForm">
+        {% csrf_token %}
+        
+        <!-- Información Personal -->
+        <div class="rrhh-form-section">
+            <h3 class="rrhh-section-title">
+                <i class="fas fa-user"></i>Información Personal
+            </h3>
+            
+            <div class="rrhh-row">
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">Nombre</label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <div class="rrhh-error">{{ form.nombre.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">Apellido</label>
+                        {{ form.apellido }}
+                        {% if form.apellido.errors %}
+                            <div class="rrhh-error">{{ form.apellido.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">RUT</label>
+                        {{ form.rut }}
+                        {% if form.rut.errors %}
+                            <div class="rrhh-error">{{ form.rut.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="rrhh-row">
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">Email</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="rrhh-error">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label">Teléfono</label>
+                        {{ form.telefono }}
+                        {% if form.telefono.errors %}
+                            <div class="rrhh-error">{{ form.telefono.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">Fecha de Nacimiento</label>
+                        {{ form.fecha_nacimiento }}
+                        {% if form.fecha_nacimiento.errors %}
+                            <div class="rrhh-error">{{ form.fecha_nacimiento.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="rrhh-row">
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label">Dirección</label>
+                        {{ form.direccion }}
+                        {% if form.direccion.errors %}
+                            <div class="rrhh-error">{{ form.direccion.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label">Foto</label>
+                        {{ form.foto }}
+                        {% if form.foto.errors %}
+                            <div class="rrhh-error">{{ form.foto.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información Laboral -->
+        <div class="rrhh-form-section">
+            <h3 class="rrhh-section-title">
+                <i class="fas fa-briefcase"></i>Información Laboral
+            </h3>
+            
+            <div class="rrhh-row">
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">Fecha de Ingreso</label>
+                        {{ form.fecha_ingreso }}
+                        {% if form.fecha_ingreso.errors %}
+                            <div class="rrhh-error">{{ form.fecha_ingreso.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label">Fecha de Término</label>
+                        {{ form.fecha_termino }}
+                        {% if form.fecha_termino.errors %}
+                            <div class="rrhh-error">{{ form.fecha_termino.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">Estado</label>
+                        {{ form.estado }}
+                        {% if form.estado.errors %}
+                            <div class="rrhh-error">{{ form.estado.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="rrhh-row">
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">Tipo de Contrato</label>
+                        {{ form.tipo_contrato }}
+                        {% if form.tipo_contrato.errors %}
+                            <div class="rrhh-error">{{ form.tipo_contrato.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">Cargo</label>
+                        {{ form.cargo }}
+                        {% if form.cargo.errors %}
+                            <div class="rrhh-error">{{ form.cargo.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label rrhh-required">Salario Base</label>
+                        {{ form.salario_base }}
+                        {% if form.salario_base.errors %}
+                            <div class="rrhh-error">{{ form.salario_base.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="rrhh-row">
+                <div class="rrhh-col">
+                    <div class="rrhh-form-group">
+                        <label class="rrhh-label">Jefe Directo</label>
+                        {{ form.jefe_directo }}
+                        {% if form.jefe_directo.errors %}
+                            <div class="rrhh-error">{{ form.jefe_directo.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="rrhh-form-section">
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <a href="{% url 'dashboard:rrhh_empleados_listado' %}" class="rrhh-btn-secondary">
+                    <i class="fas fa-times" style="margin-right: 6px;"></i> Cancelar
+                </a>
+                <button type="submit" class="rrhh-btn-primary">
+                    <i class="fas fa-save" style="margin-right: 6px;"></i>
+                    {% if accion == 'crear' %}
+                        Crear Empleado
+                    {% else %}
+                        Guardar Cambios
+                    {% endif %}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar datepickers
+    flatpickr('[name="fecha_nacimiento"]', {
+        dateFormat: 'Y-m-d',
+        maxDate: 'today'
+    });
+    
+    flatpickr('[name="fecha_ingreso"]', {
+        dateFormat: 'Y-m-d'
+    });
+    
+    flatpickr('[name="fecha_termino"]', {
+        dateFormat: 'Y-m-d'
+    });
+    
+    // Aplicar clases CSS a todos los inputs del formulario
+    const inputs = document.querySelectorAll('#empleadoForm input, #empleadoForm select, #empleadoForm textarea');
+    inputs.forEach(input => {
+        if (!input.classList.contains('rrhh-input')) {
+            input.classList.add('rrhh-input');
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,440 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Crear Empleado - Recursos Humanos{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .form-section {
+        background-color: #f8f9fc;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4e73df;
+    }
+    .section-title {
+        color: #5a5c69;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+    }
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+    .preview-image {
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 50%;
+        border: 3px solid #e3e6f0;
+        margin-top: 10px;
+    }
+    .input-group-text {
+        background-color: #4e73df;
+        color: white;
+        border: none;
+    }
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    .required-field::after {
+        content: " *";
+        color: #e74a3b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Crear Nuevo Empleado</h1>
+    <a href="{% url 'dashboard:rrhh_empleados_listado' %}" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50 me-1"></i> Volver
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Información del Empleado</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="empleadoForm">
+                    {% csrf_token %}
+                    
+                    <!-- Información Personal -->
+                    <div class="form-section">
+                        <h5 class="section-title">
+                            <i class="fas fa-user me-2"></i>Información Personal
+                        </h5>
+                        
+                        <div class="row">
+                            <!-- Foto de perfil -->
+                            <div class="col-md-3 text-center mb-3">
+                                <label class="form-label">Foto de Perfil</label>
+                                <div class="file-input-wrapper">
+                                    <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('id_foto').click();">
+                                        <i class="fas fa-camera me-1"></i> Seleccionar Foto
+                                    </button>
+                                    {{ form.foto }}
+                                </div>
+                                <div id="image-preview" class="mt-2">
+                                    <img id="preview" class="preview-image" style="display: none;" />
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-9">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.nombre.id_for_label }}" class="form-label required-field">Nombre</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                            {{ form.nombre }}
+                                        </div>
+                                        {% if form.nombre.errors %}
+                                            <div class="text-danger small">{{ form.nombre.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.apellido.id_for_label }}" class="form-label required-field">Apellido</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                            {{ form.apellido }}
+                                        </div>
+                                        {% if form.apellido.errors %}
+                                            <div class="text-danger small">{{ form.apellido.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.rut.id_for_label }}" class="form-label required-field">RUT</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                                            {{ form.rut }}
+                                        </div>
+                                        {% if form.rut.errors %}
+                                            <div class="text-danger small">{{ form.rut.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.fecha_nacimiento.id_for_label }}" class="form-label">Fecha de Nacimiento</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                            {{ form.fecha_nacimiento }}
+                                        </div>
+                                        {% if form.fecha_nacimiento.errors %}
+                                            <div class="text-danger small">{{ form.fecha_nacimiento.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.genero.id_for_label }}" class="form-label">Género</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-venus-mars"></i></span>
+                                            {{ form.genero }}
+                                        </div>
+                                        {% if form.genero.errors %}
+                                            <div class="text-danger small">{{ form.genero.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.estado_civil.id_for_label }}" class="form-label">Estado Civil</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-heart"></i></span>
+                                            {{ form.estado_civil }}
+                                        </div>
+                                        {% if form.estado_civil.errors %}
+                                            <div class="text-danger small">{{ form.estado_civil.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información de Contacto -->
+                    <div class="form-section">
+                        <h5 class="section-title">
+                            <i class="fas fa-address-book me-2"></i>Información de Contacto
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.telefono.id_for_label }}" class="form-label">Teléfono</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                    {{ form.telefono }}
+                                </div>
+                                {% if form.telefono.errors %}
+                                    <div class="text-danger small">{{ form.telefono.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Correo Electrónico</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                    {{ form.email }}
+                                </div>
+                                {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ form.direccion.id_for_label }}" class="form-label">Dirección</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                    {{ form.direccion }}
+                                </div>
+                                {% if form.direccion.errors %}
+                                    <div class="text-danger small">{{ form.direccion.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.ciudad.id_for_label }}" class="form-label">Ciudad</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-city"></i></span>
+                                    {{ form.ciudad }}
+                                </div>
+                                {% if form.ciudad.errors %}
+                                    <div class="text-danger small">{{ form.ciudad.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información Laboral -->
+                    <div class="form-section">
+                        <h5 class="section-title">
+                            <i class="fas fa-briefcase me-2"></i>Información Laboral
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.cargo.id_for_label }}" class="form-label required-field">Cargo</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user-tie"></i></span>
+                                    {{ form.cargo }}
+                                </div>
+                                {% if form.cargo.errors %}
+                                    <div class="text-danger small">{{ form.cargo.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.departamento.id_for_label }}" class="form-label">Departamento</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                    {{ form.departamento }}
+                                </div>
+                                {% if form.departamento.errors %}
+                                    <div class="text-danger small">{{ form.departamento.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.fecha_ingreso.id_for_label }}" class="form-label required-field">Fecha de Ingreso</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-calendar-plus"></i></span>
+                                    {{ form.fecha_ingreso }}
+                                </div>
+                                {% if form.fecha_ingreso.errors %}
+                                    <div class="text-danger small">{{ form.fecha_ingreso.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.salario_base.id_for_label }}" class="form-label">Salario Base</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+                                    {{ form.salario_base }}
+                                </div>
+                                {% if form.salario_base.errors %}
+                                    <div class="text-danger small">{{ form.salario_base.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.roles.id_for_label }}" class="form-label">Roles</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user-cog"></i></span>
+                                    {{ form.roles }}
+                                </div>
+                                <small class="form-text text-muted">Mantén presionado Ctrl (o Cmd en Mac) para seleccionar múltiples roles</small>
+                                {% if form.roles.errors %}
+                                    <div class="text-danger small">{{ form.roles.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.sucursales.id_for_label }}" class="form-label">Sucursales</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-store"></i></span>
+                                    {{ form.sucursales }}
+                                </div>
+                                <small class="form-text text-muted">Mantén presionado Ctrl (o Cmd en Mac) para seleccionar múltiples sucursales</small>
+                                {% if form.sucursales.errors %}
+                                    <div class="text-danger small">{{ form.sucursales.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contacto de Emergencia -->
+                    <div class="form-section">
+                        <h5 class="section-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Contacto de Emergencia
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.contacto_emergencia_nombre.id_for_label }}" class="form-label">Nombre</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    {{ form.contacto_emergencia_nombre }}
+                                </div>
+                                {% if form.contacto_emergencia_nombre.errors %}
+                                    <div class="text-danger small">{{ form.contacto_emergencia_nombre.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.contacto_emergencia_telefono.id_for_label }}" class="form-label">Teléfono</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                    {{ form.contacto_emergencia_telefono }}
+                                </div>
+                                {% if form.contacto_emergencia_telefono.errors %}
+                                    <div class="text-danger small">{{ form.contacto_emergencia_telefono.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.contacto_emergencia_relacion.id_for_label }}" class="form-label">Relación</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-heart"></i></span>
+                                    {{ form.contacto_emergencia_relacion }}
+                                </div>
+                                {% if form.contacto_emergencia_relacion.errors %}
+                                    <div class="text-danger small">{{ form.contacto_emergencia_relacion.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones de acción -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'dashboard:rrhh_empleados_listado' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Guardar Empleado
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<script>
+    $(document).ready(function() {
+        // Inicializar datepickers
+        $('input[name="fecha_nacimiento"], input[name="fecha_ingreso"]').flatpickr({
+            locale: "es",
+            dateFormat: "Y-m-d",
+            allowInput: true,
+            maxDate: "today"
+        });
+        
+        // Preview de imagen
+        $('#id_foto').change(function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#preview').attr('src', e.target.result).show();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Validación de RUT chileno (formato básico)
+        $('#id_rut').on('input', function() {
+            let rut = $(this).val().replace(/[^0-9kK]/g, '');
+            if (rut.length > 1) {
+                let cuerpo = rut.slice(0, -1);
+                let dv = rut.slice(-1).toUpperCase();
+                let rutFormateado = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + dv;
+                $(this).val(rutFormateado);
+            }
+        });
+        
+        // Formatear teléfono
+        $('#id_telefono, #id_contacto_emergencia_telefono').on('input', function() {
+            let telefono = $(this).val().replace(/\D/g, '');
+            if (telefono.length > 0) {
+                if (telefono.length <= 8) {
+                    telefono = telefono.replace(/(\d{4})(\d{4})/, '$1-$2');
+                } else {
+                    telefono = telefono.replace(/(\d{1})(\d{4})(\d{4})/, '+56 $1 $2-$3');
+                }
+                $(this).val(telefono);
+            }
+        });
+        
+        // Mejorar selects múltiples
+        $('select[multiple]').each(function() {
+            $(this).attr('size', Math.min($(this).find('option').length, 5));
+        });
+        
+        // Validación del formulario
+        $('#empleadoForm').on('submit', function(e) {
+            let esValido = true;
+            
+            // Validar campos requeridos
+            $('input[required], select[required]').each(function() {
+                if (!$(this).val()) {
+                    esValido = false;
+                    $(this).addClass('is-invalid');
+                    if (!$(this).next('.invalid-feedback').length) {
+                        $(this).after('<div class="invalid-feedback">Este campo es requerido</div>');
+                    }
+                } else {
+                    $(this).removeClass('is-invalid');
+                    $(this).next('.invalid-feedback').remove();
+                }
+            });
+            
+            if (!esValido) {
+                e.preventDefault();
+                $('html, body').animate({
+                    scrollTop: $('.is-invalid').first().offset().top - 100
+                }, 500);
+            }
+        });
+        
+        // Limpiar validación al escribir
+        $('input, select').on('input change', function() {
+            $(this).removeClass('is-invalid');
+            $(this).next('.invalid-feedback').remove();
+        });
+    });
+</script>
+{% endblock %}

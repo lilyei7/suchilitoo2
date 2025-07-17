@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'cajero',
     'mesero.apps.MeseroConfig',  # Nueva app usando la configuración explícita
     'cocina',  # Nueva app para cocina
+    'rrhh',  # Nueva app para recursos humanos
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,284 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Empleados - Recursos Humanos{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'dashboard/vendor/datatables/dataTables.bootstrap4.min.css' %}">
+<style>
+    .employee-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        height: 100%;
+    }
+    
+    .employee-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .employee-card .card-body {
+        padding: 20px 15px 15px;
+    }
+    
+    .employee-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin: 0 auto 15px;
+        border: 3px solid #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .employee-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 5px;
+        line-height: 1.2;
+    }
+    
+    .employee-role {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+        margin-bottom: 15px;
+    }
+    
+    .employee-info {
+        font-size: 0.75rem;
+        color: #95a5a6;
+    }
+    
+    .employee-info i {
+        width: 12px;
+        text-align: center;
+        margin-right: 5px;
+    }
+    
+    .status-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+    }
+    
+    .status-badge .badge {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+        border-radius: 10px;
+    }
+    
+    .card-footer {
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border-top: 1px solid #eee;
+    }
+    
+    .btn-sm {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .filter-form {
+        background-color: #f8f9fc;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    /* Estados con colores */
+    .status-activo { border-left: 4px solid #28a745; }
+    .status-inactivo { border-left: 4px solid #dc3545; }
+    .status-vacaciones { border-left: 4px solid #17a2b8; }
+    .status-permiso { border-left: 4px solid #ffc107; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Empleados</h1>
+    <div>
+        <a href="{% url 'dashboard:rrhh_empleado_crear' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-user-plus fa-sm text-white-50 me-1"></i> Nuevo Empleado
+        </a>
+        <a href="{% url 'dashboard:rrhh_exportar_empleados' %}" class="d-none d-sm-inline-block btn btn-sm btn-success shadow-sm ms-2">
+            <i class="fas fa-download fa-sm text-white-50 me-1"></i> Exportar
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{% url 'dashboard:rrhh_empleados_listado' %}" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="q" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="q" name="q" placeholder="Nombre, apellido, RUT..." value="{{ query }}">
+            </div>
+            <div class="col-md-2">
+                <label for="estado" class="form-label">Estado</label>
+                <select class="form-select" id="estado" name="estado">
+                    <option value="todos" {% if estado_filtro == 'todos' %}selected{% endif %}>Todos</option>
+                    <option value="activo" {% if estado_filtro == 'activo' %}selected{% endif %}>Activo</option>
+                    <option value="inactivo" {% if estado_filtro == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                    <option value="vacaciones" {% if estado_filtro == 'vacaciones' %}selected{% endif %}>Vacaciones</option>
+                    <option value="permiso" {% if estado_filtro == 'permiso' %}selected{% endif %}>Permiso</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="rol" class="form-label">Rol</label>
+                <select class="form-select" id="rol" name="rol">
+                    <option value="">Todos</option>
+                    {% for rol in roles %}
+                        <option value="{{ rol.id }}" {% if rol_filtro == rol.id|stringformat:"s" %}selected{% endif %}>{{ rol.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="sucursal" class="form-label">Sucursal</label>
+                <select class="form-select" id="sucursal" name="sucursal">
+                    <option value="">Todas</option>
+                    {% for sucursal in sucursales %}
+                        <option value="{{ sucursal.id }}" {% if sucursal_filtro == sucursal.id|stringformat:"s" %}selected{% endif %}>{{ sucursal.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Listado de Empleados -->
+<div class="row">
+    {% if empleados %}
+        {% for empleado in empleados %}
+            <div class="col-xl-3 col-lg-4 col-md-6 col-12 mb-3">
+                <div class="card shadow employee-card status-{{ empleado.estado }}" onclick="window.location='{% url 'dashboard:rrhh_empleado_detalle' empleado_id=empleado.id %}'">
+                    <!-- Estado del empleado -->
+                    <div class="status-badge">
+                        {% if empleado.estado == 'activo' %}
+                            <span class="badge bg-success">Activo</span>
+                        {% elif empleado.estado == 'inactivo' %}
+                            <span class="badge bg-danger">Inactivo</span>
+                        {% elif empleado.estado == 'vacaciones' %}
+                            <span class="badge bg-info">Vacaciones</span>
+                        {% elif empleado.estado == 'permiso' %}
+                            <span class="badge bg-warning">Permiso</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-body text-center">
+                        <!-- Avatar con iniciales -->
+                        <div class="employee-avatar">
+                            {{ empleado.nombre.0|upper }}{{ empleado.apellido.0|upper }}
+                        </div>
+                        
+                        <!-- Información básica -->
+                        <h6 class="employee-name">{{ empleado.nombre }} {{ empleado.apellido }}</h6>
+                        <p class="employee-role">{{ empleado.cargo|default:"Empleado" }}</p>
+                        
+                        <!-- Detalles adicionales -->
+                        <div class="employee-info">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span><i class="fas fa-calendar"></i>{{ empleado.fecha_ingreso|date:"d/m/Y" }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="fas fa-building"></i>
+                                    {% with sucursales_count=empleado.sucursales.all|length %}
+                                        {{ sucursales_count }} sucursal{{ sucursales_count|pluralize:"es" }}
+                                    {% endwith %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between">
+                            <button onclick="event.stopPropagation(); window.location='{% url 'dashboard:rrhh_empleado_detalle' empleado_id=empleado.id %}'" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>Ver
+                            </button>
+                            <button onclick="event.stopPropagation(); window.location='{% url 'dashboard:rrhh_empleado_editar' empleado_id=empleado.id %}'" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-edit me-1"></i>Editar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-1"></i> No se encontraron empleados con los criterios de búsqueda.
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Paginación -->
+{% if empleados.has_other_pages %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Paginación de empleados">
+            <ul class="pagination">
+                {% if empleados.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if rol_filtro %}&rol={{ rol_filtro }}{% endif %}{% if sucursal_filtro %}&sucursal={{ sucursal_filtro }}{% endif %}" aria-label="Primera">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ empleados.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if rol_filtro %}&rol={{ rol_filtro }}{% endif %}{% if sucursal_filtro %}&sucursal={{ sucursal_filtro }}{% endif %}">{{ empleados.previous_page_number }}</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ empleados.number }}</span>
+                </li>
+                
+                {% if empleados.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ empleados.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if rol_filtro %}&rol={{ rol_filtro }}{% endif %}{% if sucursal_filtro %}&sucursal={{ sucursal_filtro }}{% endif %}">{{ empleados.next_page_number }}</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ empleados.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if rol_filtro %}&rol={{ rol_filtro }}{% endif %}{% if sucursal_filtro %}&sucursal={{ sucursal_filtro }}{% endif %}" aria-label="Última">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'dashboard/vendor/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'dashboard/vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        // Aplicar estilos a los selectores
+        $('.form-select').select2({
+            theme: 'bootstrap4',
+            width: '100%'
+        });
+    });
+</script>
+{% endblock %}

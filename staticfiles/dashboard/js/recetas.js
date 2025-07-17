@@ -4,6 +4,20 @@ let contadorIngredientes = 0;
 let contadorIngredientesEditar = 0;
 let currentRecetaId = null;
 
+// Función auxiliar para formatear cantidades de manera inteligente
+function formatearCantidad(cantidad) {
+    const num = parseFloat(cantidad);
+    if (isNaN(num)) return '0';
+    
+    // Si es un número entero, mostrar sin decimales
+    if (num % 1 === 0) {
+        return num.toString();
+    }
+    
+    // Mostrar hasta 4 decimales, pero quitar ceros trailing
+    return parseFloat(num.toFixed(4)).toString();
+}
+
 // Función para abrir el modal de crear receta
 function abrirModalCrearReceta() {
     console.log('🔍 Abriendo modal de nueva receta');
@@ -547,7 +561,7 @@ function renderizarDetalleReceta(receta, ingredientes) {
                             ${ingrediente.notas ? `<small class="text-muted">${ingrediente.notas}</small>` : ''}
                         </td>
                         <td><span class="badge ${tipoBadgeColor}">${tipoNombre}</span></td>
-                        <td>${cantidad.toFixed(2)} ${unidadAbrev}</td>
+                        <td>${formatearCantidad(cantidad)} ${unidadAbrev}</td>
                         <td class="text-end">$${costoTotal.toFixed(2)}</td>
                     </tr>
                 `;
@@ -693,7 +707,7 @@ function agregarIngredienteEditar(ingredienteExistente = null) {
         <div class="col-md-2">
             <label class="form-label small">Cantidad</label>
             <div class="input-group input-group-sm">
-                <input type="number" class="form-control" name="editar_ingrediente_cantidad[]" step="0.01" min="0.01" value="${cantidad}" onchange="actualizarCostoIngredienteEditar(this, '${id}')">
+                <input type="number" class="form-control" name="editar_ingrediente_cantidad[]" step="0.0001" min="0.0001" value="${cantidad}" onchange="actualizarCostoIngredienteEditar(this, '${id}')"  data-decimals="4">
                 <span class="input-group-text unidad-medida">${unidadMedida}</span>
             </div>
         </div>
@@ -1069,7 +1083,7 @@ function agregarIngrediente() {
         <div class="col-md-3">
             <label class="form-label small">Cantidad</label>
             <div class="input-group input-group-sm">
-                <input type="number" class="form-control" name="ingrediente_cantidad[]" step="0.01" min="0.01" value="1" onchange="actualizarCostoIngrediente(this, '${id}')">
+                <input type="number" class="form-control" name="ingrediente_cantidad[]" step="0.0001" min="0.0001" value="1" onchange="actualizarCostoIngrediente(this, '${id}')" data-decimals="4">
                 <span class="input-group-text unidad-medida">Und</span>
             </div>
         </div>

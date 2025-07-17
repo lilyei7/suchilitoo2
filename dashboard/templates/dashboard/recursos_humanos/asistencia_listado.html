@@ -1,0 +1,646 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Asistencia - Recursos Humanos{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'dashboard/vendor/datatables/dataTables.bootstrap4.min.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .attendance-card {
+        transition: all 0.2s;
+    }
+    .attendance-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    .attendance-summary {
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .attendance-summary .card-body {
+        padding: 0.75rem;
+    }
+    .attendance-summary .number {
+        font-size: 1.75rem;
+        font-weight: bold;
+    }
+    .calendar-day {
+        width: 40px;
+        height: 40px;
+        line-height: 40px;
+        text-align: center;
+        border-radius: 50%;
+        display: inline-block;
+        margin: 2px;
+        font-weight: 500;
+    }
+    .calendar-day.present {
+        background-color: #1cc88a;
+        color: white;
+    }
+    .calendar-day.absent {
+        background-color: #e74a3b;
+        color: white;
+    }
+    .calendar-day.late {
+        background-color: #f6c23e;
+        color: white;
+    }
+    .calendar-day.holiday {
+        background-color: #4e73df;
+        color: white;
+    }
+    .calendar-day.inactive {
+        background-color: #eaecf4;
+        color: #858796;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Control de Asistencia</h1>
+    <div>
+        <a href="{% url 'dashboard:rrhh_asistencia_registrar' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-clipboard-list fa-sm text-white-50 me-1"></i> Registrar Asistencia
+        </a>
+        <a href="{% url 'dashboard:rrhh_exportar_asistencia' %}" class="d-none d-sm-inline-block btn btn-sm btn-success shadow-sm ms-2">
+            <i class="fas fa-download fa-sm text-white-50 me-1"></i> Exportar
+        </a>
+    </div>
+</div>
+
+<!-- Resumen de Asistencia -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Presentes Hoy</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ presentes_hoy }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Ausentes Hoy</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ ausentes_hoy }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-times fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Llegadas Tarde</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ llegadas_tarde_hoy }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Tasa de Asistencia Mensual
+                        </div>
+                        <div class="row no-gutters align-items-center">
+                            <div class="col-auto">
+                                <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ tasa_asistencia_mensual }}%</div>
+                            </div>
+                            <div class="col">
+                                <div class="progress progress-sm mr-2">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ tasa_asistencia_mensual }}%" aria-valuenow="{{ tasa_asistencia_mensual }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{% url 'dashboard:rrhh_asistencia_listado' %}" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                <input type="text" class="form-control datepicker" id="fecha_inicio" name="fecha_inicio" placeholder="Seleccione..." value="{{ fecha_inicio|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                <input type="text" class="form-control datepicker" id="fecha_fin" name="fecha_fin" placeholder="Seleccione..." value="{{ fecha_fin|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="empleado" class="form-label">Empleado</label>
+                <select class="form-select" id="empleado" name="empleado">
+                    <option value="">Todos</option>
+                    {% for emp in empleados_lista %}
+                        <option value="{{ emp.id }}" {% if empleado_filtro == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.nombre }} {{ emp.apellido }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="estado" class="form-label">Estado</label>
+                <select class="form-select" id="estado" name="estado">
+                    <option value="">Todos</option>
+                    <option value="presente" {% if estado_filtro == 'presente' %}selected{% endif %}>Presente</option>
+                    <option value="ausente" {% if estado_filtro == 'ausente' %}selected{% endif %}>Ausente</option>
+                    <option value="tarde" {% if estado_filtro == 'tarde' %}selected{% endif %}>Tarde</option>
+                    <option value="justificado" {% if estado_filtro == 'justificado' %}selected{% endif %}>Justificado</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de Asistencia -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Registro de Asistencia</h6>
+    </div>
+    <div class="card-body">
+        {% if asistencias %}
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Empleado</th>
+                            <th>Fecha</th>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                            <th>Estado</th>
+                            <th>Turno</th>
+                            <th>Observaciones</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asistencia in asistencias %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if asistencia.empleado.foto %}
+                                            <img src="{{ asistencia.empleado.foto.url }}" alt="{{ asistencia.empleado.nombre }}" class="rounded-circle me-2" width="30" height="30">
+                                        {% else %}
+                                            <img src="{% static 'dashboard/img/undraw_profile.svg' %}" alt="{{ asistencia.empleado.nombre }}" class="rounded-circle me-2" width="30" height="30">
+                                        {% endif %}
+                                        <div>
+                                            <div class="fw-bold">{{ asistencia.empleado.nombre }} {{ asistencia.empleado.apellido }}</div>
+                                            <div class="small text-muted">{{ asistencia.empleado.cargo }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
+                                <td>
+                                    {% if asistencia.hora_entrada %}
+                                        {{ asistencia.hora_entrada|date:"H:i" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if asistencia.hora_salida %}
+                                        {{ asistencia.hora_salida|date:"H:i" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if asistencia.estado == 'presente' %}
+                                        <span class="badge bg-success status-badge">Presente</span>
+                                    {% elif asistencia.estado == 'ausente' %}
+                                        <span class="badge bg-danger status-badge">Ausente</span>
+                                    {% elif asistencia.estado == 'tarde' %}
+                                        <span class="badge bg-warning status-badge">Tarde</span>
+                                    {% elif asistencia.estado == 'justificado' %}
+                                        <span class="badge bg-info status-badge">Justificado</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ asistencia.turno.nombre }}</td>
+                                <td>
+                                    {% if asistencia.observaciones %}
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ asistencia.observaciones }}">
+                                            <i class="fas fa-comment-alt"></i> Ver
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex">
+                                        <a href="{% url 'dashboard:rrhh_asistencia_editar' asistencia_id=asistencia.id %}" class="btn btn-sm btn-warning me-1">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'dashboard:rrhh_asistencia_justificar' asistencia_id=asistencia.id %}" class="btn btn-sm btn-info me-1">
+                                            <i class="fas fa-file-medical"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-1"></i> No se encontraron registros de asistencia con los criterios de búsqueda.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Calendario Mensual de Asistencia -->
+{% if empleado_seleccionado %}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Calendario de Asistencia - {{ empleado_seleccionado.nombre }} {{ empleado_seleccionado.apellido }}</h6>
+        <div>
+            <button class="btn btn-sm btn-outline-primary" id="prev-month">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="mx-2" id="current-month">{{ mes_actual|date:"F Y" }}</span>
+            <button class="btn btn-sm btn-outline-primary" id="next-month">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="calendar-container">
+            <div class="d-flex justify-content-center mb-3">
+                <div class="me-3"><span class="calendar-day present"></span> Presente</div>
+                <div class="me-3"><span class="calendar-day absent"></span> Ausente</div>
+                <div class="me-3"><span class="calendar-day late"></span> Tarde</div>
+                <div class="me-3"><span class="calendar-day holiday"></span> Feriado</div>
+                <div><span class="calendar-day inactive"></span> No laborable</div>
+            </div>
+            
+            <div class="calendar-grid" id="calendar-days">
+                <!-- Los días del calendario se cargarán con JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Estadísticas de Asistencia -->
+<div class="row">
+    <!-- Gráfico de Asistencia por Día de la Semana -->
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Asistencia por Día de la Semana</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="weekdayAttendanceChart"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="me-2">
+                        <i class="fas fa-circle text-primary"></i> Presentes
+                    </span>
+                    <span class="me-2">
+                        <i class="fas fa-circle text-danger"></i> Ausentes
+                    </span>
+                    <span>
+                        <i class="fas fa-circle text-warning"></i> Llegadas Tarde
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Tendencia de Asistencia Mensual -->
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Tendencia de Asistencia Mensual</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="monthlyAttendanceChart"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="me-2">
+                        <i class="fas fa-circle text-success"></i> Tasa de Asistencia
+                    </span>
+                    <span>
+                        <i class="fas fa-circle text-info"></i> Promedio
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'dashboard/vendor/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'dashboard/vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+<script src="{% static 'dashboard/vendor/chart.js/Chart.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<script>
+    $(document).ready(function() {
+        // Inicializar DataTable
+        $('#dataTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+            },
+            order: [[1, 'desc'], [2, 'asc']]
+        });
+        
+        // Inicializar datepickers
+        $(".datepicker").flatpickr({
+            locale: "es",
+            dateFormat: "Y-m-d",
+            allowInput: true
+        });
+        
+        // Inicializar tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Gráfico de Asistencia por Día de la Semana
+        var weekdayCtx = document.getElementById("weekdayAttendanceChart");
+        var weekdayChart = new Chart(weekdayCtx, {
+            type: 'bar',
+            data: {
+                labels: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+                datasets: [
+                    {
+                        label: "Presentes",
+                        backgroundColor: "#4e73df",
+                        data: {{ presentes_por_dia|safe }}
+                    },
+                    {
+                        label: "Ausentes",
+                        backgroundColor: "#e74a3b",
+                        data: {{ ausentes_por_dia|safe }}
+                    },
+                    {
+                        label: "Llegadas Tarde",
+                        backgroundColor: "#f6c23e",
+                        data: {{ tardanzas_por_dia|safe }}
+                    }
+                ],
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    xAxes: [{
+                        stacked: true,
+                        gridLines: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    }],
+                    yAxes: [{
+                        stacked: true,
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                },
+                legend: {
+                    display: false
+                }
+            }
+        });
+        
+        // Gráfico de Tendencia de Asistencia Mensual
+        var monthlyCtx = document.getElementById("monthlyAttendanceChart");
+        var monthlyChart = new Chart(monthlyCtx, {
+            type: 'line',
+            data: {
+                labels: {{ meses|safe }},
+                datasets: [{
+                    label: "Tasa de Asistencia",
+                    lineTension: 0.3,
+                    backgroundColor: "rgba(28, 200, 138, 0.05)",
+                    borderColor: "rgba(28, 200, 138, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(28, 200, 138, 1)",
+                    pointBorderColor: "rgba(28, 200, 138, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(28, 200, 138, 1)",
+                    pointHoverBorderColor: "rgba(28, 200, 138, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    data: {{ tasas_asistencia_mensual|safe }},
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    xAxes: [{
+                        gridLines: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            maxTicksLimit: 7
+                        }
+                    }],
+                    yAxes: [{
+                        ticks: {
+                            maxTicksLimit: 5,
+                            padding: 10,
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        gridLines: {
+                            color: "rgb(234, 236, 244)",
+                            zeroLineColor: "rgb(234, 236, 244)",
+                            drawBorder: false,
+                            borderDash: [2],
+                            zeroLineBorderDash: [2]
+                        }
+                    }],
+                },
+                legend: {
+                    display: false
+                },
+                tooltips: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyFontColor: "#858796",
+                    titleMarginBottom: 10,
+                    titleFontColor: '#6e707e',
+                    titleFontSize: 14,
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    xPadding: 15,
+                    yPadding: 15,
+                    displayColors: false,
+                    intersect: false,
+                    mode: 'index',
+                    caretPadding: 10,
+                    callbacks: {
+                        label: function(tooltipItem, chart) {
+                            var datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
+                            return datasetLabel + ': ' + tooltipItem.yLabel + '%';
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Código para el calendario (si hay un empleado seleccionado)
+        {% if empleado_seleccionado %}
+        // Datos de asistencia del empleado
+        const asistenciaData = {{ asistencia_calendario|safe }};
+        let currentDate = new Date('{{ mes_actual|date:"Y-m-d" }}');
+        
+        function renderCalendar(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            
+            // Actualizar texto del mes actual
+            document.getElementById('current-month').textContent = date.toLocaleString('es', { month: 'long', year: 'numeric' });
+            
+            // Limpiar contenedor
+            const calendarContainer = document.getElementById('calendar-days');
+            calendarContainer.innerHTML = '';
+            
+            // Agregar días de la semana
+            const weekdays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            weekdays.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day fw-bold';
+                dayElement.textContent = day;
+                calendarContainer.appendChild(dayElement);
+            });
+            
+            // Agregar espacios en blanco para el primer día
+            const firstDayOfWeek = firstDay.getDay();
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day inactive';
+                calendarContainer.appendChild(emptyDay);
+            }
+            
+            // Agregar días del mes
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayElement = document.createElement('div');
+                const currentDateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                
+                // Verificar si hay asistencia para este día
+                const asistencia = asistenciaData[currentDateStr];
+                
+                if (asistencia) {
+                    if (asistencia.estado === 'presente') {
+                        dayElement.className = 'calendar-day present';
+                    } else if (asistencia.estado === 'ausente') {
+                        dayElement.className = 'calendar-day absent';
+                    } else if (asistencia.estado === 'tarde') {
+                        dayElement.className = 'calendar-day late';
+                    } else if (asistencia.estado === 'feriado') {
+                        dayElement.className = 'calendar-day holiday';
+                    }
+                    
+                    // Agregar tooltip con información
+                    dayElement.setAttribute('data-bs-toggle', 'tooltip');
+                    dayElement.setAttribute('data-bs-placement', 'top');
+                    
+                    let tooltipText = `${i} - ${asistencia.estado.charAt(0).toUpperCase() + asistencia.estado.slice(1)}`;
+                    if (asistencia.hora_entrada) {
+                        tooltipText += ` - Entrada: ${asistencia.hora_entrada}`;
+                    }
+                    if (asistencia.hora_salida) {
+                        tooltipText += ` - Salida: ${asistencia.hora_salida}`;
+                    }
+                    
+                    dayElement.setAttribute('title', tooltipText);
+                } else {
+                    // Verificar si es día laborable
+                    const date = new Date(year, month, i);
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = domingo, 6 = sábado
+                    
+                    if (isWeekend) {
+                        dayElement.className = 'calendar-day inactive';
+                    } else {
+                        dayElement.className = 'calendar-day';
+                    }
+                }
+                
+                dayElement.textContent = i;
+                calendarContainer.appendChild(dayElement);
+            }
+            
+            // Reinicializar tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+        
+        // Renderizar calendario inicial
+        renderCalendar(currentDate);
+        
+        // Eventos para cambiar de mes
+        document.getElementById('prev-month').addEventListener('click', function() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar(currentDate);
+        });
+        
+        document.getElementById('next-month').addEventListener('click', function() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar(currentDate);
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}

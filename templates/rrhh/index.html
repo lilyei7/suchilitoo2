@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Recursos Humanos - Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .action-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        color: white;
+        padding: 15px 25px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        margin: 5px;
+    }
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        color: white;
+    }
+    .section-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="section-header">
+        <h1><i class="fas fa-users me-3"></i>Dashboard de Recursos Humanos</h1>
+        <p class="mb-0">Gestión integral de personal y administración de recursos humanos</p>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x mb-3"></i>
+                    <h3>{{ total_empleados }}</h3>
+                    <p class="mb-0">Total Empleados</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-check fa-3x mb-3"></i>
+                    <h3>{{ empleados_activos }}</h3>
+                    <p class="mb-0">Empleados Activos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-3x mb-3"></i>
+                    <h3>{{ asistencias_hoy }}</h3>
+                    <p class="mb-0">Asistencias Hoy</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                    <h3>{{ empleados_sin_turno }}</h3>
+                    <p class="mb-0">Sin Turno Asignado</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-bolt me-2"></i>Acciones Rápidas</h5>
+                </div>
+                <div class="card-body text-center">
+                    <a href="{% url 'rrhh_empleado_crear' %}" class="action-btn">
+                        <i class="fas fa-user-plus me-2"></i>Nuevo Empleado
+                    </a>
+                    <a href="{% url 'rrhh_empleados_listado' %}" class="action-btn">
+                        <i class="fas fa-users me-2"></i>Gestionar Empleados
+                    </a>
+                    <a href="{% url 'rrhh_asistencia_registrar' %}" class="action-btn">
+                        <i class="fas fa-clock me-2"></i>Registrar Asistencia
+                    </a>
+                    <a href="{% url 'rrhh_turnos_listado' %}" class="action-btn">
+                        <i class="fas fa-calendar-alt me-2"></i>Gestionar Turnos
+                    </a>
+                    <a href="{% url 'rrhh_asistencias_listado' %}" class="action-btn">
+                        <i class="fas fa-list me-2"></i>Ver Asistencias
+                    </a>
+                    <a href="{% url 'rrhh_nominas_listado' %}" class="action-btn">
+                        <i class="fas fa-money-bill-wave me-2"></i>Nóminas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empleados Recientes -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-user-plus me-2"></i>Empleados Recientes</h5>
+                </div>
+                <div class="card-body">
+                    {% if empleados_recientes %}
+                        <div class="list-group list-group-flush">
+                            {% for empleado in empleados_recientes %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ empleado.usuario.get_full_name }}</h6>
+                                    <small class="text-muted">{{ empleado.rol.nombre }} - {{ empleado.sucursal.nombre }}</small>
+                                </div>
+                                <a href="{% url 'rrhh_empleado_detalle' empleado.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{% url 'rrhh_empleados_listado' %}" class="btn btn-primary">Ver Todos</a>
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted">No hay empleados registrados</p>
+                        <div class="text-center">
+                            <a href="{% url 'rrhh_empleado_crear' %}" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-2"></i>Crear Primer Empleado
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-clock me-2"></i>Asistencias de Hoy</h5>
+                </div>
+                <div class="card-body">
+                    {% if asistencias_recientes %}
+                        <div class="list-group list-group-flush">
+                            {% for asistencia in asistencias_recientes %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ asistencia.empleado.usuario.get_full_name }}</h6>
+                                    <small class="text-muted">
+                                        Entrada: {{ asistencia.hora_entrada|time:"H:i" }}
+                                        {% if asistencia.hora_salida %}
+                                            | Salida: {{ asistencia.hora_salida|time:"H:i" }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <span class="badge bg-{{ asistencia.estado|yesno:'success,warning' }}">
+                                    {% if asistencia.hora_salida %}Completa{% else %}En curso{% endif %}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{% url 'rrhh_asistencias_listado' %}" class="btn btn-primary">Ver Todas</a>
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted">No hay asistencias registradas hoy</p>
+                        <div class="text-center">
+                            <a href="{% url 'rrhh_asistencia_registrar' %}" class="btn btn-primary">
+                                <i class="fas fa-clock me-2"></i>Registrar Asistencia
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Actualizar estadísticas cada 30 segundos
+    setInterval(function() {
+        // Solo actualizar asistencias para no sobrecargar
+        fetch(window.location.href + '?ajax=1')
+            .then(response => response.json())
+            .then(data => {
+                if (data.asistencias_hoy !== undefined) {
+                    document.querySelector('.stats-card h3').textContent = data.asistencias_hoy;
+                }
+            })
+            .catch(error => console.log('Error actualizando estadísticas:', error));
+    }, 30000);
+</script>
+{% endblock %}

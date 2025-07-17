@@ -1,0 +1,341 @@
+/* ===== ACCIONES RÁPIDAS - DISEÑO EXACTO COMO IMAGEN ===== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+.actions-main-container {
+    font-family: 'Inter', sans-serif;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+}
+
+.actions-card {
+    background: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    border: none;
+}
+
+.actions-header {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+    color: white;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-radius: 16px 16px 0 0;
+}
+
+.header-icon-container {
+    width: 64px;
+    height: 64px;
+    background: #f59e0b;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.header-icon {
+    color: white;
+    font-size: 28px;
+}
+
+.header-content h5 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    line-height: 1;
+    color: white;
+}
+
+.header-subtitle {
+    color: #d1d5db;
+    font-size: 16px;
+    margin: 0;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.actions-grid-container {
+    padding: 32px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    background: white;
+}
+
+.action-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 16px;
+    font-weight: 600;
+    padding: 32px 24px;
+    border-radius: 12px;
+    box-shadow: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0) scale(1);
+    text-decoration: none;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    min-height: 140px;
+    border: none;
+}
+
+.action-button:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+    color: white;
+}
+
+.action-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.action-button:active {
+    transform: translateY(-2px) scale(1.01);
+}
+
+.action-icon {
+    font-size: 48px;
+    transition: transform 0.3s ease;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.action-button:hover .action-icon {
+    animation: bounce 0.6s ease-in-out;
+}
+
+.action-text {
+    font-size: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+/* Colores específicos exactos como la imagen */
+.btn-primary {
+    background: #3b82f6;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-success {
+    background: #10b981;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-info {
+    background: #6366f1;
+}
+
+.btn-info:hover {
+    background: #4f46e5;
+}
+
+.btn-warning {
+    background: #f59e0b;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+.btn-secondary {
+    background: #6b7280;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+}
+
+.btn-danger {
+    background: #ef4444;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+/* Animación bounce */
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+        animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+        transform: translate3d(0,0,0);
+    }
+
+    40%, 43% {
+        animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+        transform: translate3d(0, -8px, 0);
+    }
+
+    70% {
+        animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+        transform: translate3d(0, -4px, 0);
+    }
+
+    90% {
+        transform: translate3d(0, -2px, 0);
+    }
+}
+
+/* Responsive Design exacto */
+@media (max-width: 1199px) {
+    .actions-grid-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+        padding: 28px;
+    }
+    
+    .action-button {
+        padding: 28px 20px;
+        min-height: 130px;
+    }
+    
+    .action-icon {
+        font-size: 42px;
+    }
+    
+    .action-text {
+        font-size: 17px;
+    }
+}
+
+@media (max-width: 991px) {
+    .actions-grid-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        padding: 24px;
+    }
+    
+    .action-button {
+        padding: 24px 16px;
+        min-height: 120px;
+    }
+    
+    .action-icon {
+        font-size: 38px;
+    }
+    
+    .action-text {
+        font-size: 16px;
+    }
+    
+    .actions-header {
+        padding: 20px 24px;
+        flex-direction: row;
+    }
+    
+    .header-icon-container {
+        width: 56px;
+        height: 56px;
+    }
+    
+    .header-icon {
+        font-size: 24px;
+    }
+    
+    .header-content h5 {
+        font-size: 28px;
+    }
+    
+    .header-subtitle {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 767px) {
+    .actions-grid-container {
+        grid-template-columns: 1fr;
+        padding: 20px;
+        gap: 16px;
+    }
+    
+    .action-button {
+        padding: 20px;
+        min-height: 100px;
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
+        gap: 20px;
+    }
+    
+    .action-icon {
+        font-size: 32px;
+        margin-bottom: 0;
+    }
+    
+    .action-text {
+        font-size: 16px;
+    }
+    
+    .actions-header {
+        padding: 18px 20px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .header-icon-container {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .header-icon {
+        font-size: 20px;
+    }
+    
+    .header-content h5 {
+        font-size: 24px;
+    }
+    
+    .header-subtitle {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 575px) {
+    .actions-grid-container {
+        padding: 16px;
+    }
+    
+    .action-button {
+        padding: 16px;
+        min-height: 80px;
+        gap: 16px;
+    }
+    
+    .action-icon {
+        font-size: 28px;
+    }
+    
+    .action-text {
+        font-size: 15px;
+    }
+    
+    .actions-header {
+        padding: 16px;
+    }
+    
+    .header-content h5 {
+        font-size: 22px;
+    }
+}

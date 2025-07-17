@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Perfil de {{ empleado.usuario.get_full_name }} - Recursos Humanos{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+    .profile-photo {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 5px solid white;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    .info-card {
+        border: none;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .info-card .card-header {
+        background: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+        font-weight: 600;
+    }
+    .status-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 10px;
+    }
+    .timeline-item {
+        border-left: 3px solid #667eea;
+        padding-left: 20px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #667eea;
+    }
+    .btn-action {
+        margin: 5px;
+        border-radius: 8px;
+        padding: 10px 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Botón de regreso -->
+    <div class="mb-3">
+        <a href="{% url 'rrhh_empleados_listado' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver a Empleados
+        </a>
+    </div>
+
+    <!-- Header del Perfil -->
+    <div class="profile-header">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center">
+                {% if empleado.foto %}
+                    <img src="{{ empleado.foto.url }}" class="profile-photo" alt="Foto de {{ empleado.usuario.get_full_name }}">
+                {% else %}
+                    <div class="profile-photo mx-auto bg-white d-flex align-items-center justify-content-center">
+                        <i class="fas fa-user fa-4x text-primary"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <h1 class="mb-2">{{ empleado.usuario.get_full_name }}</h1>
+                <h4 class="mb-3">{{ empleado.rol.nombre }}</h4>
+                <p class="mb-2">
+                    <i class="fas fa-building me-2"></i>{{ empleado.sucursal.nombre }}
+                </p>
+                <p class="mb-2">
+                    <i class="fas fa-calendar me-2"></i>Desde {{ empleado.fecha_ingreso|date:"F Y" }}
+                </p>
+                <div class="mt-3">
+                    <span class="status-indicator bg-{{ empleado.activo|yesno:'success,danger' }}"></span>
+                    <span class="fs-5">{{ empleado.activo|yesno:'Empleado Activo,Empleado Inactivo' }}</span>
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'rrhh_empleado_editar' empleado.id %}" class="btn btn-light btn-lg">
+                        <i class="fas fa-edit me-2"></i>Editar Perfil
+                    </a>
+                    <button type="button" class="btn btn-outline-light" onclick="cambiarEstado()">
+                        <i class="fas fa-{{ empleado.activo|yesno:'ban,check' }} me-2"></i>
+                        {{ empleado.activo|yesno:'Desactivar,Activar' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Información Personal -->
+        <div class="col-md-6">
+            <div class="card info-card">
+                <div class="card-header">
+                    <h5><i class="fas fa-user me-2"></i>Información Personal</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Cédula:</strong></div>
+                        <div class="col-sm-8">{{ empleado.cedula|default:"No especificada" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Fecha de Nacimiento:</strong></div>
+                        <div class="col-sm-8">
+                            {% if empleado.fecha_nacimiento %}
+                                {{ empleado.fecha_nacimiento|date:"d/m/Y" }}
+                                <small class="text-muted">({{ empleado.edad }} años)</small>
+                            {% else %}
+                                No especificada
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Teléfono:</strong></div>
+                        <div class="col-sm-8">{{ empleado.telefono|default:"No especificado" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Email:</strong></div>
+                        <div class="col-sm-8">{{ empleado.usuario.email }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Dirección:</strong></div>
+                        <div class="col-sm-8">{{ empleado.direccion|default:"No especificada" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Estado Civil:</strong></div>
+                        <div class="col-sm-8">{{ empleado.get_estado_civil_display|default:"No especificado" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información Laboral -->
+            <div class="card info-card">
+                <div class="card-header">
+                    <h5><i class="fas fa-briefcase me-2"></i>Información Laboral</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Rol:</strong></div>
+                        <div class="col-sm-8">
+                            <span class="badge bg-primary">{{ empleado.rol.nombre }}</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Sucursal:</strong></div>
+                        <div class="col-sm-8">{{ empleado.sucursal.nombre }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Fecha de Ingreso:</strong></div>
+                        <div class="col-sm-8">{{ empleado.fecha_ingreso|date:"d/m/Y" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Salario Base:</strong></div>
+                        <div class="col-sm-8">
+                            {% if empleado.salario_base %}
+                                ${{ empleado.salario_base|floatformat:2 }}
+                            {% else %}
+                                No especificado
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Tipo de Contrato:</strong></div>
+                        <div class="col-sm-8">{{ empleado.get_tipo_contrato_display|default:"No especificado" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Turno Actual:</strong></div>
+                        <div class="col-sm-8">
+                            {% if turno_actual %}
+                                {{ turno_actual.turno.nombre }} 
+                                <small class="text-muted">({{ turno_actual.turno.hora_inicio }} - {{ turno_actual.turno.hora_fin }})</small>
+                            {% else %}
+                                <span class="text-warning">Sin turno asignado</span>
+                                <a href="{% url 'rrhh_asignacion_turno_crear_empleado' empleado.id %}" class="btn btn-sm btn-outline-primary ms-2">
+                                    Asignar Turno
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas y Actividad -->
+        <div class="col-md-6">
+            <!-- Estadísticas de Asistencia -->
+            <div class="card info-card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line me-2"></i>Estadísticas de Asistencia</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h3 class="text-success">{{ stats.asistencias_mes }}</h3>
+                            <small class="text-muted">Este mes</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-warning">{{ stats.tardanzas_mes }}</h3>
+                            <small class="text-muted">Tardanzas</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-danger">{{ stats.faltas_mes }}</h3>
+                            <small class="text-muted">Faltas</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <p class="mb-1"><strong>Promedio de Horas Trabajadas:</strong></p>
+                        <h4 class="text-primary">{{ stats.promedio_horas|floatformat:1 }} horas/día</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Asistencias Recientes -->
+            <div class="card info-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-clock me-2"></i>Asistencias Recientes</h5>
+                    <a href="{% url 'rrhh_asistencias_listado' %}?empleado={{ empleado.id }}" class="btn btn-sm btn-outline-primary">
+                        Ver Todas
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if asistencias_recientes %}
+                        {% for asistencia in asistencias_recientes %}
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ asistencia.fecha|date:"d/m/Y" }}</h6>
+                                    <p class="mb-1">
+                                        <i class="fas fa-sign-in-alt text-success me-1"></i>
+                                        Entrada: {{ asistencia.hora_entrada|time:"H:i" }}
+                                        {% if asistencia.hora_salida %}
+                                            <br>
+                                            <i class="fas fa-sign-out-alt text-danger me-1"></i>
+                                            Salida: {{ asistencia.hora_salida|time:"H:i" }}
+                                        {% endif %}
+                                    </p>
+                                    {% if asistencia.horas_trabajadas %}
+                                        <small class="text-muted">{{ asistencia.horas_trabajadas|floatformat:1 }} horas</small>
+                                    {% endif %}
+                                </div>
+                                <span class="badge bg-{{ asistencia.estado|yesno:'success,warning' }}">
+                                    {% if asistencia.hora_salida %}Completa{% else %}En curso{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-muted">No hay asistencias registradas</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Documentos -->
+            <div class="card info-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-file-alt me-2"></i>Documentos</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#subirDocumentoModal">
+                        <i class="fas fa-upload me-1"></i>Subir
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if documentos %}
+                        <div class="list-group list-group-flush">
+                            {% for documento in documentos %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ documento.titulo }}</h6>
+                                    <small class="text-muted">{{ documento.tipo_documento }} - {{ documento.fecha_subida|date:"d/m/Y" }}</small>
+                                </div>
+                                <a href="{{ documento.archivo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted">No hay documentos subidos</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="card info-card">
+        <div class="card-header">
+            <h5><i class="fas fa-bolt me-2"></i>Acciones Rápidas</h5>
+        </div>
+        <div class="card-body text-center">
+            <a href="{% url 'rrhh_asistencia_registrar_empleado' empleado.id %}" class="btn btn-success btn-action">
+                <i class="fas fa-clock me-2"></i>Registrar Asistencia
+            </a>
+            <a href="{% url 'rrhh_asignacion_turno_crear_empleado' empleado.id %}" class="btn btn-info btn-action">
+                <i class="fas fa-calendar-alt me-2"></i>Asignar Turno
+            </a>
+            <a href="{% url 'rrhh_capacitacion_crear' %}?empleado={{ empleado.id }}" class="btn btn-warning btn-action">
+                <i class="fas fa-graduation-cap me-2"></i>Nueva Capacitación
+            </a>
+            <a href="{% url 'rrhh_evaluacion_crear' %}?empleado={{ empleado.id }}" class="btn btn-secondary btn-action">
+                <i class="fas fa-star me-2"></i>Nueva Evaluación
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para subir documento -->
+<div class="modal fade" id="subirDocumentoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Subir Documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'rrhh_documento_subir' empleado.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Título del documento</label>
+                        <input type="text" class="form-control" name="titulo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de documento</label>
+                        <select class="form-select" name="tipo_documento" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="cedula">Cédula de Identidad</option>
+                            <option value="contrato">Contrato</option>
+                            <option value="certificado">Certificado</option>
+                            <option value="titulo">Título Académico</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Archivo</label>
+                        <input type="file" class="form-control" name="archivo" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Subir Documento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Acción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmButton">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+
+function cambiarEstado() {
+    const activo = {{ empleado.activo|yesno:'true,false' }};
+    const mensaje = activo ? 
+        '¿Estás seguro de que quieres desactivar este empleado?' : 
+        '¿Estás seguro de que quieres activar este empleado?';
+    
+    document.getElementById('confirmMessage').textContent = mensaje;
+    
+    document.getElementById('confirmButton').onclick = function() {
+        fetch(`{% url 'rrhh_empleado_cambiar_estado' empleado.id %}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                'estado': activo ? 'inactivo' : 'activo'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al cambiar el estado: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+        
+        confirmModal.hide();
+    };
+    
+    confirmModal.show();
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,460 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Nóminas - Recursos Humanos{% endblock %}
+
+{% block extra_head %}
+<style>
+    .nomina-card {
+        border-radius: 10px;
+        transition: transform 0.3s;
+        cursor: pointer;
+    }
+    .nomina-card:hover {
+        transform: translateY(-5px);
+    }
+    .estado-pagada {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    .estado-pendiente {
+        background-color: #fff3cd;
+        color: #856404;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    .estado-cancelada {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    .filter-card {
+        background-color: #f8f9fc;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4e73df;
+    }
+    .currency {
+        font-weight: 600;
+        color: #2e59d9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Encabezado -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-money-bill-wave text-primary me-2"></i>
+            Gestión de Nóminas
+        </h1>
+        <small class="text-muted">Administra los pagos y nóminas del personal</small>
+    </div>
+    <div>
+        <a href="{% url 'dashboard:rrhh_nomina_generar' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i> Nueva Nómina
+        </a>
+        <button class="btn btn-success btn-sm ms-2" onclick="generarNominasMasivas()">
+            <i class="fas fa-calculator me-1"></i> Generar Nóminas Masivas
+        </button>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Nóminas Pagadas (Este Mes)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ nominas_pagadas }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Nóminas Pendientes</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ nominas_pendientes }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Pagado (Este Mes)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800 currency">
+                            ${{ total_pagado|floatformat:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Promedio Salario</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800 currency">
+                            ${{ promedio_salario|floatformat:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filter-card">
+    <h6 class="text-primary mb-3">
+        <i class="fas fa-filter me-2"></i>Filtros de Búsqueda
+    </h6>
+    <form method="GET" class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Empleado</label>
+            <select name="empleado" class="form-control">
+                <option value="">Todos los empleados</option>
+                {% for empleado in empleados %}
+                    <option value="{{ empleado.id }}" {% if request.GET.empleado == empleado.id|stringformat:"s" %}selected{% endif %}>
+                        {{ empleado.nombre }} {{ empleado.apellido }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Estado</label>
+            <select name="estado" class="form-control">
+                <option value="">Todos</option>
+                <option value="pendiente" {% if request.GET.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                <option value="pagada" {% if request.GET.estado == 'pagada' %}selected{% endif %}>Pagada</option>
+                <option value="cancelada" {% if request.GET.estado == 'cancelada' %}selected{% endif %}>Cancelada</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Mes</label>
+            <select name="mes" class="form-control">
+                <option value="">Todos</option>
+                {% for mes in meses %}
+                    <option value="{{ mes.value }}" {% if request.GET.mes == mes.value|stringformat:"s" %}selected{% endif %}>
+                        {{ mes.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Año</label>
+            <select name="ano" class="form-control">
+                <option value="">Todos</option>
+                {% for ano in anos %}
+                    <option value="{{ ano }}" {% if request.GET.ano == ano|stringformat:"s" %}selected{% endif %}>
+                        {{ ano }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">
+                <i class="fas fa-search me-1"></i> Filtrar
+            </button>
+            <a href="{% url 'dashboard:rrhh_nominas_listado' %}" class="btn btn-secondary">
+                <i class="fas fa-times me-1"></i> Limpiar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Tabla de Nóminas -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Listado de Nóminas</h6>
+        <div>
+            <button class="btn btn-success btn-sm" onclick="exportarExcel()">
+                <i class="fas fa-file-excel me-1"></i> Exportar Excel
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if nominas %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="nominasTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Empleado</th>
+                            <th>Período</th>
+                            <th>Salario Base</th>
+                            <th>Descuentos</th>
+                            <th>Bonificaciones</th>
+                            <th>Total Neto</th>
+                            <th>Estado</th>
+                            <th>Fecha Pago</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for nomina in nominas %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="mr-3">
+                                            {% if nomina.empleado.foto %}
+                                                <img src="{{ nomina.empleado.foto.url }}" alt="Foto" 
+                                                     class="rounded-circle" width="40" height="40">
+                                            {% else %}
+                                                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" 
+                                                     style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <strong>{{ nomina.empleado.nombre }} {{ nomina.empleado.apellido }}</strong><br>
+                                            <small class="text-muted">{{ nomina.empleado.email }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>{{ nomina.get_mes_display }} {{ nomina.ano }}</strong>
+                                </td>
+                                <td class="currency">${{ nomina.salario_base|floatformat:0 }}</td>
+                                <td class="text-danger">-${{ nomina.descuentos|floatformat:0 }}</td>
+                                <td class="text-success">+${{ nomina.bonificaciones|floatformat:0 }}</td>
+                                <td class="currency"><strong>${{ nomina.total_neto|floatformat:0 }}</strong></td>
+                                <td>
+                                    <span class="estado-{{ nomina.estado }}">
+                                        {% if nomina.estado == 'pagada' %}
+                                            <i class="fas fa-check me-1"></i>Pagada
+                                        {% elif nomina.estado == 'pendiente' %}
+                                            <i class="fas fa-clock me-1"></i>Pendiente
+                                        {% elif nomina.estado == 'cancelada' %}
+                                            <i class="fas fa-times me-1"></i>Cancelada
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if nomina.fecha_pago %}
+                                        {{ nomina.fecha_pago|date:"d/m/Y" }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button onclick="verDetalleNomina({{ nomina.id }})" 
+                                           class="btn btn-info btn-sm" title="Ver Detalle">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if nomina.estado == 'pendiente' %}
+                                            <button onclick="editarNomina({{ nomina.id }})" 
+                                               class="btn btn-warning btn-sm" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-success btn-sm" 
+                                                    onclick="marcarComoPagada({{ nomina.id }})" title="Marcar como Pagada">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                        <button class="btn btn-danger btn-sm" 
+                                                onclick="generarPDF({{ nomina.id }})" title="Generar PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if is_paginated %}
+                <div class="d-flex justify-content-center mt-4">
+                    <nav aria-label="Paginación de nóminas">
+                        <ul class="pagination">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Primera</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Anterior</a>
+                                </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Siguiente</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Última</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-money-bill-wave fa-3x text-gray-300 mb-3"></i>
+                <h5 class="text-gray-600">No hay nóminas registradas</h5>
+                <p class="text-muted">Comienza creando nóminas para ver datos aquí.</p>
+                <a href="{% url 'dashboard:rrhh_nomina_generar' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Nueva Nómina
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para generar nóminas masivas -->
+<div class="modal fade" id="nominasMasivasModal" tabindex="-1" aria-labelledby="nominasMasivasModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nominasMasivasModalLabel">Generar Nóminas Masivas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="nominasMasivasForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Mes</label>
+                            <select name="mes" class="form-control" required>
+                                {% for mes in meses %}
+                                    <option value="{{ mes.value }}">{{ mes.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Año</label>
+                            <select name="ano" class="form-control" required>
+                                {% for ano in anos %}
+                                    <option value="{{ ano }}">{{ ano }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Sucursal (opcional)</label>
+                        <select name="sucursal" class="form-control">
+                            <option value="">Todas las sucursales</option>
+                            {% for sucursal in sucursales %}
+                                <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Se generarán nóminas para todos los empleados activos del período seleccionado.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="ejecutarNominasMasivas()">Generar Nóminas</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Función para exportar a Excel
+function exportarExcel() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'excel');
+    
+    const exportUrl = window.location.pathname + '?' + params.toString();
+    window.open(exportUrl, '_blank');
+}
+
+// Función para mostrar modal de nóminas masivas
+function generarNominasMasivas() {
+    const modal = new bootstrap.Modal(document.getElementById('nominasMasivasModal'));
+    modal.show();
+}
+
+// Función para ejecutar generación masiva
+function ejecutarNominasMasivas() {
+    const form = document.getElementById('nominasMasivasForm');
+    const formData = new FormData(form);
+    
+    // Simulación de creación masiva
+    alert('Funcionalidad de generación masiva en desarrollo. Se crearían nóminas para el período seleccionado.');
+    
+    // Cerrar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('nominasMasivasModal'));
+    modal.hide();
+}
+
+// Función para marcar nómina como pagada
+function marcarComoPagada(nominaId) {
+    if (confirm('¿Está seguro de marcar esta nómina como pagada?')) {
+        // Simulación de actualización
+        alert('Funcionalidad de actualización en desarrollo. La nómina se marcaría como pagada.');
+    }
+}
+
+// Función para generar PDF
+function generarPDF(nominaId) {
+    alert('Funcionalidad de generación de PDF en desarrollo.');
+}
+
+// Función para ver detalle de nómina
+function verDetalleNomina(nominaId) {
+    alert('Función para ver detalle de nómina ' + nominaId + ' - En desarrollo');
+}
+
+// Función para editar nómina
+function editarNomina(nominaId) {
+    alert('Función para editar nómina ' + nominaId + ' - En desarrollo');
+}
+</script>
+{% endblock %}
